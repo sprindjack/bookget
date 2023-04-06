@@ -183,3 +183,13 @@ func (p Sdutcm) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	}
 	return nil, nil
 }
+
+type Tjliblswx struct{}
+
+func (p Tjliblswx) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var tjlib app.Tjlswx
+		tjlib.Init(i+1, s)
+	}
+	return nil, nil
+}

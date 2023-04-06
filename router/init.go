@@ -76,6 +76,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["guji.ynutcm.edu.cn"] = new(GujiYnutcm)
 		//山东中医药大学古籍数字图书馆
 		Router["gjsztsg.sdutcm.edu.cn"] = new(Sdutcm)
+		//天津图书馆历史文献数字资源库
+		Router["lswx.tjl.tj.cn:8001"] = new(Tjliblswx)
 		//}}} -----------------------------------------------------------------
 
 		//---------------日本--------------------------------------------------
