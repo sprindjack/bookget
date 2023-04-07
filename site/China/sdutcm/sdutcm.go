@@ -83,8 +83,9 @@ func doDl(pageUrl, bookId string, imgUrls []string, jar *cookiejar.Jar) (err err
 		jar, err = cookiejar.New(nil)
 	}
 	ext := ".pdf"
+	size := len(imgUrls)
 	for i, uri := range imgUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if uri == "" {

@@ -64,8 +64,9 @@ func (r Tnm) do(dziUrls []string) (msg string, err error) {
 		"-H", "Referer:" + referer,
 		"-H", "User-Agent:" + config.Conf.UserAgent,
 	}
+	size := len(dziUrls)
 	for i, uri := range dziUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if uri == "" {

@@ -18,8 +18,9 @@ func Init(iTask int, taskUrl string) (msg string, err error) {
 	taskUrls := explanRegexpUrl(taskUrl)
 	taskName := util.GenNumberSorted(iTask)
 	log.Printf("Get %s  %s\n", taskName, taskUrl)
+	size := len(taskUrls)
 	for i, tUrl := range taskUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		bookId := getBookId(tUrl)

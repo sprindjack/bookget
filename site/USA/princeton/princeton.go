@@ -28,10 +28,9 @@ func StartDownload(iTask int, text, bookId string) {
 	log.Printf("Get %s  %s\n", name, text)
 
 	pages := getPages(bookId)
-	log.Printf(" %d pages.\n", len(pages))
-
+	size := len(pages)
 	for i, uri := range pages {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if uri == "" {
@@ -39,7 +38,7 @@ func StartDownload(iTask int, text, bookId string) {
 		}
 		ext := util.FileExt(uri)
 		sortId := util.GenNumberSorted(i + 1)
-		log.Printf("Get %s  %s\n", sortId, uri)
+		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
 		fileName := sortId + ext
 		dest := config.GetDestPath(text, bookId, fileName)
 		gohttp.FastGet(uri, gohttp.Options{

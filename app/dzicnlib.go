@@ -108,8 +108,9 @@ func (r DziCnLib) do(dziUrls []string) (msg string, err error) {
 		"-H", "Referer:" + url.QueryEscape(r.dt.Url),
 		"-H", "User-Agent:" + config.Conf.UserAgent,
 	}
+	size := len(dziUrls)
 	for i, val := range dziUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		inputUri := storePath + val

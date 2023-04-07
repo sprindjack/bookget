@@ -33,11 +33,12 @@ func Download(dt *DownloadTask) (msg string, err error) {
 	log.Printf("Get %s %s %s\n", name, dt.Title, dt.Url)
 	canvases := getCanvases(dt.BookId, dt.Jar)
 	log.Printf(" %d pages \n", len(canvases))
-	if canvases == nil || len(canvases) == 0 {
+	if canvases == nil {
 		log.Printf("requested URL was not found.\n")
 	}
+	size := len(canvases)
 	for i, uri := range canvases {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if uri == "" {

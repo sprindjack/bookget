@@ -26,10 +26,9 @@ func StartDownload(num int, uri, bookId string) {
 	log.Printf("Get %s  %s\n", name, uri)
 
 	pages := getPages(bookId)
-	log.Printf(" %d pages.\n", len(pages))
-
+	size := len(pages)
 	for i, imgUri := range pages {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if imgUri == "" {
@@ -37,7 +36,7 @@ func StartDownload(num int, uri, bookId string) {
 		}
 		ext := util.FileExt(imgUri)
 		sortId := util.GenNumberSorted(i + 1)
-		log.Printf("Get %s  %s\n", sortId, imgUri)
+		log.Printf("Get %d/%d   %s\n", i+1, size, imgUri)
 		fileName := sortId + ext
 		dest := config.GetDestPath(uri, bookId, fileName)
 		curl.FastGet(imgUri, dest, nil, true)

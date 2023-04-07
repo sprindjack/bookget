@@ -72,7 +72,7 @@ func StartDownload(iTask int, taskUrl, bookId, text string) {
 	}
 	ext := ".pdf"
 	for i, uri := range canvases.ImgUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, canvases.Size) {
 			continue
 		}
 		if uri == "" {

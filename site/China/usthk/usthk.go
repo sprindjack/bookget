@@ -43,7 +43,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 	canvases := getCanvases(dt)
 	log.Printf(" %d pages.\n", canvases.Size)
 	for i, uri := range canvases.ImgUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, canvases.Size) {
 			continue
 		}
 		if uri == "" {

@@ -243,8 +243,9 @@ func (f IIIF) doDezoomifyRs(iiifUrls []string) bool {
 		"-H", "Referer:" + referer,
 		"-H", "User-Agent:" + config.Conf.UserAgent,
 	}
+	size := len(iiifUrls)
 	for i, uri := range iiifUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if uri == "" {
@@ -263,8 +264,9 @@ func (f IIIF) doNormal(imgUrls []string) bool {
 	if imgUrls == nil {
 		return false
 	}
+	size := len(imgUrls)
 	for i, uri := range imgUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if uri == "" {

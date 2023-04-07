@@ -74,7 +74,7 @@ func fetchBooks(dt *DownloadTask) (msg string, err error) {
 	log.Printf(" %d PDFs.\n", size)
 
 	for i, uri := range pdfUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if uri[1] == "" {

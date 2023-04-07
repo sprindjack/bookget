@@ -44,8 +44,9 @@ func NormalDownload(pageUrl, bookId string, imgUrls []string, jar *cookiejar.Jar
 	if strings.Contains(imgUrls[0], "/full/") || strings.HasSuffix(imgUrls[0], "/0/default.jpg") {
 		threads = 1
 	}
+	size := len(imgUrls)
 	for i, uri := range imgUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if uri == "" {
@@ -85,8 +86,9 @@ func DziDownload(pageUrl, bookId string, iiifUrls []string) {
 		"-H", "Referer:" + referer,
 		"-H", "User-Agent:" + config.Conf.UserAgent,
 	}
+	size := len(iiifUrls)
 	for i, uri := range iiifUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if uri == "" {

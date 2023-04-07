@@ -100,8 +100,9 @@ func (k KyudbSnu) do(imgUrls []string) (msg string, err error) {
 	}
 	fmt.Println()
 	referer := fmt.Sprintf("%s://%s/pf01/rendererImg.do", k.dt.UrlParsed.Scheme, k.dt.UrlParsed.Host)
+	size := len(imgUrls)
 	for i, uri := range imgUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if uri == "" {

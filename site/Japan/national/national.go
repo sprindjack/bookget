@@ -30,7 +30,7 @@ func StartDownload(iTask int, taskUrl, bookId string) {
 	}
 	log.Printf("\n %d files.\n", size)
 	for i, id := range bookIds {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if id == "" {

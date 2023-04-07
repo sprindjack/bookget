@@ -42,7 +42,7 @@ func StartDownload(iTask int, taskUrl, bookId string) {
 
 	ext := ".pdf"
 	for i, v := range pdfUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if v.Url == "" {

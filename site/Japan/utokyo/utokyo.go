@@ -26,11 +26,12 @@ func StartDownload(iTask int, taskUrl, bookId string) {
 	log.Printf("Get %s  %s\n", name, taskUrl)
 
 	bookUrls := getMultiplebooks(bookId, taskUrl)
-	if bookUrls == nil || len(bookUrls) == 0 {
+	if bookUrls == nil {
 		return
 	}
+	size := len(bookUrls)
 	for i, uri := range bookUrls {
-		if config.SeqContinue(i) {
+		if !config.PageRange(i, size) {
 			continue
 		}
 		if uri == "" {

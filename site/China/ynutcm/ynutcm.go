@@ -54,12 +54,13 @@ func Download(dt *DownloadTask) (msg string, err error) {
 		config.CreateDirectory(page, id)
 		canvases := getCanvases(serverUrl, page, dt.Jar)
 		log.Printf(" %d/%d volume, %d pages \n", k+1, len(bookUrls), len(canvases))
-		if canvases == nil || len(canvases) == 0 {
+		if canvases == nil {
 			continue
 		}
 		dt.SavePath = config.CreateDirectory(dt.Url, id)
+		size := len(canvases)
 		for i, uri := range canvases {
-			if config.SeqContinue(i) {
+			if !config.PageRange(i, size) {
 				continue
 			}
 			if uri == "" {
