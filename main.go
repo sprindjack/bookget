@@ -89,9 +89,10 @@ func taskForUrls() {
 				continue
 			}
 			wg.Add(1)
+			sUrl := []string{v}
 			q.Go(func() {
 				defer wg.Done()
-				msg, err := router.FactoryRouter(u.Host, []string{v})
+				msg, err := router.FactoryRouter(u.Host, sUrl)
 				if err != nil {
 					fmt.Println(err)
 					return

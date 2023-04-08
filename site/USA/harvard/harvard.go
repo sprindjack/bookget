@@ -34,7 +34,6 @@ func StartDownload(iTask int, text, bookId string) (msg string, err error) {
 	log.Printf("Get %s  %s\n", name, text)
 
 	manifestUrl := fmt.Sprintf("https://iiif.lib.harvard.edu/manifests/%s", bookId)
-	//iiif.StartDownload(manifestUrl, bookId)
 	var iiif app.IIIF
 	iiif.InitWithId(iTask, manifestUrl, bookId)
 	return
