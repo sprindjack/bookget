@@ -13,7 +13,6 @@ import (
 	"bookget/site/Japan/ndl"
 	"bookget/site/Japan/niiac"
 	"bookget/site/Japan/utokyo"
-	"bookget/site/Japan/waseda"
 	"bookget/site/Japan/yonezawa"
 )
 
@@ -76,15 +75,6 @@ type DsrNiiAc struct{}
 func (p DsrNiiAc) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
 		niiac.Init(i+1, s)
-	}
-	return nil, nil
-}
-
-type WulWasedaAc struct{}
-
-func (p WulWasedaAc) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	for i, s := range sUrl {
-		waseda.Init(i+1, s)
 	}
 	return nil, nil
 }
