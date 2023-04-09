@@ -96,7 +96,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[日本]东洋文库
 		Router["dsr.nii.ac.jp"] = new(DsrNiiAc)
 		//[日本]早稻田大学图书馆
-		Router["archive.wul.waseda.ac.jp"] = new(WulWasedaAc)
+		Router["archive.wul.waseda.ac.jp"] = new(Waseda)
 		//[日本]国書数据库（古典籍）
 		Router["kokusho.nijl.ac.jp"] = new(KokushoNijlAc)
 		//[日本]京都大学人文科学研究所 东方学数字图书博物馆

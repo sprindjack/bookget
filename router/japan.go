@@ -143,3 +143,13 @@ func (p WebarchivesTnm) getRouterInit(sUrl []string) (map[string]interface{}, er
 	}
 	return nil, nil
 }
+
+type Waseda struct{}
+
+func (p Waseda) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var waseda app.Waseda
+		waseda.Init(i+1, s)
+	}
+	return nil, nil
+}
