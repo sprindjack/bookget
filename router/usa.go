@@ -3,7 +3,6 @@ package router
 import (
 	"bookget/app"
 	"bookget/site/USA/harvard"
-	"bookget/site/USA/loc"
 	"bookget/site/USA/princeton"
 )
 
@@ -43,6 +42,7 @@ type UsLoc struct {
 
 func (p UsLoc) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var loc app.Loc
 		loc.Init(i+1, s)
 	}
 	return nil, nil

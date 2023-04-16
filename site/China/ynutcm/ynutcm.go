@@ -97,7 +97,10 @@ func getCanvases(serverUrl, bookUrl string, jar *cookiejar.Jar) []string {
 	}
 	var canvases = make([]string, 0, len(matches[1]))
 	for _, v := range matches {
-		imgUrl := serverUrl + strings.Replace(v[1], "\\", "/", -1)
+		s := strings.Replace(v[1], "&#183;", "·", -1)
+		s = strings.Replace(s, "\\", "/", -1)
+		//s = strings.Replace(url.QueryEscape(s), "%2F", "/", -1)
+		imgUrl := serverUrl + s
 		canvases = append(canvases, imgUrl)
 	}
 	return canvases

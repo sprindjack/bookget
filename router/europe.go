@@ -5,6 +5,7 @@ import (
 	"bookget/site/Europe/berlin"
 	"bookget/site/Europe/bluk"
 	"bookget/site/Europe/oxacuk"
+	"bookget/site/USA/familysearch"
 	"bookget/site/USA/stanford"
 )
 
@@ -49,6 +50,15 @@ type SearchworksStanford struct{}
 func (p SearchworksStanford) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
 		stanford.Init(i+1, s)
+	}
+	return nil, nil
+}
+
+type FamilySearch struct{}
+
+func (p FamilySearch) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		familysearch.Init(i+1, s)
 	}
 	return nil, nil
 }

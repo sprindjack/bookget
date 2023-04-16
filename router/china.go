@@ -11,7 +11,6 @@ import (
 	"bookget/site/China/sdutcm"
 	"bookget/site/China/szlib"
 	"bookget/site/China/tianyige"
-	"bookget/site/China/twnlc"
 	"bookget/site/China/usthk"
 	"bookget/site/China/wzlib"
 	"bookget/site/China/ynutcm"
@@ -31,7 +30,8 @@ type RbookNcl struct{}
 
 func (p RbookNcl) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
-		twnlc.Init(i+1, s)
+		var nlc app.NclTw
+		nlc.Init(i+1, s)
 	}
 	return nil, nil
 }
@@ -190,6 +190,16 @@ func (p Tjliblswx) getRouterInit(sUrl []string) (map[string]interface{}, error) 
 	for i, s := range sUrl {
 		var tjlib app.Tjlswx
 		tjlib.Init(i+1, s)
+	}
+	return nil, nil
+}
+
+type Yndfz struct{}
+
+func (p Yndfz) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var yndfz app.Yndfz
+		yndfz.Init(i+1, s)
 	}
 	return nil, nil
 }

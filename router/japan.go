@@ -10,7 +10,6 @@ import (
 	"bookget/site/Japan/kokusho"
 	"bookget/site/Japan/kyoto"
 	"bookget/site/Japan/national"
-	"bookget/site/Japan/ndl"
 	"bookget/site/Japan/niiac"
 	"bookget/site/Japan/utokyo"
 	"bookget/site/Japan/yonezawa"
@@ -29,6 +28,7 @@ type NdlGo struct{}
 
 func (p NdlGo) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var ndl app.NdlJP
 		ndl.Init(i+1, s)
 	}
 	return nil, nil

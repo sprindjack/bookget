@@ -116,11 +116,12 @@ func (f IIIF) download() (msg string, err error) {
 	log.Printf(" %d volumes, %d pages.\n", len(volumes), len(canvases))
 	k := 0
 	for i, v := range volumes {
-		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
-			continue
-		}
 		m := strings.Split(v, "^")
 		size, _ := strconv.Atoi(m[1])
+		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+			k += size
+			continue
+		}
 		log.Printf(" %d/%d volume, %d pages \n", i+1, len(volumes), size)
 		vol := util.GenNumberSorted(i + 1)
 		f.dt.SavePath = config.CreateDirectory(f.dt.Url, f.dt.BookId+"_vol."+vol)
