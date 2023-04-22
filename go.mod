@@ -17,4 +17,6 @@ require (
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
+	github.com/stretchr/testify/assert latest
+	github.com/spf13/pflag latest
 )
