@@ -4,18 +4,19 @@ import (
 	"bookget/config"
 	"bookget/lib/curl"
 	"bookget/lib/gohttp"
+	xhash "bookget/lib/hash"
 	util "bookget/lib/util"
-	"bookget/lib/zhash"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"regexp"
-	"strconv"
 )
 
 var API_URL = "https://www.familysearch.org/search/filmdata/filmdatainfo"
@@ -133,7 +134,9 @@ func getBookId(dt *DownloadTask) string {
 	bookId := ""
 	m := regexp.MustCompile(`(?i)wc=([^&]+)`).FindStringSubmatch(dt.Url)
 	if m != nil {
-		bookId = strconv.FormatUint(uint64(zhash.CRC32(m[1])), 10)
+		mh := xhash.NewMultiHasher()
+		io.Copy(mh, bytes.NewBuffer([]byte(m[1])))
+		bookId, _ = mh.SumString(xhash.CRC32, false)
 		dt.UrlType = 0 //中國族譜收藏 1239-2014年 https://www.familysearch.org/search/collection/1787988
 	}
 	m = regexp.MustCompile(`(?i)rmsId=([A-z\d-_]+)`).FindStringSubmatch(dt.Url)

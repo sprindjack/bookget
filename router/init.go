@@ -142,6 +142,10 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["digital.bodleian.ox.ac.uk"] = new(OxacUk)
 		//[英国]图书馆文本手稿
 		Router["www.bl.uk"] = new(BlUk)
+		//Smithsonian Institution
+		Router["ids.si.edu"] = new(SiEdu)
+		Router["www.si.edu"] = new(SiEdu)
+		Router["iiif.si.edu"] = new(SiEdu)
 
 		//}}} -----------------------------------------------------------------
 

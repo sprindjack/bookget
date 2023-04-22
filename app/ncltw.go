@@ -100,7 +100,7 @@ func (r *NclTw) do(imgUrls []string) (msg string, err error) {
 			fmt.Println(err)
 			continue
 		}
-		//util.PrintSleepTime(config.Conf.Speed)
+		util.PrintSleepTime(config.Conf.Speed)
 	}
 	fmt.Println()
 	return "", err

@@ -1,6 +1,7 @@
 package router
 
 import (
+	"bookget/app"
 	"bookget/site/Europe/bavaria"
 	"bookget/site/Europe/berlin"
 	"bookget/site/Europe/bluk"
@@ -59,6 +60,16 @@ type FamilySearch struct{}
 func (p FamilySearch) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
 		familysearch.Init(i+1, s)
+	}
+	return nil, nil
+}
+
+type SiEdu struct{}
+
+func (p SiEdu) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var siedu app.SiEdu
+		siedu.Init(i+1, s)
 	}
 	return nil, nil
 }

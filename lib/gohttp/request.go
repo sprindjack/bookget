@@ -13,7 +13,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -123,24 +122,20 @@ func (r *Request) Request(method, uri string, opts ...Options) (*Request, error)
 
 func (r *Request) do() (*Response, error) {
 	_resp, err := r.cli.Do(r.req)
-	if _resp != nil {
-		defer _resp.Body.Close()
-	}
+	defer _resp.Body.Close()
 	resp := &Response{
 		resp: _resp,
 		req:  r.req,
 		err:  err,
 	}
-	if err != nil {
+	if err != nil || _resp.StatusCode != http.StatusOK {
 		if r.opts.Debug {
 			// print response err
 			fmt.Println(err)
 		}
 		return resp, err
 	}
-	if _resp.StatusCode != http.StatusOK {
-		return resp, errors.New(fmt.Sprintf("ErrCode:%d, %s", resp.GetStatusCode(), resp.GetReasonPhrase()))
-	}
+
 	if r.opts.DestFile != "" {
 		dl := &Download{
 			startedAt: time.Now(),
@@ -152,7 +147,12 @@ func (r *Request) do() (*Response, error) {
 			},
 			Dest: r.opts.DestFile,
 		}
+		// Wait group.
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go dlProgressBar(&wg, dl)
 		_, err := resp.dlFile(dl)
+		wg.Wait()
 		resp.err = err
 	} else {
 		body, err := io.ReadAll(_resp.Body)
@@ -268,8 +268,8 @@ func (r *Request) parseCookieFile() {
 		if i == -1 {
 			continue
 		}
-		k := strings.TrimSpace(s[:i])
-		v := strings.TrimSpace(s[i+1:])
+		k := s[:i]
+		v := strings.Trim(s[i+1:], " ")
 		if v == "" {
 			continue
 		}
@@ -336,17 +336,4 @@ func (r *Request) parseBody() {
 		}
 	}
 	return
-}
-func CookieEscape(text string) string {
-	matches := regexp.MustCompile(`([^=]+)\=([^;]+);`).FindAllStringSubmatch(text, -1)
-	if matches == nil {
-		return text
-	}
-	cookieText := ""
-	for _, m := range matches {
-		k := strings.TrimSpace(m[1])
-		v := strings.TrimSpace(m[2])
-		cookieText += k + "=" + url.QueryEscape(v) + ";"
-	}
-	return cookieText
 }

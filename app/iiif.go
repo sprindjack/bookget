@@ -3,10 +3,13 @@ package app
 import (
 	"bookget/config"
 	"bookget/lib/gohttp"
+	xhash "bookget/lib/hash"
 	"bookget/lib/util"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http/cookiejar"
 	"net/url"
@@ -86,11 +89,11 @@ func (f IIIF) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`/([^/]+)/manifest.json`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
+		return
 	}
-	m = regexp.MustCompile(`/([^/]+)`).FindStringSubmatch(sUrl)
-	if m != nil {
-		bookId = m[1]
-	}
+	mh := xhash.NewMultiHasher()
+	io.Copy(mh, bytes.NewBuffer([]byte(sUrl)))
+	bookId, _ = mh.SumString(xhash.CRC32, false)
 	return bookId
 }
 
@@ -161,7 +164,11 @@ func (f IIIF) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err
 			continue
 		}
 		if item.Ranges != nil {
-			volId := fmt.Sprintf("%s^%d", item.Label, len(item.Ranges))
+			size := len(item.Ranges)
+			if size == 0 && item.Canvases != nil {
+				size = len(item.Canvases)
+			}
+			volId := fmt.Sprintf("%s^%d", item.Label, size)
 			volumes = append(volumes, volId)
 		}
 	}
@@ -246,14 +253,11 @@ func (f IIIF) doDezoomifyRs(iiifUrls []string) bool {
 	}
 	size := len(iiifUrls)
 	for i, uri := range iiifUrls {
-		if !config.PageRange(i, size) {
-			continue
-		}
-		if uri == "" {
+		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
 		sortId := util.GenNumberSorted(i + 1)
-		log.Printf("Get %s  %s\n", sortId, uri)
+		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
 		filename := sortId + config.Conf.FileExt
 		dest := f.dt.SavePath + string(os.PathSeparator) + filename
 		util.StartProcess(uri, dest, args)
@@ -267,15 +271,12 @@ func (f IIIF) doNormal(imgUrls []string) bool {
 	}
 	size := len(imgUrls)
 	for i, uri := range imgUrls {
-		if !config.PageRange(i, size) {
-			continue
-		}
-		if uri == "" {
+		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
 		ext := util.FileExt(uri)
 		sortId := util.GenNumberSorted(i + 1)
-		log.Printf("Get %s  %s\n", sortId, uri)
+		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
 		filename := sortId + ext
 		dest := f.dt.SavePath + string(os.PathSeparator) + filename
 		opts := gohttp.Options{
