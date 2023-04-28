@@ -163,11 +163,14 @@ func (f IIIF) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err
 		if item.ViewingHint == "top" {
 			continue
 		}
+		var size int
+		if item.Canvases != nil {
+			size = len(item.Canvases)
+		}
 		if item.Ranges != nil {
-			size := len(item.Ranges)
-			if size == 0 && item.Canvases != nil {
-				size = len(item.Canvases)
-			}
+			size = len(item.Ranges)
+		}
+		if size > 0 {
 			volId := fmt.Sprintf("%s^%d", item.Label, size)
 			volumes = append(volumes, volId)
 		}
@@ -270,6 +273,7 @@ func (f IIIF) doNormal(imgUrls []string) bool {
 		return false
 	}
 	size := len(imgUrls)
+	fmt.Println()
 	for i, uri := range imgUrls {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
@@ -293,6 +297,7 @@ func (f IIIF) doNormal(imgUrls []string) bool {
 		if err != nil {
 			fmt.Println(err)
 		}
+		fmt.Println()
 	}
 	return true
 }
