@@ -11,6 +11,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"regexp"
+	"strings"
 )
 
 type Hkulib struct {
@@ -147,7 +148,9 @@ func (r *Hkulib) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string
 	for _, canvase := range manifest.Sequences[0].Canvases {
 		for _, image := range canvase.Images {
 			//JPEG URL
-			canvases = append(canvases, image.Resource.Id)
+			w := fmt.Sprintf("/full/%d,/", image.Resource.Width)
+			imgUrl := strings.Replace(image.Resource.Id, "/full/full/", w, -1)
+			canvases = append(canvases, imgUrl)
 		}
 	}
 	return canvases, nil
