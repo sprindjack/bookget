@@ -42,7 +42,6 @@ func (r Cuhk) Init(iTask int, sUrl string) (msg string, err error) {
 		return "requested URL was not found.", err
 	}
 	r.dt.Jar, _ = cookiejar.New(nil)
-	OpenWebview(sUrl, true)
 	return r.download()
 }
 
@@ -117,8 +116,7 @@ func (r Cuhk) do(imgUrls []string) (msg string, err error) {
 		resp, err := gohttp.FastGet(uri, opts)
 		if err != nil || resp.GetStatusCode() != 200 {
 			fmt.Println(err)
-			OpenWebview(r.dt.Url, true)
-			//util.PrintSleepTime(60)
+			util.PrintSleepTime(60)
 			continue
 		}
 		util.PrintSleepTime(config.Conf.Speed)
