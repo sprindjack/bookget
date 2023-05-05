@@ -103,9 +103,10 @@ func (r DziCnLib) do(dziUrls []string) (msg string, err error) {
 		return "", err
 	}
 	storePath := r.dt.SavePath + string(os.PathSeparator)
+	referer := url.QueryEscape(r.dt.Url)
 	args := []string{"--dezoomer=deepzoom",
-		"-H", "Origin:" + url.QueryEscape(r.dt.Url),
-		"-H", "Referer:" + url.QueryEscape(r.dt.Url),
+		"-H", "Origin:" + referer,
+		"-H", "Referer:" + referer,
 		"-H", "User-Agent:" + config.Conf.UserAgent,
 	}
 	size := len(dziUrls)

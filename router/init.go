@@ -80,6 +80,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["lswx.tjl.tj.cn:8001"] = new(Tjliblswx)
 		//云南数字方志馆
 		Router["dfz.yn.gov.cn"] = new(Yndfz)
+		//香港大学数字图书
+		Router["digitalrepository.lib.hku.hk"] = new(Hkulib)
 		//}}} -----------------------------------------------------------------
 
 		//---------------日本--------------------------------------------------

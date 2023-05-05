@@ -203,3 +203,13 @@ func (p Yndfz) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	}
 	return nil, nil
 }
+
+type Hkulib struct{}
+
+func (p Hkulib) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var hku app.Hkulib
+		hku.Init(i+1, s)
+	}
+	return nil, nil
+}

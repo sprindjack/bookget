@@ -42,6 +42,7 @@ func (r Cuhk) Init(iTask int, sUrl string) (msg string, err error) {
 		return "requested URL was not found.", err
 	}
 	r.dt.Jar, _ = cookiejar.New(nil)
+	OpenWebview(sUrl, true)
 	return r.download()
 }
 
@@ -85,7 +86,7 @@ func (r Cuhk) do(imgUrls []string) (msg string, err error) {
 		return
 	}
 	fmt.Println()
-	referer := url.QueryEscape(r.dt.Url)
+	referer := r.dt.Url
 	size := len(imgUrls)
 	for i, uri := range imgUrls {
 		if !config.PageRange(i, size) {
@@ -113,10 +114,11 @@ func (r Cuhk) do(imgUrls []string) (msg string, err error) {
 				//"X-ISLANDORA-TOKEN": v.Token,
 			},
 		}
-		_, err := gohttp.FastGet(uri, opts)
-		if err != nil {
+		resp, err := gohttp.FastGet(uri, opts)
+		if err != nil || resp.GetStatusCode() != 200 {
 			fmt.Println(err)
-			util.PrintSleepTime(60)
+			OpenWebview(r.dt.Url, true)
+			//util.PrintSleepTime(60)
 			continue
 		}
 		util.PrintSleepTime(config.Conf.Speed)

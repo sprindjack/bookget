@@ -6,7 +6,6 @@ import (
 	"bookget/site/Europe/berlin"
 	"bookget/site/Europe/bluk"
 	"bookget/site/Europe/oxacuk"
-	"bookget/site/USA/familysearch"
 	"bookget/site/USA/stanford"
 )
 
@@ -59,6 +58,7 @@ type FamilySearch struct{}
 
 func (p FamilySearch) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var familysearch app.Familysearch
 		familysearch.Init(i+1, s)
 	}
 	return nil, nil
