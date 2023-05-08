@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,11 +38,9 @@ func Download(dt *DownloadTask) (msg string, err error) {
 		log.Printf("requested URL was not found.\n")
 	}
 	size := len(canvases)
+	ctx := context.Background()
 	for i, uri := range canvases {
-		if !config.PageRange(i, size) {
-			continue
-		}
-		if uri == "" {
+		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
 		ext := util.FileExt(uri)
@@ -49,7 +48,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 		log.Printf("Get %s  %s\n", sortId, uri)
 		fileName := sortId + ext
 		dest := config.GetDestPath(dt.Url, dt.BookId, fileName)
-		gohttp.FastGet(uri, gohttp.Options{
+		gohttp.FastGet(ctx, uri, gohttp.Options{
 			Concurrency: 1,
 			DestFile:    dest,
 			Overwrite:   false,
@@ -95,7 +94,8 @@ func getCanvases(bookId string, jar *cookiejar.Jar) []string {
 
 func getBody(bookId string, page int, jar *cookiejar.Jar) ([]byte, error) {
 	apiUrl := "http://e-library2.gprime.jp/lib_pref_osaka/da/ajax/image"
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

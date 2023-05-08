@@ -7,6 +7,7 @@ import (
 	xhash "bookget/lib/hash"
 	"bookget/lib/util"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -78,7 +79,8 @@ func (r *Familysearch) getBookId(sUrl string) (bookId string) {
 }
 
 func (r *Familysearch) getBaseUrl(sUrl string) (baseUrl string, err error) {
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  r.dt.Jar,
 		Headers: map[string]interface{}{
@@ -382,7 +384,8 @@ func (r *Familysearch) getImageByGroups(rmsId string) (canvases []string, err er
 }
 
 func (r *Familysearch) postJson(sUrl string, d interface{}) ([]byte, error) {
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  r.dt.Jar,
 		Headers: map[string]interface{}{
@@ -414,7 +417,8 @@ func (r *Familysearch) getSessionId() string {
 
 func (r *Familysearch) postBody(sUrl string, d []byte) ([]byte, error) {
 	sid := r.getSessionId()
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  r.dt.Jar,
 		Headers: map[string]interface{}{
@@ -436,7 +440,8 @@ func (r *Familysearch) postBody(sUrl string, d []byte) ([]byte, error) {
 }
 
 func (r *Familysearch) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

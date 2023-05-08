@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -75,11 +76,9 @@ func (r *Hkulib) do(imgUrls []string) (msg string, err error) {
 	fmt.Println()
 	referer := url.QueryEscape(r.dt.Url)
 	size := len(imgUrls)
+	ctx := context.Background()
 	for i, uri := range imgUrls {
-		if !config.PageRange(i, size) {
-			continue
-		}
-		if uri == "" {
+		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
 		sortId := util.GenNumberSorted(i + 1)
@@ -100,7 +99,7 @@ func (r *Hkulib) do(imgUrls []string) (msg string, err error) {
 				"Referer":    referer,
 			},
 		}
-		_, err := gohttp.FastGet(uri, opts)
+		_, err := gohttp.FastGet(ctx, uri, opts)
 		if err != nil {
 			fmt.Println(err)
 			util.PrintSleepTime(60)
@@ -158,7 +157,8 @@ func (r *Hkulib) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string
 
 func (r *Hkulib) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	referer := url.QueryEscape(apiUrl)
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

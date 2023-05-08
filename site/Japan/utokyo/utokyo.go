@@ -5,6 +5,7 @@ import (
 	"bookget/lib/curl"
 	"bookget/lib/gohttp"
 	util "bookget/lib/util"
+	"context"
 	"fmt"
 	"log"
 	"regexp"
@@ -30,20 +31,17 @@ func StartDownload(iTask int, taskUrl, bookId string) {
 		return
 	}
 	size := len(bookUrls)
+	ctx := context.Background()
 	for i, uri := range bookUrls {
-		if !config.PageRange(i, size) {
+		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		if uri == "" {
-			continue
-		}
-		//ext := util.FileExt(uri)
 		fName := util.FileName(uri)
 		sortId := util.GenNumberSorted(i + 1)
 		log.Printf("Get %s  %s\n", sortId, uri)
 		fileName := sortId + fName
 		dest := config.GetDestPath(taskUrl, bookId, fileName)
-		gohttp.FastGet(uri, gohttp.Options{
+		gohttp.FastGet(ctx, uri, gohttp.Options{
 			DestFile:    dest,
 			Overwrite:   false,
 			Concurrency: config.Conf.Threads,

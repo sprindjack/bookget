@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	util "bookget/lib/util"
+	"context"
 	"fmt"
 	"log"
 	"net/http/cookiejar"
@@ -39,6 +40,7 @@ func StartDownload(dt *DownloadTask) (msg string, err error) {
 
 	config.CreateDirectory(dt.Url, dt.BookId)
 	ext := ".jpg"
+	ctx := context.Background()
 	for i, dUrl := range canvases.ImgUrls {
 		if !config.PageRange(i, canvases.Size) {
 			continue
@@ -50,8 +52,7 @@ func StartDownload(dt *DownloadTask) (msg string, err error) {
 		log.Printf("Get %s  %s\n", sortId, dUrl)
 		filename := sortId + ext
 		dest := config.GetDestPath(dt.Url, dt.BookId, filename)
-		//_, err = wget.FastGetv2(dUrl, dest, dt.CookieJar, config.Conf.CookieFile, true)
-		cli := gohttp.NewClient(gohttp.Options{
+		cli := gohttp.NewClient(ctx, gohttp.Options{
 			DestFile:   dest,
 			CookieJar:  dt.CookieJar,
 			CookieFile: config.Conf.CookieFile,
@@ -68,7 +69,8 @@ func StartDownload(dt *DownloadTask) (msg string, err error) {
 }
 
 func getCanvases(sUrl string, dt *DownloadTask) (canvases Canvases) {
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		Timeout:    0,
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  dt.CookieJar,

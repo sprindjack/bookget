@@ -6,6 +6,7 @@ import (
 	xhash "bookget/lib/hash"
 	"bookget/lib/util"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -215,7 +216,8 @@ func (f IIIF) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, e
 }
 
 func (f IIIF) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{
@@ -274,6 +276,7 @@ func (f IIIF) doNormal(imgUrls []string) bool {
 	}
 	size := len(imgUrls)
 	fmt.Println()
+	ctx := context.Background()
 	for i, uri := range imgUrls {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
@@ -293,7 +296,7 @@ func (f IIIF) doNormal(imgUrls []string) bool {
 				"User-Agent": config.Conf.UserAgent,
 			},
 		}
-		_, err := gohttp.FastGet(uri, opts)
+		_, err := gohttp.FastGet(ctx, uri, opts)
 		if err != nil {
 			fmt.Println(err)
 		}

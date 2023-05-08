@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -82,8 +83,9 @@ func (h Hathitrust) do(imgUrls []string) (msg string, err error) {
 				"Referer":    referer,
 			},
 		}
-		for true {
-			_, err := gohttp.FastGet(uri, opts)
+		ctx := context.Background()
+		for {
+			_, err := gohttp.FastGet(ctx, uri, opts)
 			if err != nil {
 				fmt.Println(err)
 				//log.Println("images (1 file per page, watermarked,  max. 20 MB / 1 min), image quality:Full")
@@ -130,7 +132,8 @@ func (h Hathitrust) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []str
 }
 
 func (h Hathitrust) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

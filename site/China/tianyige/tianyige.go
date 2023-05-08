@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -51,6 +52,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 		dt.SavePath = config.CreateDirectory(dt.Url, id)
 		size := len(parts[vol.FascicleId])
 		log.Printf(" %d/%d volume, %d pages \n", vol.Sort, len(volumes), size)
+		ctx := context.Background()
 		for i, record := range parts[vol.FascicleId] {
 			if !config.PageRange(i, size) {
 				continue
@@ -64,7 +66,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 			log.Printf("Get %s  %s\n", sortId, uri)
 			fileName := sortId + ext
 			dest := config.GetDestPath(dt.Url, id, fileName)
-			gohttp.FastGet(uri, gohttp.Options{
+			gohttp.FastGet(ctx, uri, gohttp.Options{
 				Concurrency: config.Conf.Threads,
 				DestFile:    dest,
 				Overwrite:   false,
@@ -111,8 +113,8 @@ func getImageRecord(imageId string, cookieFile string) (imageRecords []ImageReco
 	dataJson := dataParam{}
 	dataJson.Param.PageNum = 1
 	dataJson.Param.PageSize = 999
-
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: cookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{
@@ -167,9 +169,9 @@ func getImageById(imageId, cookieFile string) (imgUrl, ocrUrl string, err error)
 	//cookie 处理
 	jar, _ := cookiejar.New(nil)
 	apiUrl := fmt.Sprintf("https://gj.tianyige.com.cn/g/sw-anb/api/queryOcrFileByimageId?imageId=%s", imageId)
-
+	ctx := context.Background()
 	token := getToken()
-	cli := gohttp.NewClient(gohttp.Options{
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: cookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{
@@ -208,9 +210,9 @@ func getBookVolumes(bookId string, cookieFile string) (volumes []Volume) {
 	//https://gj.tianyige.com.cn/g/sw-anb/api/getFasciclesByCataId?catalogId=c56c5afbb95f667c96c57b6d3b4c5f0c
 	jar, _ := cookiejar.New(nil)
 	apiUrl := fmt.Sprintf("https://gj.tianyige.com.cn/g/sw-anb/api/getFasciclesByCataId?catalogId=%s", bookId)
-
+	ctx := context.Background()
 	token := getToken()
-	cli := gohttp.NewClient(gohttp.Options{
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: cookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

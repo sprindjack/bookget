@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -59,11 +60,9 @@ func Download(dt *DownloadTask) (msg string, err error) {
 		}
 		dt.SavePath = config.CreateDirectory(dt.Url, id)
 		size := len(canvases)
+		ctx := context.Background()
 		for i, uri := range canvases {
-			if !config.PageRange(i, size) {
-				continue
-			}
-			if uri == "" {
+			if uri == "" || !config.PageRange(i, size) {
 				continue
 			}
 			ext := util.FileExt(uri)
@@ -71,7 +70,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 			log.Printf("Get %s  %s\n", sortId, uri)
 			fileName := sortId + ext
 			dest := config.GetDestPath(dt.Url, id, fileName)
-			gohttp.FastGet(uri, gohttp.Options{
+			gohttp.FastGet(ctx, uri, gohttp.Options{
 				Concurrency: config.Conf.Threads,
 				DestFile:    dest,
 				Overwrite:   false,
@@ -108,7 +107,8 @@ func getCanvases(serverUrl, bookUrl string, jar *cookiejar.Jar) []string {
 
 func getMultiplebooks(dt *DownloadTask) ([]string, error) {
 	apiUrl := fmt.Sprintf("%s://%s/Yngj/Adm/Data/Detail_gj", dt.UrlParsed.Scheme, dt.UrlParsed.Host)
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  dt.Jar,
 		Headers: map[string]interface{}{
@@ -144,7 +144,8 @@ func getMultiplebooks(dt *DownloadTask) ([]string, error) {
 }
 
 func getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

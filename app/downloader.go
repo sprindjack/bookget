@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"fmt"
 	"log"
 	"net/http/cookiejar"
@@ -33,6 +34,12 @@ type DownloadTask struct {
 	Jar       *cookiejar.Jar
 }
 
+type Volume struct {
+	Title string
+	Url   string
+	Seq   int
+}
+
 func NormalDownload(pageUrl, bookId string, imgUrls []string, jar *cookiejar.Jar) (err error) {
 	if imgUrls == nil {
 		return
@@ -45,6 +52,7 @@ func NormalDownload(pageUrl, bookId string, imgUrls []string, jar *cookiejar.Jar
 		threads = 1
 	}
 	size := len(imgUrls)
+	ctx := context.Background()
 	for i, uri := range imgUrls {
 		if !config.PageRange(i, size) {
 			continue
@@ -67,7 +75,7 @@ func NormalDownload(pageUrl, bookId string, imgUrls []string, jar *cookiejar.Jar
 				"User-Agent": config.Conf.UserAgent,
 			},
 		}
-		_, err = gohttp.FastGet(uri, opts)
+		_, err = gohttp.FastGet(ctx, uri, opts)
 		if err != nil {
 			fmt.Println(err)
 			break

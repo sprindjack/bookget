@@ -42,3 +42,14 @@ func (p KyudbSnu) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	}
 	return nil, nil
 }
+
+type Sillokgokr struct{}
+
+func (p Sillokgokr) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		n := i + 1
+		var sillok app.SillokGoKr
+		sillok.Init(n, s)
+	}
+	return nil, nil
+}

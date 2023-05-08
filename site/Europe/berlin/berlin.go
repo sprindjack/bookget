@@ -5,6 +5,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -47,7 +48,8 @@ func StartDownload(pageUrl, bookId string) {
 
 func getCanvases(bookId string) (canvases Canvases) {
 	apiUrl := fmt.Sprintf("https://content.staatsbibliothek-berlin.de/dc/%s/manifest", bookId)
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		Headers: map[string]interface{}{
 			"User-Agent": config.Conf.UserAgent,

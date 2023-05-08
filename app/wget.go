@@ -7,6 +7,7 @@ import (
 	xhash "bookget/lib/hash"
 	"bookget/lib/util"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -66,6 +67,7 @@ func (w Wget) download() (msg string, err error) {
 
 func (w Wget) do(wUrls []string) (msg string, err error) {
 	size := len(wUrls)
+	ctx := context.Background()
 	for _, dUrl := range wUrls {
 		sortId := util.GenNumberSorted(w.Index)
 		fileName := ""
@@ -78,7 +80,7 @@ func (w Wget) do(wUrls []string) (msg string, err error) {
 		log.Printf("Get %d/%d  %s\n", w.Index, size, dUrl)
 		w.Index++
 		dest := config.GetDestPath(dUrl, w.BookId, fileName)
-		cli := gohttp.NewClient()
+		cli := gohttp.NewClient(ctx)
 		_, err = cli.FastGet(dUrl, gohttp.Options{
 			DestFile:    dest,
 			Concurrency: config.Conf.Threads,

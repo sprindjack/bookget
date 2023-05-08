@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -112,7 +113,8 @@ func (r Tnm) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, er
 
 func (r Tnm) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	referer := url.QueryEscape(apiUrl)
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

@@ -5,6 +5,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"log"
 	"net/http/cookiejar"
 	"net/url"
@@ -50,7 +51,8 @@ func getManifestUrl(sUrl string) (Urls []string, err error) {
 	mfUrl := detectManifest(sUrl)
 	//cookie 处理
 	jar, _ := cookiejar.New(nil)
-	resp, err := gohttp.Get(mfUrl, gohttp.Options{
+	ctx := context.Background()
+	resp, err := gohttp.Get(ctx, mfUrl, gohttp.Options{
 		CookieJar:  jar,
 		CookieFile: config.Conf.CookieFile,
 		Headers: map[string]interface{}{
@@ -70,7 +72,8 @@ func getManifestUrl(sUrl string) (Urls []string, err error) {
 func detectManifest(sUrl string) string {
 	//cookie 处理
 	jar, _ := cookiejar.New(nil)
-	resp, err := gohttp.Get(sUrl, gohttp.Options{
+	ctx := context.Background()
+	resp, err := gohttp.Get(ctx, sUrl, gohttp.Options{
 		CookieJar:  jar,
 		CookieFile: config.Conf.CookieFile,
 		Headers: map[string]interface{}{

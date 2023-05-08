@@ -4,6 +4,7 @@ import (
 	"bookget/app"
 	"bookget/config"
 	"bookget/lib/gohttp"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -60,7 +61,8 @@ func getManifestUrl(bookId string) string {
 
 func getBody(apiUrl string) ([]byte, error) {
 	jar, _ := cookiejar.New(nil)
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

@@ -6,6 +6,7 @@ import (
 	curl "bookget/lib/curl"
 	"bookget/lib/gohttp"
 	util "bookget/lib/util"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -100,7 +101,8 @@ func makeId(childId string, bookId string, iMax int) string {
 }
 
 func getCanvases(uri string) (canvases Canvases, err error) {
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		Headers: map[string]interface{}{
 			"User-Agent": config.Conf.UserAgent,

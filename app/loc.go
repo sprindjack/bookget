@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -97,6 +98,7 @@ func (r Loc) do(imgUrls []string) (msg string, err error) {
 	fmt.Println()
 	referer := url.QueryEscape(r.dt.Url)
 	size := len(imgUrls)
+	ctx := context.Background()
 	for i, uri := range imgUrls {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
@@ -119,7 +121,7 @@ func (r Loc) do(imgUrls []string) (msg string, err error) {
 				"Referer":    referer,
 			},
 		}
-		_, err := gohttp.FastGet(uri, opts)
+		_, err := gohttp.FastGet(ctx, uri, opts)
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -172,7 +174,8 @@ func (r Loc) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, er
 }
 func (r Loc) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	referer := r.dt.Url
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

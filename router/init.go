@@ -163,6 +163,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 
 		//[韩国]
 		Router["kyudb.snu.ac.kr"] = new(KyudbSnu)
+		Router["sillok.history.go.kr"] = new(Sillokgokr)
 
 		//}}} -----------------------------------------------------------------
 		Router["iiif.io"] = new(NormalIIIF)

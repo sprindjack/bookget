@@ -5,6 +5,7 @@ import (
 	"bookget/lib/crypt"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -39,6 +40,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 		fmt.Println(err.Error())
 		return
 	}
+	ctx := context.Background()
 	for i := 1; i <= canvases.Size; i++ {
 		pUrl := fmt.Sprintf("https://gjsztsg.sdutcm.edu.cn/sdutcm/ancient/book/getPagePicTxt.jspx?pageNum=%d&contentId=%s", i, dt.BookId)
 		bs, err := getBody(pUrl, jar)
@@ -63,7 +65,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 				"Referer":    "https://gjsztsg.sdutcm.edu.cn/thirdparty/pdfview/pdf.worker.js",
 			},
 		}
-		_, err = gohttp.FastGet(pdfUrl, opts)
+		_, err = gohttp.FastGet(ctx, pdfUrl, opts)
 		if err != nil {
 			fmt.Println(err)
 			break
@@ -84,11 +86,9 @@ func doDl(pageUrl, bookId string, imgUrls []string, jar *cookiejar.Jar) (err err
 	}
 	ext := ".pdf"
 	size := len(imgUrls)
+	ctx := context.Background()
 	for i, uri := range imgUrls {
-		if !config.PageRange(i, size) {
-			continue
-		}
-		if uri == "" {
+		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
 		sortId := util.GenNumberSorted(i + 1)
@@ -106,7 +106,7 @@ func doDl(pageUrl, bookId string, imgUrls []string, jar *cookiejar.Jar) (err err
 				"Referer":    "https://gjsztsg.sdutcm.edu.cn/thirdparty/pdfview/pdf.worker.js",
 			},
 		}
-		_, err = gohttp.FastGet(uri, opts)
+		_, err = gohttp.FastGet(ctx, uri, opts)
 		if err != nil {
 			fmt.Println(err)
 			break
@@ -158,7 +158,8 @@ func getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	if jar == nil {
 		jar, _ = cookiejar.New(nil)
 	}
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

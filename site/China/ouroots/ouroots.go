@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -98,7 +99,8 @@ func getToken() (string, error) {
 
 func getVolumes(catalogKey string) (respVolume ResponseVolume, err error) {
 	jar, _ := cookiejar.New(nil)
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{
@@ -123,7 +125,8 @@ func getVolumes(catalogKey string) (respVolume ResponseVolume, err error) {
 
 func getBase64Image(catalogKey string, volumeId, page int, userKey, token string) (respImage ResponseCatalogImage, err error) {
 	jar, _ := cookiejar.New(nil)
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{
@@ -151,7 +154,8 @@ func getBase64Image(catalogKey string, volumeId, page int, userKey, token string
 
 func getBody(apiUrl string) ([]byte, error) {
 	jar, _ := cookiejar.New(nil)
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

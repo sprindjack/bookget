@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -105,7 +106,8 @@ func getCipherText(bs []byte) []byte {
 
 func getBody(apiUrl string) ([]byte, error) {
 	jar, _ := cookiejar.New(nil)
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

@@ -5,6 +5,7 @@ import (
 	"bookget/lib/curl"
 	"bookget/lib/gohttp"
 	util "bookget/lib/util"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -40,9 +41,7 @@ func StartDownload(iTask int, taskUrl, bookId string) {
 		}
 		fmt.Println()
 		log.Printf(" %d pages.\n", canvases.Size)
-
-		//用户自定义起始页
-		//i := util.LoopIndexStart(canvases.Size)
+		ctx := context.Background()
 		for i := 0; i < canvases.Size; i++ {
 			imgUrl := canvases.ImgUrls[i]
 			if imgUrl == "" {
@@ -53,7 +52,7 @@ func StartDownload(iTask int, taskUrl, bookId string) {
 			log.Printf("Get %s  %s\n", sortId, imgUrl)
 			fileName := fmt.Sprintf("vol%d_%s%s", j+1, sortId, ext)
 			dest := config.GetDestPath(taskUrl, bookId, fileName)
-			gohttp.FastGet(imgUrl, gohttp.Options{
+			gohttp.FastGet(ctx, imgUrl, gohttp.Options{
 				DestFile:    dest,
 				Overwrite:   false,
 				Concurrency: config.Conf.Threads,

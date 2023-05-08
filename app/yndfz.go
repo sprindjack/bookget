@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -74,6 +75,7 @@ func (r Yndfz) do(imgUrls []string) (msg string, err error) {
 	fmt.Println()
 	referer := url.QueryEscape(r.dt.Url)
 	size := len(imgUrls)
+	ctx := context.Background()
 	for i, uri := range imgUrls {
 		if !config.PageRange(i, size) {
 			continue
@@ -105,7 +107,7 @@ func (r Yndfz) do(imgUrls []string) (msg string, err error) {
 			fmt.Println(err)
 			break
 		}
-		_, err = gohttp.FastGet(imgUrl, opts)
+		_, err = gohttp.FastGet(ctx, imgUrl, opts)
 		if err != nil {
 			fmt.Println(err)
 			util.PrintSleepTime(config.Conf.Speed)
@@ -155,7 +157,8 @@ func (r Yndfz) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, 
 
 func (r Yndfz) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	referer := url.QueryEscape(apiUrl)
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

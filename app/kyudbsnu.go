@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -101,6 +102,7 @@ func (k KyudbSnu) do(imgUrls []string) (msg string, err error) {
 	fmt.Println()
 	referer := fmt.Sprintf("%s://%s/pf01/rendererImg.do", k.dt.UrlParsed.Scheme, k.dt.UrlParsed.Host)
 	size := len(imgUrls)
+	ctx := context.Background()
 	for i, uri := range imgUrls {
 		if !config.PageRange(i, size) {
 			continue
@@ -124,7 +126,7 @@ func (k KyudbSnu) do(imgUrls []string) (msg string, err error) {
 				"Referer":    referer,
 			},
 		}
-		_, err = gohttp.FastGet(uri, opts)
+		_, err = gohttp.FastGet(ctx, uri, opts)
 		if err != nil {
 			fmt.Println(err)
 			break
@@ -144,7 +146,8 @@ func (k KyudbSnu) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string,
 		"mokNm":         "",
 		"add_page_no":   "",
 	}
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{
@@ -179,7 +182,8 @@ func (k KyudbSnu) getCanvases(vol string, jar *cookiejar.Jar) (canvases []string
 		"page_no": "",
 		"tool":    "1",
 	}
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{
@@ -223,7 +227,8 @@ func (k KyudbSnu) getCanvases(vol string, jar *cookiejar.Jar) (canvases []string
 }
 
 func (k KyudbSnu) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

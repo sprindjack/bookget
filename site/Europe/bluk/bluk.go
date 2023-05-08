@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	util "bookget/lib/util"
+	"context"
 	"fmt"
 	"log"
 	"net/http/cookiejar"
@@ -50,7 +51,8 @@ func StartDownload(iTask int, taskUrl, bookId string) {
 
 func getImageUrls(taskUrl string) (canvases Canvases) {
 	jar, _ := cookiejar.New(nil)
-	resp, err := gohttp.Get(taskUrl, gohttp.Options{
+	ctx := context.Background()
+	resp, err := gohttp.Get(ctx, taskUrl, gohttp.Options{
 		Headers: map[string]interface{}{
 			"User-Agent": config.Conf.UserAgent,
 		},

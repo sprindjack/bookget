@@ -5,6 +5,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -16,8 +17,8 @@ import (
 func AutoDetectManifest(iTask int, taskUrl string) (msg string, err error) {
 	name := util.GenNumberSorted(iTask)
 	log.Printf("Auto Detect %s  %s\n", name, taskUrl)
-
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		Headers: map[string]interface{}{
 			"User-Agent": config.Conf.UserAgent,

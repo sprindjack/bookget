@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"fmt"
 	"log"
 	"net/http/cookiejar"
@@ -57,7 +58,7 @@ func (r Gzlib) do(dUrls []string) (msg string, err error) {
 	}
 	fmt.Println()
 	size := len(dUrls)
-
+	ctx := context.Background()
 	requestCookie := r.dt.Jar.Cookies(r.dt.UrlParsed)
 	for i, uri := range dUrls {
 		if !config.PageRange(i, size) {
@@ -81,7 +82,7 @@ func (r Gzlib) do(dUrls []string) (msg string, err error) {
 				"Request-Cookie": requestCookie,
 			},
 		}
-		_, err = gohttp.FastGet(uri, opts)
+		_, err = gohttp.FastGet(ctx, uri, opts)
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -99,7 +100,8 @@ func (r Gzlib) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, er
 func (r Gzlib) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
 	apiUrl := fmt.Sprintf("%s://%s/Hrcanton/Search/ResultDetail?BookId=%s", r.dt.UrlParsed.Scheme,
 		r.dt.UrlParsed.Host, r.dt.BookId)
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{

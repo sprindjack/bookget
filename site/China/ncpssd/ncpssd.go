@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -47,7 +48,8 @@ func Download(dt *DownloadTask) (msg string, err error) {
 	fileName := dt.BookId + ext
 	dest := config.GetDestPath(dt.Url, "", fileName)
 	jar, _ := cookiejar.New(nil)
-	gohttp.FastGet(dUrl, gohttp.Options{
+	ctx := context.Background()
+	gohttp.FastGet(ctx, dUrl, gohttp.Options{
 		DestFile:    dest,
 		Overwrite:   false,
 		Concurrency: 1,

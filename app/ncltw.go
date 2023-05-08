@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -65,6 +66,7 @@ func (r *NclTw) do(imgUrls []string) (msg string, err error) {
 	}
 	fmt.Println()
 	size := len(imgUrls)
+	ctx := context.Background()
 	for i, uri := range imgUrls {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
@@ -95,7 +97,7 @@ func (r *NclTw) do(imgUrls []string) (msg string, err error) {
 				"origin":     "https://rbook.ncl.edu.tw",
 			},
 		}
-		_, err = gohttp.FastGet(imgUrl, opts)
+		_, err = gohttp.FastGet(ctx, imgUrl, opts)
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -131,7 +133,8 @@ func (r *NclTw) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string,
 }
 
 func (r *NclTw) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{
@@ -163,7 +166,8 @@ func (r *NclTw) getToken() (string, error) {
 	apiUrl := "https://rbook.ncl.edu.tw/NCLSearch/Watermark/getToken"
 	requestVerificationToken := r.getRequestToken()
 	imgKey := r.getImageKey()
-	cli := gohttp.NewClient(gohttp.Options{
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  r.dt.Jar,
 		Headers: map[string]interface{}{
