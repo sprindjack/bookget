@@ -32,6 +32,7 @@ type Familysearch struct {
 type FamilysearchImageData struct {
 	DgsNum      string
 	WaypointURL string
+	ImageURL    string
 }
 type FamilysearchResultError struct {
 	Error struct {
@@ -64,16 +65,24 @@ func (r *Familysearch) getBookId(sUrl string) (bookId string) {
 		io.Copy(mh, bytes.NewBuffer([]byte(m[1])))
 		bookId, _ = mh.SumString(xhash.CRC32, false)
 		r.urlType = 0 //中國族譜收藏 1239-2014年 https://www.familysearch.org/search/collection/1787988
+		return bookId
 	}
 	m = regexp.MustCompile(`(?i)rmsId=([A-z\d-_]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
 		r.urlType = 1 //家谱图像 https://www.familysearch.org/records/images/
+		return bookId
 	}
 	m = regexp.MustCompile(`(?i)groupId=([A-z\d-_]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
 		r.urlType = 2 //家谱图像 https://www.familysearch.org/ark:/61903/3:1:3QS7-L9S9-WS92?view=explore&groupId=M94X-6HR
+		return bookId
+	}
+	m = regexp.MustCompile(`(?i)ark:/(?:[A-z0-9-_:]+)/([A-z\d-_:]+)`).FindStringSubmatch(sUrl)
+	if m != nil {
+		bookId = m[1]
+		r.urlType = 3 //微卷 https://www.familysearch.org/ark:/61903/3:1:3QSQ-G9MC-ZS8F-4?cat=1101921
 	}
 	return bookId
 }
@@ -110,6 +119,12 @@ func (r *Familysearch) download() (msg string, err error) {
 		canvases, err = r.getImageByGroups(r.dt.BookId)
 	} else if r.urlType == 2 {
 		canvases, err = r.getImageByGroupId(r.dt.BookId)
+	} else if r.urlType == 3 {
+		imageData, err := r.getImageData(r.dt.Url)
+		if err != nil {
+			return "", err
+		}
+		canvases, err = r.getFilmData(r.dt.Url, imageData)
 	} else {
 		imageData, err := r.getImageData(r.dt.Url)
 		if err != nil {
@@ -161,36 +176,6 @@ func (r *Familysearch) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []st
 
 func (r *Familysearch) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
 	panic("implement me")
-}
-
-func (r *Familysearch) getFilmData(sUrl string, imageData FamilysearchImageData) (canvases []string, err error) {
-	//TODO implement me
-	panic("implement me")
-	type reqData struct {
-		Type string `json:"type"`
-		Args struct {
-			DgsNum string `json:"dgsNum"`
-			State  struct {
-				ImageOrFilmUrl     string `json:"imageOrFilmUrl"`
-				ViewMode           string `json:"viewMode"`
-				SelectedImageIndex int    `json:"selectedImageIndex"`
-			} `json:"state"`
-			Locale    string `json:"locale"`
-			SessionId string `json:"sessionId"`
-			LoggedIn  string `json:"loggedIn"`
-		} `json:"args"`
-	}
-
-	var d = reqData{}
-	d.Type = "film-data"
-	d.Args.DgsNum = imageData.DgsNum
-	d.Args.State.ImageOrFilmUrl = ""
-	d.Args.State.ViewMode = "i"
-	d.Args.State.SelectedImageIndex = -1
-	d.Args.Locale = "zh"
-	d.Args.SessionId = r.getSessionId()
-
-	return canvases, err
 }
 
 func (r *Familysearch) getImageData(sUrl string) (imageData FamilysearchImageData, err error) {
@@ -252,6 +237,7 @@ func (r *Familysearch) getImageData(sUrl string) (imageData FamilysearchImageDat
 		return
 	}
 	imageData.DgsNum = resp.DgsNum
+	imageData.ImageURL = resp.ImageURL
 	for _, description := range resp.Meta.SourceDescriptions {
 		if strings.Contains(description.About, "platform/records/waypoints") {
 			imageData.WaypointURL = description.About
@@ -381,6 +367,83 @@ func (r *Familysearch) getImageByGroups(rmsId string) (canvases []string, err er
 		}
 	}
 	return canvases, nil
+}
+
+func (r *Familysearch) getFilmData(sUrl string, imageData FamilysearchImageData) (canvases []string, err error) {
+	type ReqData struct {
+		Type string `json:"type"`
+		Args struct {
+			DgsNum string `json:"dgsNum"`
+			State  struct {
+				I                  string `json:"i"`
+				Cat                string `json:"cat"`
+				ImageOrFilmUrl     string `json:"imageOrFilmUrl"`
+				CatalogContext     string `json:"catalogContext"`
+				ViewMode           string `json:"viewMode"`
+				SelectedImageIndex int    `json:"selectedImageIndex"`
+			} `json:"state"`
+			Locale    string `json:"locale"`
+			SessionId string `json:"sessionId"`
+			LoggedIn  bool   `json:"loggedIn"`
+		} `json:"args"`
+	}
+
+	u, err := url.Parse(imageData.ImageURL)
+	if err != nil {
+		return nil, err
+	}
+	q := u.Query()
+	var d = ReqData{}
+	d.Type = "film-data"
+	d.Args.DgsNum = imageData.DgsNum
+	d.Args.State.CatalogContext = q.Get("cat")
+	d.Args.State.Cat = q.Get("cat")
+	d.Args.State.ImageOrFilmUrl = u.Path
+	d.Args.State.ViewMode = "i"
+	d.Args.State.SelectedImageIndex = -1
+	d.Args.Locale = "zh"
+	d.Args.LoggedIn = true
+	d.Args.SessionId = r.getSessionId()
+
+	type Response struct {
+		DgsNum             string      `json:"dgsNum"`
+		Images             []string    `json:"images"`
+		PreferredCatalogId string      `json:"preferredCatalogId"`
+		Type               string      `json:"type"`
+		WaypointCrumbs     interface{} `json:"waypointCrumbs"`
+		WaypointURL        interface{} `json:"waypointURL"`
+		Templates          struct {
+			DasTemplate string `json:"dasTemplate"`
+			DzTemplate  string `json:"dzTemplate"`
+		} `json:"templates"`
+	}
+	bs, err := r.postJson(r.apiUrl, d)
+	if err != nil {
+		return
+	}
+	var resultError FamilysearchResultError
+	if err = json.Unmarshal(bs, &resultError); resultError.Error.StatusCode != 0 {
+		msg := fmt.Sprintf("StatusCode: %d, Message: %s", resultError.Error.StatusCode, resultError.Error.Message)
+		err = errors.New(msg)
+		return
+	}
+	resp := Response{}
+	if err = json.Unmarshal(bs, &resp); err != nil {
+		return
+	}
+	//https://sg30p0.familysearch.org/service/records/storage/deepzoomcloud/dz/v1/{id}/{image}
+	r.dziTemplate = regexp.MustCompile(`\{[A-z]+\}`).ReplaceAllString(resp.Templates.DzTemplate, "%s")
+	for _, image := range resp.Images {
+		//https://familysearch.org/ark:/61903/3:1:3QSQ-G9MC-ZSQ7-3/image.xml
+		m := regexp.MustCompile(`(?i)ark:/(?:[A-z0-9-_:]+)/([A-z\d-_:]+)/image.xml`).FindStringSubmatch(image)
+		if m == nil {
+			continue
+		}
+		xmlUrl := fmt.Sprintf(r.dziTemplate, m[1], "image.xml")
+		canvases = append(canvases, xmlUrl)
+
+	}
+	return canvases, err
 }
 
 func (r *Familysearch) postJson(sUrl string, d interface{}) ([]byte, error) {

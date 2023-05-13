@@ -30,7 +30,7 @@ func main() {
 		return
 	}
 	//終端運行：批量URLs
-	if config.Conf.UrlsFile != "" {
+	if f, err := os.Stat(config.Conf.UrlsFile); err == nil && f.Size() > 0 {
 		taskForUrls()
 		return
 	}
@@ -119,7 +119,11 @@ func ExecuteCommand(ctx context.Context, i int, sUrl string) {
 		fmt.Printf("URL Error:%+v\n", err)
 		return
 	}
-	msg, err := router.FactoryRouter(u.Host, []string{sUrl})
+	siteId := u.Host
+	if config.Conf.AutoDetect == 1 {
+		siteId = "bookget"
+	}
+	msg, err := router.FactoryRouter(siteId, []string{sUrl})
 	if err != nil {
 		fmt.Println(err)
 		return

@@ -98,6 +98,9 @@ func (r *Response) dlFile(d *Download) (size int64, err error) {
 	defer func(d *Download) {
 		d.StopProgress = true
 	}(d)
+	//if r.resp.StatusCode != 200 || r.resp.ContentLength == -1 {
+	//	return 0, errors.New(r.resp.Status)
+	//}
 	var destTemp = fmt.Sprintf("%s.downloading", d.Dest)
 	file, err := os.Create(destTemp)
 	defer os.Rename(destTemp, d.Dest)

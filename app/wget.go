@@ -14,6 +14,7 @@ import (
 	"net/http/cookiejar"
 	"regexp"
 	"strconv"
+	"sync"
 )
 
 type Wget struct {
@@ -67,35 +68,40 @@ func (w Wget) download() (msg string, err error) {
 
 func (w Wget) do(wUrls []string) (msg string, err error) {
 	size := len(wUrls)
-	ctx := context.Background()
+	var wg sync.WaitGroup
+	q := QueueNew(int(config.Conf.Threads))
 	for _, dUrl := range wUrls {
 		sortId := util.GenNumberSorted(w.Index)
 		fileName := ""
 		ext := file.Extention(dUrl)
-		if ext == ".jpg" || ext == ".tif" || ext == ".jp2" || ext == ".png" || ext == ".pdf" {
+		if len(ext) == 4 && ext[:1] == "." {
 			fileName = sortId + ext
 		} else {
-			fileName = file.Name(dUrl)
+			fileName = sortId + config.Conf.FileExt
 		}
 		log.Printf("Get %d/%d  %s\n", w.Index, size, dUrl)
 		w.Index++
 		dest := config.GetDestPath(dUrl, w.BookId, fileName)
-		cli := gohttp.NewClient(ctx)
-		_, err = cli.FastGet(dUrl, gohttp.Options{
-			DestFile:    dest,
-			Concurrency: config.Conf.Threads,
-			CookieFile:  config.Conf.CookieFile,
-			CookieJar:   w.Jar,
-			Headers: map[string]interface{}{
-				"User-Agent": config.Conf.UserAgent,
-			},
+		imgUrl := dUrl
+		wg.Add(1)
+		q.Go(func() {
+			defer wg.Done()
+			ctx := context.Background()
+			opts := gohttp.Options{
+				DestFile:    dest,
+				Overwrite:   false,
+				Concurrency: 1,
+				CookieFile:  config.Conf.CookieFile,
+				CookieJar:   w.Jar,
+				Headers: map[string]interface{}{
+					"User-Agent": config.Conf.UserAgent,
+				},
+			}
+			gohttp.FastGet(ctx, imgUrl, opts)
 		})
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
 		fmt.Println()
 	}
+	wg.Wait()
 	return "", err
 }
 

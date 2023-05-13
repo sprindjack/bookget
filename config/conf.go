@@ -42,8 +42,8 @@ func Init(ctx context.Context) bool {
 	//dir, _ := os.Executable()
 	dir, _ := os.Getwd()
 	//cwd := filepath.Dir(dir)
-
-	flag.StringVar(&Conf.UrlsFile, "i", "", "下载的URLs，指定任意本地文件，例如：urls.txt")
+	urls := dir + string(os.PathSeparator) + "urls.txt"
+	flag.StringVar(&Conf.UrlsFile, "i", urls, "下载的URLs，指定任意本地文件，例如：urls.txt")
 	flag.StringVar(&Conf.SaveFolder, "o", dir, "下载保存到目录")
 	flag.StringVar(&Conf.Seq, "seq", "", "页面范围，如4:434")
 	flag.IntVar(&Conf.Volume, "vol", 0, "多册图书，只下第N册")
