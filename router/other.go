@@ -53,3 +53,14 @@ func (p Sillokgokr) getRouterInit(sUrl []string) (map[string]interface{}, error)
 	}
 	return nil, nil
 }
+
+type RslRu struct{}
+
+func (p RslRu) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		n := i + 1
+		var rslru app.RslRu
+		rslru.Init(n, s)
+	}
+	return nil, nil
+}

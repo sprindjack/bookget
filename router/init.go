@@ -38,7 +38,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["read.nlc.cn"] = new(ChinaNcl)
 		Router["mylib.nlc.cn"] = new(ChinaNcl)
 		//[中国]台北古籍与特藏文献
-		Router["rbook.ncl.edu.tw"] = new(RbookNcl)
+		//Router["rbook.ncl.edu.tw"] = new(RbookNcl)
 		//[中国]香港中文大学图书馆cuhk.Init
 		Router["repository.lib.cuhk.edu.hk"] = new(CuHk)
 		//[中国]香港科技大学图书馆 usthk.Init
@@ -63,7 +63,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[中国]天一阁博物院古籍数字化平台
 		Router["gj.tianyige.com.cn"] = new(TianYiGeLib)
 		//[中国]江苏珍贵古籍数字图书馆
-		Router["218.2.105.121"] = new(GuijiJslib)
+		//Router["218.2.105.121"] = new(GuijiJslib)
 		//041.北京故宫博物院-故宫名画记
 		Router["minghuaji.dpm.org.cn"] = new(MinghuajiBjDpm)
 		Router["m-minghuaji.dpm.org.cn"] = new(MinghuajiBjDpm)
@@ -139,7 +139,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[德国]柏林国立图书馆
 		Router["digital.staatsbibliothek-berlin.de"] = new(DigitalBerlin)
 		//[德国]巴伐利亞州立圖書館東亞數字資源庫
-		Router["ostasien.digitale-sammlungen.de"] = new(OstasienBavaria)
+		Router["ostasien.digitale-sammlungen.de"] = new(Sammlungen)
+		Router["www.digitale-sammlungen.de"] = new(Sammlungen)
 		//[英国]牛津大学博德利图书馆
 		Router["digital.bodleian.ox.ac.uk"] = new(OxacUk)
 		//[英国]图书馆文本手稿
@@ -148,6 +149,9 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["ids.si.edu"] = new(SiEdu)
 		Router["www.si.edu"] = new(SiEdu)
 		Router["iiif.si.edu"] = new(SiEdu)
+		Router["asia.si.edu"] = new(SiEdu)
+		//[美國]柏克萊加州大學東亞圖書館
+		Router["digicoll.lib.berkeley.edu"] = new(Berkeley)
 
 		//}}} -----------------------------------------------------------------
 
@@ -164,6 +168,10 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[韩国]
 		Router["kyudb.snu.ac.kr"] = new(KyudbSnu)
 		Router["sillok.history.go.kr"] = new(Sillokgokr)
+		//Router["lod.nl.go.kr"] = new(DlibGoKr)
+
+		//俄罗斯图书馆
+		Router["viewer.rsl.ru"] = new(RslRu)
 
 		//}}} -----------------------------------------------------------------
 		Router["iiif.io"] = new(NormalIIIF)

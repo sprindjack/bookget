@@ -71,7 +71,7 @@ func (h Hathitrust) do(imgUrls []string) (msg string, err error) {
 		if FileExist(dest) {
 			continue
 		}
-		log.Printf("Get %d/%d page, URL: %s\n", i+1, size, uri)
+		log.Printf("Get %d/%d, URL: %s\n", i+1, size, uri)
 		opts := gohttp.Options{
 			DestFile:    dest,
 			Overwrite:   false,
@@ -113,9 +113,14 @@ func (h Hathitrust) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []str
 	// <input id="range-seq" class="navigator-range" type="range" min="1" max="1036" value="2" aria-label="Progress" dir="rtl" />
 	matches := regexp.MustCompile(`<input(?:[^>]+)id="range-seq"(?:[^>]+)max="([0-9]+)"`).FindStringSubmatch(string(bs))
 	if matches == nil {
-		return
+		//或者This item is not available online ( Limited - search only) 取<p>154 page scans
+		matches = regexp.MustCompile(`<p>([0-9]+) page scans`).FindStringSubmatch(string(bs))
+		if matches == nil {
+			return
+		}
 	}
 	size, _ := strconv.Atoi(matches[1])
+
 	canvases = make([]string, 0, size)
 	ext := config.Conf.FileExt
 	format := "jpeg"

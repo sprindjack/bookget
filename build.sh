@@ -1,19 +1,29 @@
-ver="1.1.5"
+ver="1.1.6"
 
-CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o target/bookget_v${ver}_windows/bookget.exe .
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o target/bookget_v${ver}_linux/bookget .
-CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o target/bookget_v${ver}_macOS/bookget .
-CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o target/bookget_v${ver}_macOs_M2/bookget .
+mkdir -p target/bookget-${ver}.linux/
+mkdir -p target/bookget-${ver}.macOS/
+mkdir -p target/bookget-${ver}.macOS-arm64/
 
-
-cp cookie.txt target/bookget_v${ver}_linux/cookie.txt
-cp cookie.txt target/bookget_v${ver}_macOS/cookie.txt
-cp cookie.txt target/bookget_v${ver}_macOS_M2/cookie.txt
-cp cookie.txt target/bookget_v${ver}_windows/cookie.txt
+#CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o target/bookget-${ver}.windows/bookget.exe .
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o target/bookget-${ver}.linux/bookget .
+CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o target/bookget-${ver}.macOS/bookget .
+CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o target/bookget-${ver}.macOS-arm64/bookget .
 
 
-cd target/ 
-7za a -t7z bookget_v${ver}_windows.7z bookget_v${ver}_windows
-tar cjf bookget_v${ver}_linux.tar.bz2 bookget_v${ver}_linux
-tar cjf bookget_v${ver}_macOS.tar.bz2 bookget_v${ver}_macOS
-tar cjf bookget_v${ver}_macOS_M2.tar.bz2 bookget_v${ver}_macOS_M2
+cp cookie.txt target/bookget-${ver}.linux/cookie.txt
+cp cookie.txt target/bookget-${ver}.macOS/cookie.txt
+cp cookie.txt target/bookget-${ver}.macOS-arm64/cookie.txt
+#cp cookie.txt target/bookget-${ver}.windows/cookie.txt
+
+cp target/dezoomify-rs/linux-amd64/dezoomify-rs target/bookget-${ver}.linux/dezoomify-rs
+cp target/dezoomify-rs/darwin-amd64/dezoomify-rs target/bookget-${ver}.macOS/dezoomify-rs
+cp target/dezoomify-rs/darwin-arm64/dezoomify-rs target/bookget-${ver}.macOS-arm64/dezoomify-rs
+
+
+cd target/
+#7za a -t7z bookget-${ver}.windows.7z bookget-${ver}.windows
+tar cjf bookget-${ver}.linux.tar.bz2 bookget-${ver}.linux
+tar cjf bookget-${ver}.macOS.tar.bz2 bookget-${ver}.macOS
+tar cjf bookget-${ver}.macOS-arm64.tar.bz2 bookget-${ver}.macOS-arm64
+
+

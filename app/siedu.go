@@ -38,7 +38,7 @@ func (r *SiEdu) getBookId(sUrl string) (bookId string) {
 	//https://ids.si.edu/ids/manifest/FS-F1904.61_006
 	m := regexp.MustCompile(`manifest/([A-z0-9._-]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
-		bookId = m[1]
+		return m[1]
 	}
 	if strings.Contains(sUrl, "/object/") {
 		bs, err := r.getBody(sUrl, nil)
@@ -50,6 +50,7 @@ func (r *SiEdu) getBookId(sUrl string) (bookId string) {
 		if m != nil {
 			bookId = m[1]
 		}
+		return bookId
 	}
 	return bookId
 }

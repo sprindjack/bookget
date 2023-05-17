@@ -54,10 +54,7 @@ func NormalDownload(pageUrl, bookId string, imgUrls []string, jar *cookiejar.Jar
 	size := len(imgUrls)
 	ctx := context.Background()
 	for i, uri := range imgUrls {
-		if !config.PageRange(i, size) {
-			continue
-		}
-		if uri == "" {
+		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
 		ext := util.FileExt(uri)

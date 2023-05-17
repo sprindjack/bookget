@@ -16,8 +16,6 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"strconv"
-	"strings"
 )
 
 type IIIF struct {
@@ -28,7 +26,6 @@ type IIIF struct {
 
 // ResponseManifest  by view-source:https://iiif.lib.harvard.edu/manifests/drs:53262215
 type ResponseManifest struct {
-	Label     interface{} `json:"label"`
 	Sequences []struct {
 		Canvases []struct {
 			Id     string `json:"@id"`
@@ -53,14 +50,6 @@ type ResponseManifest struct {
 			Width int    `json:"width"`
 		} `json:"canvases"`
 	} `json:"sequences"`
-	Structures []struct {
-		Id          string   `json:"@id"`
-		Type        string   `json:"@type"`
-		Label       string   `json:"label"`
-		ViewingHint string   `json:"viewingHint"`
-		Ranges      []string `json:"ranges,omitempty"`
-		Canvases    []string `json:"canvases,omitempty"`
-	} `json:"structures"`
 }
 
 func (f IIIF) Init(iTask int, sUrl string) (msg string, err error) {
@@ -107,39 +96,8 @@ func (f IIIF) download() (msg string, err error) {
 	if err != nil || canvases == nil {
 		return
 	}
-	volumes, err := f.getVolumes(f.dt.Url, f.dt.Jar)
-	if err != nil {
-		return "getVolumes", err
-	}
-	if volumes == nil {
-		f.dt.SavePath = config.CreateDirectory(f.dt.Url, f.dt.BookId)
-		f.do(canvases)
-		return "", nil
-	}
-
-	log.Printf(" %d volumes, %d pages.\n", len(volumes), len(canvases))
-	k := 0
-	for i, v := range volumes {
-		m := strings.Split(v, "^")
-		size, _ := strconv.Atoi(m[1])
-		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
-			k += size
-			continue
-		}
-		log.Printf(" %d/%d volume, %d pages \n", i+1, len(volumes), size)
-		vol := util.GenNumberSorted(i + 1)
-		f.dt.SavePath = config.CreateDirectory(f.dt.Url, f.dt.BookId+"_vol."+vol)
-		k2 := k + size
-		imgUrls := canvases[k:k2]
-		if config.Conf.UseDziRs {
-			f.doDezoomifyRs(imgUrls)
-		} else {
-			f.doNormal(imgUrls)
-		}
-		k += size
-	}
-
-	return "", nil
+	f.dt.SavePath = config.CreateDirectory(f.dt.Url, f.dt.BookId)
+	return f.do(canvases)
 }
 
 func (f IIIF) do(imgUrls []string) (msg string, err error) {
@@ -149,34 +107,6 @@ func (f IIIF) do(imgUrls []string) (msg string, err error) {
 		f.doNormal(imgUrls)
 	}
 	return "", nil
-}
-
-func (f IIIF) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	var manifest = new(ResponseManifest)
-	if err = json.Unmarshal(f.xmlContent, manifest); err != nil {
-		log.Printf("json.Unmarshal failed: %s\n", err)
-		return
-	}
-	if len(manifest.Structures) == 0 {
-		return
-	}
-	for _, item := range manifest.Structures {
-		if item.ViewingHint == "top" {
-			continue
-		}
-		var size int
-		if item.Canvases != nil {
-			size = len(item.Canvases)
-		}
-		if item.Ranges != nil {
-			size = len(item.Ranges)
-		}
-		if size > 0 {
-			volId := fmt.Sprintf("%s^%d", item.Label, size)
-			volumes = append(volumes, volId)
-		}
-	}
-	return volumes, nil
 }
 
 func (f IIIF) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {

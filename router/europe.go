@@ -2,7 +2,6 @@ package router
 
 import (
 	"bookget/app"
-	"bookget/site/Europe/bavaria"
 	"bookget/site/Europe/berlin"
 	"bookget/site/Europe/bluk"
 	"bookget/site/Europe/oxacuk"
@@ -36,11 +35,12 @@ func (p BlUk) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	return nil, nil
 }
 
-type OstasienBavaria struct{}
+type Sammlungen struct{}
 
-func (p OstasienBavaria) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+func (p Sammlungen) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
-		bavaria.Init(i+1, s)
+		var sammlungen = app.Sammlungen{}
+		sammlungen.Init(i+1, s)
 	}
 	return nil, nil
 }
@@ -70,6 +70,16 @@ func (p SiEdu) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
 		var siedu app.SiEdu
 		siedu.Init(i+1, s)
+	}
+	return nil, nil
+}
+
+type Berkeley struct{}
+
+func (p Berkeley) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var berkeley app.Berkeley
+		berkeley.Init(i+1, s)
 	}
 	return nil, nil
 }
