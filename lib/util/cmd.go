@@ -88,8 +88,8 @@ func runOsLinux(inputUri string, outfile string, args []string) bool {
 	procAttr := &os.ProcAttr{
 		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
 	}
-	argv := []string{"/c", config.Conf.DezoomifyPath}
 	userArgs := strings.Split(config.Conf.DezoomifyRs, " ")
+	argv := []string{""}
 	if userArgs != nil {
 		argv = append(argv, userArgs...)
 	}
@@ -97,7 +97,7 @@ func runOsLinux(inputUri string, outfile string, args []string) bool {
 		argv = append(argv, args...)
 	}
 	argv = append(argv, inputUri, outfile)
-	process, err := os.StartProcess("/bin/bash", argv, procAttr)
+	process, err := os.StartProcess(config.Conf.DezoomifyPath, argv, procAttr)
 	if err != nil {
 		fmt.Println("start process error:", err)
 		return false

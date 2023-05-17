@@ -70,7 +70,7 @@ func Init(ctx context.Context) bool {
 		flag.StringVar(&Conf.DezoomifyRs, "rs", "-l --compression 0", "dezoomify-rs 参数")
 	} else {
 		Conf.DezoomifyPath = "dezoomify-rs"
-		if fi, err := os.Stat(dir + "\\dezoomify-rs"); err == nil && fi.Size() > 0 {
+		if fi, err := os.Stat(dir + "/dezoomify-rs"); err == nil && fi.Size() > 0 {
 			Conf.DezoomifyPath = dir + "/dezoomify-rs"
 		}
 		flag.StringVar(&Conf.DezoomifyRs, "rs", "-l --compression 0", "dezoomify-rs 参数")
@@ -153,7 +153,7 @@ func LetterNumberEscape(input string) string {
 	//if m != nil {
 	//	s = strings.Join(m, "")
 	//}
-	fooRegexp := regexp.MustCompile(`([/\\:*?"<>|]+)`)
+	fooRegexp := regexp.MustCompile(`([/\\:*?"<>|$]+)`)
 	result := fooRegexp.ReplaceAllString(input, "")
 	return result
 }
