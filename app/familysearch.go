@@ -160,9 +160,12 @@ func (r *Familysearch) do(iiifUrls []string) (msg string, err error) {
 			continue
 		}
 		sortId := util.GenNumberSorted(i + 1)
-		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
 		filename := sortId + config.Conf.FileExt
 		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		if FileExist(dest) {
+			continue
+		}
+		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
 		util.StartProcess(uri, dest, args)
 		util.PrintSleepTime(config.Conf.Speed)
 	}

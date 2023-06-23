@@ -84,7 +84,6 @@ func (r *SiEdu) do(iiifUrls []string) (msg string, err error) {
 			continue
 		}
 		sortId := util.GenNumberSorted(i + 1)
-		log.Printf("Get %s  %s\n", sortId, uri)
 		filename := sortId + config.Conf.FileExt
 		inputUri := r.dt.SavePath + string(os.PathSeparator) + sortId + "_info.json"
 		bs, err := r.getBody(uri, r.dt.Jar)
@@ -94,8 +93,11 @@ func (r *SiEdu) do(iiifUrls []string) (msg string, err error) {
 		body := strings.Replace(string(bs), `"http://iiif.io/api/image/2/level2.json",`, "", -1)
 		body = strings.Replace(body, `"sizeByH",`, "", -1)
 		os.WriteFile(inputUri, []byte(body), os.ModePerm)
-
 		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		if FileExist(dest) {
+			continue
+		}
+		log.Printf("Get %s  %s\n", sortId, uri)
 		if ret := util.StartProcess(inputUri, dest, args); ret == true {
 			os.Remove(inputUri)
 		}

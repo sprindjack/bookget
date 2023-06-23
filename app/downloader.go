@@ -93,16 +93,16 @@ func DziDownload(pageUrl, bookId string, iiifUrls []string) {
 	}
 	size := len(iiifUrls)
 	for i, uri := range iiifUrls {
-		if !config.PageRange(i, size) {
-			continue
-		}
-		if uri == "" {
+		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
 		sortId := util.GenNumberSorted(i + 1)
-		log.Printf("Get %s  %s\n", sortId, uri)
 		filename := sortId + config.Conf.FileExt
 		dest := config.GetDestPath(pageUrl, bookId, filename)
+		if FileExist(dest) {
+			continue
+		}
+		log.Printf("Get %s  %s\n", sortId, uri)
 		util.StartProcess(uri, dest, args)
 	}
 }

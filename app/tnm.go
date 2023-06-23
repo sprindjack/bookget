@@ -67,16 +67,16 @@ func (r Tnm) do(dziUrls []string) (msg string, err error) {
 	}
 	size := len(dziUrls)
 	for i, uri := range dziUrls {
-		if !config.PageRange(i, size) {
-			continue
-		}
-		if uri == "" {
+		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
 		sortId := util.GenNumberSorted(i + 1)
-		log.Printf("Get %s  %s\n", sortId, uri)
 		filename := sortId + config.Conf.FileExt
 		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		if FileExist(dest) {
+			continue
+		}
+		log.Printf("Get %s  %s\n", sortId, uri)
 		util.StartProcess(uri, dest, args)
 	}
 	return "", err

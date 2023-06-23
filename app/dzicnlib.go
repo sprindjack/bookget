@@ -117,6 +117,9 @@ func (r DziCnLib) do(dziUrls []string) (msg string, err error) {
 		}
 		inputUri := storePath + val
 		outfile := storePath + util.GenNumberSorted(i+1) + r.Extention
+		if FileExist(outfile) {
+			continue
+		}
 		if ret := util.StartProcess(inputUri, outfile, args); ret == true {
 			os.Remove(inputUri)
 		}

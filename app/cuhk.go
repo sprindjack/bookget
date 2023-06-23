@@ -33,7 +33,7 @@ type ImagePage struct {
 	Identifier string `json:"identifier"`
 }
 
-func (r Cuhk) Init(iTask int, sUrl string) (msg string, err error) {
+func (r *Cuhk) Init(iTask int, sUrl string) (msg string, err error) {
 	r.dt = new(DownloadTask)
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
@@ -46,7 +46,7 @@ func (r Cuhk) Init(iTask int, sUrl string) (msg string, err error) {
 	return r.download()
 }
 
-func (r Cuhk) getBookId(sUrl string) (bookId string) {
+func (r *Cuhk) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`item/cuhk-([A-Za-z0-9]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
@@ -54,7 +54,7 @@ func (r Cuhk) getBookId(sUrl string) (bookId string) {
 	return bookId
 }
 
-func (r Cuhk) download() (msg string, err error) {
+func (r *Cuhk) download() (msg string, err error) {
 	name := util.GenNumberSorted(r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
@@ -81,7 +81,7 @@ func (r Cuhk) download() (msg string, err error) {
 	return "", nil
 }
 
-func (r Cuhk) do(imgUrls []string) (msg string, err error) {
+func (r *Cuhk) do(imgUrls []string) (msg string, err error) {
 	if imgUrls == nil {
 		return
 	}
@@ -125,7 +125,7 @@ func (r Cuhk) do(imgUrls []string) (msg string, err error) {
 	return "", err
 }
 
-func (r Cuhk) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
+func (r *Cuhk) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
 	bs, err := r.getBody(sUrl, jar)
 	if err != nil {
 		return
@@ -149,7 +149,7 @@ func (r Cuhk) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err
 	return volumes, nil
 }
 
-func (r Cuhk) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+func (r *Cuhk) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
 	bs, err := r.getBody(sUrl, jar)
 	if err != nil {
 		return
@@ -175,7 +175,7 @@ func (r Cuhk) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, e
 	return canvases, err
 }
 
-func (r Cuhk) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (r *Cuhk) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	referer := url.QueryEscape(apiUrl)
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
@@ -197,7 +197,7 @@ func (r Cuhk) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	return bs, nil
 }
 
-func (r Cuhk) getCanvasesJPEG2000(sUrl string, jar *cookiejar.Jar) (imagePage []ImagePage) {
+func (r *Cuhk) getCanvasesJPEG2000(sUrl string, jar *cookiejar.Jar) (imagePage []ImagePage) {
 	bs, err := r.getBody(sUrl, jar)
 	if err != nil {
 		return

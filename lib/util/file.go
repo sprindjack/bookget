@@ -29,6 +29,14 @@ func ByteUnitString(n int64) string {
 	return fmt.Sprintf("%.3g %s", size, unit)
 }
 
+func FileExist(path string) bool {
+	fi, err := os.Stat(path)
+	if err == nil && fi.Size() > 0 {
+		return true
+	}
+	return false
+}
+
 func FileWrite(b []byte, filename string) (err error) {
 	if len(b) <= 0 {
 		return nil

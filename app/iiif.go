@@ -192,9 +192,12 @@ func (f IIIF) doDezoomifyRs(iiifUrls []string) bool {
 			continue
 		}
 		sortId := util.GenNumberSorted(i + 1)
-		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
 		filename := sortId + config.Conf.FileExt
 		dest := f.dt.SavePath + string(os.PathSeparator) + filename
+		if FileExist(dest) {
+			continue
+		}
+		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
 		util.StartProcess(uri, dest, args)
 	}
 	return true
@@ -213,9 +216,12 @@ func (f IIIF) doNormal(imgUrls []string) bool {
 		}
 		ext := util.FileExt(uri)
 		sortId := util.GenNumberSorted(i + 1)
-		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
 		filename := sortId + ext
 		dest := f.dt.SavePath + string(os.PathSeparator) + filename
+		if FileExist(dest) {
+			continue
+		}
+		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
 		opts := gohttp.Options{
 			DestFile:    dest,
 			Overwrite:   false,

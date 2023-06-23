@@ -56,7 +56,7 @@ func Init(ctx context.Context) bool {
 	flag.StringVar(&Conf.FileExt, "ext", ".jpg", "指定文件扩展名[.jpg|.tif|.png]等")
 	c := uint(runtime.NumCPU() * 2)
 	flag.UintVar(&Conf.Threads, "n", c, "最大并发连接数")
-	flag.UintVar(&Conf.Speed, "speed", 5, "下载限速 N 秒/任务，cuhk推荐5-60")
+	flag.UintVar(&Conf.Speed, "speed", 0, "下载限速 N 秒/任务，cuhk推荐5-60")
 	flag.IntVar(&Conf.AutoDetect, "a", 0, "自动检测下载URL。可选值[0|1|2]，;0=默认;\n1=通用批量下载（类似IDM、迅雷）;\n2= IIIF manifest.json 自动检测下载图片")
 	flag.BoolVar(&Conf.Help, "h", false, "显示帮助")
 	flag.BoolVar(&Conf.Version, "v", false, "显示版本")
@@ -153,7 +153,7 @@ func LetterNumberEscape(input string) string {
 	//if m != nil {
 	//	s = strings.Join(m, "")
 	//}
-	fooRegexp := regexp.MustCompile(`([/\\:*?"<>|$]+)`)
+	fooRegexp := regexp.MustCompile(`([/\\:*?"<>|]+)`)
 	result := fooRegexp.ReplaceAllString(input, "")
 	return result
 }

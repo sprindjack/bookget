@@ -1,4 +1,4 @@
-ver="1.1.6"
+ver="1.1.7"
 
 mkdir -p target/bookget-${ver}.linux/
 mkdir -p target/bookget-${ver}.macOS/
@@ -15,9 +15,9 @@ cp cookie.txt target/bookget-${ver}.macOS/cookie.txt
 cp cookie.txt target/bookget-${ver}.macOS-arm64/cookie.txt
 #cp cookie.txt target/bookget-${ver}.windows/cookie.txt
 
-cp target/dezoomify-rs/linux-amd64/dezoomify-rs target/bookget-${ver}.linux/dezoomify-rs
-cp target/dezoomify-rs/darwin-amd64/dezoomify-rs target/bookget-${ver}.macOS/dezoomify-rs
-cp target/dezoomify-rs/darwin-arm64/dezoomify-rs target/bookget-${ver}.macOS-arm64/dezoomify-rs
+cp target/dezoomify-rs/x86_64-linux/dezoomify-rs target/bookget-${ver}.linux/dezoomify-rs
+cp target/dezoomify-rs/x86_64-apple/dezoomify-rs target/bookget-${ver}.macOS/dezoomify-rs
+cp target/dezoomify-rs/aarch64-apple/dezoomify-rs target/bookget-${ver}.macOS-arm64/dezoomify-rs
 
 
 cd target/

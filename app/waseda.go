@@ -13,6 +13,7 @@ import (
 	"path"
 	"regexp"
 	"sort"
+	"sync"
 )
 
 type Waseda struct {
@@ -87,9 +88,9 @@ func (r Waseda) do(imgUrls []string) (msg string, err error) {
 		return
 	}
 	fmt.Println()
-	referer := url.QueryEscape(r.dt.Url)
 	size := len(imgUrls)
-	ctx := context.Background()
+	var wg sync.WaitGroup
+	q := QueueNew(int(config.Conf.Threads))
 	for i, uri := range imgUrls {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
@@ -101,24 +102,26 @@ func (r Waseda) do(imgUrls []string) (msg string, err error) {
 			continue
 		}
 		log.Printf("Get %d/%d page, URL: %s\n", i+1, size, uri)
-		opts := gohttp.Options{
-			DestFile:    dest,
-			Overwrite:   false,
-			Concurrency: config.Conf.Threads,
-			CookieFile:  config.Conf.CookieFile,
-			CookieJar:   r.dt.Jar,
-			Headers: map[string]interface{}{
-				"User-Agent": config.Conf.UserAgent,
-				"Referer":    referer,
-			},
-		}
-		_, err = gohttp.FastGet(ctx, uri, opts)
-		if err != nil {
-			fmt.Println(err)
-			util.PrintSleepTime(config.Conf.Speed)
-		}
-		fmt.Println()
+		imgUrl := uri
+		wg.Add(1)
+		q.Go(func() {
+			defer wg.Done()
+			ctx := context.Background()
+			opts := gohttp.Options{
+				DestFile:    dest,
+				Overwrite:   false,
+				Concurrency: 1,
+				CookieFile:  config.Conf.CookieFile,
+				CookieJar:   r.dt.Jar,
+				Headers: map[string]interface{}{
+					"User-Agent": config.Conf.UserAgent,
+				},
+			}
+			gohttp.FastGet(ctx, imgUrl, opts)
+			fmt.Println()
+		})
 	}
+	wg.Wait()
 	fmt.Println()
 	return "", err
 }
@@ -159,7 +162,7 @@ func (r Waseda) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string,
 	}
 	text := string(bs)
 	//取册数
-	matches := regexp.MustCompile(`href=["'](.+?)\.jpg["']`).FindAllStringSubmatch(text, -1)
+	matches := regexp.MustCompile(`(?i)href=["'](.+?)\.jpg["']\s+target="_blank">\d+</A>`).FindAllStringSubmatch(text, -1)
 	if matches == nil {
 		return
 	}

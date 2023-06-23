@@ -6,7 +6,6 @@ import (
 	"bookget/site/Japan/gprime"
 	"bookget/site/Japan/kanjikyoto"
 	"bookget/site/Japan/keio"
-	"bookget/site/Japan/khirin"
 	"bookget/site/Japan/kokusho"
 	"bookget/site/Japan/kyoto"
 	"bookget/site/Japan/national"
@@ -109,7 +108,13 @@ func (p ElibGprime) getRouterInit(sUrl []string) (map[string]interface{}, error)
 type KhirinRekihaku struct{}
 
 func (p KhirinRekihaku) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	for i, s := range sUrl {
+	taskUrls := make([]string, 0, 10)
+	for _, s := range sUrl {
+		dUrl := ExplanRegexpUrl(s)
+		taskUrls = append(taskUrls, dUrl...)
+	}
+	for i, s := range taskUrls {
+		var khirin = app.Khirin{}
 		khirin.Init(i+1, s)
 	}
 	return nil, nil

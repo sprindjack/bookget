@@ -43,8 +43,11 @@ func StartDownload(iTask int, taskUrl, bookId string) {
 			continue
 		}
 		sortId := util.GenNumberSorted(i + 1)
-		log.Printf("Get %s  %s\n", sortId, uri)
 		outfile := storePath + sortId + config.Conf.FileExt
+		if util.FileExist(outfile) {
+			continue
+		}
+		log.Printf("Get %s  %s\n", sortId, uri)
 		util.StartProcess(uri, outfile, args)
 	}
 }
