@@ -48,6 +48,13 @@ func Download(dt *DownloadTask) (msg string, err error) {
 	for k, vol := range respVolume.Volume {
 		log.Printf(" %d/%d volume, %d pages \n", k+1, len(respVolume.Volume), vol.Pages)
 		for i := 1; i <= vol.Pages; i++ {
+			//
+			sortId := fmt.Sprintf("%s.jpg", util.GenNumberSorted(index+1))
+			dest := config.GetDestPath(dt.Url, dt.BookId, sortId)
+			if util.FileExist(dest) {
+				index++
+				continue
+			}
 			respImage, err := getBase64Image(dt.BookId, vol.VolumeId, i, userKey, token)
 			if err != nil || respImage.StatusCode != "200" {
 				log.Println(err)
@@ -60,10 +67,6 @@ func Download(dt *DownloadTask) (msg string, err error) {
 					log.Println(err)
 					continue
 				}
-				//
-				sortId := fmt.Sprintf("%s.jpg", util.GenNumberSorted(index+1))
-				dest := config.GetDestPath(dt.Url, dt.BookId, sortId)
-
 				log.Printf("Get %d/%d volume, %d/%d pages.\n", k+1, len(respVolume.Volume), i, vol.Pages)
 				util.FileWrite(bs, dest)
 				index++

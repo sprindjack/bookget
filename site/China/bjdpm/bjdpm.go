@@ -70,7 +70,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 	storePath := dt.SavePath + string(os.PathSeparator)
 	ext := "." + dziFormat.Format
 	outfile := storePath + dt.BookId + ext
-	if util.FileExist(dest) {
+	if util.FileExist(outfile) {
 		return "", nil
 	}
 	if ret := util.StartProcess(dest, outfile, args); ret == true {
