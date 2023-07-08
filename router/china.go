@@ -213,3 +213,13 @@ func (p Hkulib) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	}
 	return nil, nil
 }
+
+type Szmuseum struct{}
+
+func (p Szmuseum) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var szlib app.Szmuseum
+		szlib.Init(i+1, s)
+	}
+	return nil, nil
+}

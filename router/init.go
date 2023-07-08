@@ -84,6 +84,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["dfz.yn.gov.cn"] = new(Yndfz)
 		//香港大学数字图书
 		Router["digitalrepository.lib.hku.hk"] = new(Hkulib)
+		//苏州博物馆古籍
+		Router["www.szmuseum.com"] = new(Szmuseum)
 		//}}} -----------------------------------------------------------------
 
 		//---------------日本--------------------------------------------------
