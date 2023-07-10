@@ -246,16 +246,16 @@ func (r *Loc) isChinaIP() bool {
 		CookieJar:  r.dt.Jar,
 		Headers: map[string]interface{}{
 			"User-Agent": config.Conf.UserAgent,
-			"Referer":    "https://www.ip138.com/",
+			"Referer":    "http://ip-api.com/",
 		},
 	})
-	resp, err := cli.Get("https://2023.ip138.com/")
+	resp, err := cli.Get("http://ip-api.com/json/?lang=zh-CN")
 	if err != nil {
 		return false
 	}
 	bs, _ := resp.GetBody()
 	text := string(bs)
-	if strings.Contains(text, "来自：中国") {
+	if strings.Contains(text, "\"country\":\"中国\"") {
 		return true
 	}
 	return false
