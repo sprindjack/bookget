@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 type Loc struct {
@@ -38,7 +39,7 @@ type LocImageFile struct {
 	Size     int    `json:"size,omitempty"`
 }
 
-func (r Loc) Init(iTask int, sUrl string) (msg string, err error) {
+func (r *Loc) Init(iTask int, sUrl string) (msg string, err error) {
 	r.dt = new(DownloadTask)
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
@@ -51,7 +52,7 @@ func (r Loc) Init(iTask int, sUrl string) (msg string, err error) {
 	return r.download()
 }
 
-func (r Loc) getBookId(sUrl string) (bookId string) {
+func (r *Loc) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`item/([A-Za-z0-9]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
@@ -59,7 +60,23 @@ func (r Loc) getBookId(sUrl string) (bookId string) {
 	return bookId
 }
 
-func (r Loc) download() (msg string, err error) {
+func (r *Loc) download() (msg string, err error) {
+	//for China
+	if r.isChinaIP() {
+		name := util.GenNumberSorted(r.dt.Index)
+		log.Printf("Get %s  %s\n", name, r.dt.Url)
+		r.dt.VolumeId = r.dt.BookId
+		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+		canvases, err := r.getCanvasesJPG2000(r.dt.Url)
+		if err != nil || canvases == nil {
+			return "requested URL was not found.", err
+		}
+		log.Printf(" %d pages \n", len(canvases))
+		config.Conf.FileExt = ".jp2" //强制jpg2000
+		return r.do(canvases)
+	}
+
+	//for other
 	apiUrl := fmt.Sprintf("https://www.loc.gov/item/%s/?fo=json", r.dt.BookId)
 	r.xmlContent, err = r.getBody(apiUrl, r.dt.Jar)
 	if err != nil || r.xmlContent == nil {
@@ -91,14 +108,16 @@ func (r Loc) download() (msg string, err error) {
 	return "", nil
 }
 
-func (r Loc) do(imgUrls []string) (msg string, err error) {
+func (r *Loc) do(imgUrls []string) (msg string, err error) {
 	if imgUrls == nil {
 		return
 	}
 	fmt.Println()
 	referer := url.QueryEscape(r.dt.Url)
 	size := len(imgUrls)
-	ctx := context.Background()
+
+	var wg sync.WaitGroup
+	q := QueueNew(int(config.Conf.Threads))
 	for i, uri := range imgUrls {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
@@ -110,29 +129,32 @@ func (r Loc) do(imgUrls []string) (msg string, err error) {
 			continue
 		}
 		log.Printf("Get %d/%d page, URL: %s\n", i+1, size, uri)
-		opts := gohttp.Options{
-			DestFile:    dest,
-			Overwrite:   false,
-			Concurrency: config.Conf.Threads,
-			CookieFile:  config.Conf.CookieFile,
-			CookieJar:   r.dt.Jar,
-			Headers: map[string]interface{}{
-				"User-Agent": config.Conf.UserAgent,
-				"Referer":    referer,
-			},
-		}
-		_, err := gohttp.FastGet(ctx, uri, opts)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		//util.PrintSleepTime(config.Conf.Speed)
+		wg.Add(1)
+		q.Go(func() {
+			defer wg.Done()
+			ctx := context.Background()
+			opts := gohttp.Options{
+				DestFile:    dest,
+				Overwrite:   false,
+				Concurrency: 1,
+				CookieFile:  config.Conf.CookieFile,
+				CookieJar:   r.dt.Jar,
+				Headers: map[string]interface{}{
+					"User-Agent": config.Conf.UserAgent,
+					"Referer":    referer,
+				},
+			}
+			gohttp.FastGet(ctx, uri, opts)
+			util.PrintSleepTime(config.Conf.Speed)
+			fmt.Println()
+		})
 	}
+	wg.Wait()
 	fmt.Println()
 	return "", err
 }
 
-func (r Loc) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
+func (r *Loc) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
 	var manifests = new(LocManifestsJson)
 	if err = json.Unmarshal(r.xmlContent, manifests); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
@@ -145,7 +167,7 @@ func (r Loc) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err 
 	return volumes, nil
 }
 
-func (r Loc) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+func (r *Loc) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
 	var manifests = new(LocManifestsJson)
 	if err = json.Unmarshal(r.xmlContent, manifests); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
@@ -172,7 +194,7 @@ func (r Loc) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, er
 	}
 	return canvases, nil
 }
-func (r Loc) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (r *Loc) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	referer := r.dt.Url
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
@@ -195,7 +217,7 @@ func (r Loc) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	}
 	return bs, nil
 }
-func (r Loc) getImagePage(fileUrls []LocImageFile, newWidth string) (downloadUrl string, ok bool) {
+func (r *Loc) getImagePage(fileUrls []LocImageFile, newWidth string) (downloadUrl string, ok bool) {
 	for _, f := range fileUrls {
 		if config.Conf.FileExt == ".jpg" && f.Mimetype == "image/jpeg" {
 			if strings.Contains(f.Url, "full/pct:100/") {
@@ -215,4 +237,54 @@ func (r Loc) getImagePage(fileUrls []LocImageFile, newWidth string) (downloadUrl
 		}
 	}
 	return
+}
+
+func (r *Loc) isChinaIP() bool {
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
+		CookieFile: config.Conf.CookieFile,
+		CookieJar:  r.dt.Jar,
+		Headers: map[string]interface{}{
+			"User-Agent": config.Conf.UserAgent,
+			"Referer":    "https://www.ip138.com/",
+		},
+	})
+	resp, err := cli.Get("https://2023.ip138.com/")
+	if err != nil {
+		return false
+	}
+	bs, _ := resp.GetBody()
+	text := string(bs)
+	if strings.Contains(text, "来自：中国") {
+		return true
+	}
+	return false
+}
+
+func (r *Loc) getCanvasesJPG2000(sUrl string) (canvases []string, err error) {
+	d := []byte("pid=" + sUrl + "&filetype=jp2&cdn=ncdn&submit=%E8%8E%B7%E5%8F%96")
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
+		CookieFile: config.Conf.CookieFile,
+		CookieJar:  r.dt.Jar,
+		Headers: map[string]interface{}{
+			"User-Agent":   config.Conf.UserAgent,
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Referer":      "https://ok.daoing.com/mggh/index.php?from=bookget",
+		},
+		Body: d,
+	})
+	resp, err := cli.Post("https://ok.daoing.com/mggh/index.php")
+	if err != nil {
+		return nil, err
+	}
+	bs, _ := resp.GetBody()
+	matches := regexp.MustCompile(`http://140.147.239.202/([A-z0-9_/.-])+`).FindAllStringSubmatch(string(bs), -1)
+	if matches == nil {
+		return
+	}
+	for _, match := range matches {
+		canvases = append(canvases, match[0])
+	}
+	return canvases, nil
 }

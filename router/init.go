@@ -50,7 +50,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[中国]台北故宫博物院 - 典藏资料 npmtw.Init
 		Router["digitalarchive.npm.gov.tw"] = new(DigitalarchiveNpmTw)
 		//[中国]洛阳市图书馆
-		Router["221.13.137.120:8090"] = new(LuoYang)
+		Router["111.7.82.29:8090"] = new(LuoYang)
 		//[中国]温州市图书馆
 		Router["oyjy.wzlib.cn"] = new(OyjyWzlib)
 		//[中国]深圳市图书馆-古籍
