@@ -1,4 +1,4 @@
-ver="1.1.8"
+ver="1.1.9"
 
 mkdir -p target/bookget-${ver}.linux/
 mkdir -p target/bookget-${ver}.macOS/

@@ -124,6 +124,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[日本]市立米泽图书馆
 		Router["www.library.yonezawa.yamagata.jp"] = new(LibYonezawa)
 		Router["webarchives.tnm.jp"] = new(WebarchivesTnm)
+		//[日本]龙谷大学
+		Router["da.library.ryukoku.ac.jp"] = new(Ryukoku)
 		//}}} -----------------------------------------------------------------
 
 		//{{{---------------美国、欧洲--------------------------------------------------
