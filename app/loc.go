@@ -128,7 +128,8 @@ func (r *Loc) do(imgUrls []string) (msg string, err error) {
 		if FileExist(dest) {
 			continue
 		}
-		log.Printf("Get %d/%d page, URL: %s\n", i+1, size, uri)
+		imgUrl := uri
+		log.Printf("Get %d/%d page, URL: %s\n", i+1, size, imgUrl)
 		wg.Add(1)
 		q.Go(func() {
 			defer wg.Done()
@@ -144,7 +145,7 @@ func (r *Loc) do(imgUrls []string) (msg string, err error) {
 					"Referer":    referer,
 				},
 			}
-			gohttp.FastGet(ctx, uri, opts)
+			gohttp.FastGet(ctx, imgUrl, opts)
 			util.PrintSleepTime(config.Conf.Speed)
 			fmt.Println()
 		})

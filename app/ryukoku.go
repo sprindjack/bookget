@@ -123,7 +123,8 @@ func (r *Ryukoku) doNormal(imgUrls []string) bool {
 		if FileExist(dest) {
 			continue
 		}
-		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
+		imgUrl := uri
+		log.Printf("Get %d/%d  %s\n", i+1, size, imgUrl)
 		wg.Add(1)
 		q.Go(func() {
 			defer wg.Done()
@@ -138,7 +139,7 @@ func (r *Ryukoku) doNormal(imgUrls []string) bool {
 					"User-Agent": config.Conf.UserAgent,
 				},
 			}
-			_, err := gohttp.FastGet(ctx, uri, opts)
+			_, err := gohttp.FastGet(ctx, imgUrl, opts)
 			if err != nil {
 				fmt.Println(err)
 			}
