@@ -23,18 +23,17 @@ type Input struct {
 	SaveFolder string //下载文件存放目录，默认为当前文件夹下 Downloads 目录下
 	//;生成 dezoomify-rs 可用的文件(默认生成文件名 dezoomify-rs.urls.txt）
 	// ;0 = 禁用，1=启用 （只对支持的图书馆有效）
-	UseNumericFilename bool   //下载文件名，是否只使用数字序号？0=否，1=是（目前只对国图生效）
-	FullImageWidth     int    //;全高清图下载时，指定宽度像素（16开纸185mm*260mm，像素2185*3071）
-	UserAgent          string //自定义UserAgent
-	AutoDetect         int    //自动检测下载URL。可选值[0|1|2]，;0=默认;1=通用批量下载（类似IDM、迅雷）;2= IIIF manifest.json 自动检测下载图片
-	MergePDFs          bool   //;台北故宫博物院 - 善本古籍，是否整册合并一个PDF下载？0=否，1=是。整册合并一个PDF遇到某一册最后一章节【无影像】会导致下载失败。 如：新刊校定集注杜詩 三十六卷 第二十四冊 聞惠子過東溪 无影像
-	DezoomifyPath      string //dezoomify-rs 本地目录位置
-	DezoomifyRs        string //dezoomify-rs 参数
-	UseDziRs           bool   //启用DezoomifyRs下载IIIF
-	FileExt            string //指定下载的扩展名
-	Threads            uint
-	Help               bool
-	Version            bool
+	FullImageWidth int    //;全高清图下载时，指定宽度像素（16开纸185mm*260mm，像素2185*3071）
+	UserAgent      string //自定义UserAgent
+	AutoDetect     int    //自动检测下载URL。可选值[0|1|2]，;0=默认;1=通用批量下载（类似IDM、迅雷）;2= IIIF manifest.json 自动检测下载图片
+	MergePDFs      bool   //;台北故宫博物院 - 善本古籍，是否整册合并一个PDF下载？0=否，1=是。整册合并一个PDF遇到某一册最后一章节【无影像】会导致下载失败。 如：新刊校定集注杜詩 三十六卷 第二十四冊 聞惠子過東溪 无影像
+	DezoomifyPath  string //dezoomify-rs 本地目录位置
+	DezoomifyRs    string //dezoomify-rs 参数
+	UseDziRs       bool   //启用DezoomifyRs下载IIIF
+	FileExt        string //指定下载的扩展名
+	Threads        uint
+	Help           bool
+	Version        bool
 }
 
 func Init(ctx context.Context) bool {
@@ -48,7 +47,6 @@ func Init(ctx context.Context) bool {
 	flag.StringVar(&Conf.Seq, "seq", "", "页面范围，如4:434")
 	flag.IntVar(&Conf.Volume, "vol", 0, "多册图书，只下第N册")
 	flag.IntVar(&Conf.FullImageWidth, "w", 7000, "指定图片宽度像素。推荐2400，若>6400为最大图")
-	flag.BoolVar(&Conf.UseNumericFilename, "fn", true, "保存文件名规则。可选值[0|1]。0=中文名，1=数字名。仅对 read.nlc.cn 有效。")
 	flag.StringVar(&Conf.UserAgent, "ua", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0", "user-agent")
 	flag.BoolVar(&Conf.MergePDFs, "mp", false, "合并PDF文件下载，可选值[0|1]。0=否，1=是。仅对 rbk-doc.npm.edu.tw 有效。")
 	flag.BoolVar(&Conf.UseDziRs, "dzi", false, "使用dezoomify-rs下载，仅对支持iiif的网站生效。")
