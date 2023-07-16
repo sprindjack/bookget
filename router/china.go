@@ -15,12 +15,12 @@ import (
 	"bookget/site/China/wzlib"
 	"bookget/site/China/ynutcm"
 )
-import "bookget/site/China/nlc"
 
 type ChinaNcl struct{}
 
 func (p ChinaNcl) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var nlc app.ChinaNlc
 		nlc.Init(i+1, s)
 	}
 	return nil, nil
