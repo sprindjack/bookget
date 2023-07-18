@@ -42,12 +42,12 @@ func (r *ChinaNlc) Init(iTask int, sUrl string) (msg string, err error) {
 }
 
 func (r *ChinaNlc) getBookId(sUrl string) (bookId string) {
-	m := regexp.MustCompile(`identifier[\s]+=[\s]+["']([A-Za-z0-9]+)["']`).FindStringSubmatch(sUrl)
+	m := regexp.MustCompile(`identifier\s+=\s+["']([^"']+)["']`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
 		return
 	}
-	m = regexp.MustCompile(`fid=([A-Za-z0-9]+)`).FindStringSubmatch(sUrl)
+	m = regexp.MustCompile(`fid=([A-z0-9]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
 		return
