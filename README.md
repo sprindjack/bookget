@@ -13,10 +13,7 @@ bookget 数字图书馆下载工具，目前支持约50+个数字图书馆。
 
 ### 特别推荐：  
 [书格](https://new.shuge.org/) 有品格的数字古籍图书馆   
-![https://new.shuge.org/](https://new.shuge.org/wp-content/themes/artview/images/layout/logo.png)
-
-
-
+[![书格](https://new.shuge.org/wp-content/themes/artview/images/layout/logo.png "书格")](https://new.shuge.org/)
 
 
 
