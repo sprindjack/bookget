@@ -18,9 +18,11 @@ import (
 )
 
 type ChinaNlc struct {
-	dt       *DownloadTask
-	body     []byte
-	dataType int //0=pdf,1=pic
+	dt          *DownloadTask
+	body        []byte
+	dataType    int //0=pdf,1=pic
+	aid         string
+	vectorBooks []string
 }
 
 func (r *ChinaNlc) Init(iTask int, sUrl string) (msg string, err error) {
@@ -29,7 +31,7 @@ func (r *ChinaNlc) Init(iTask int, sUrl string) (msg string, err error) {
 	r.dt.Url = sUrl
 	r.dt.Index = iTask
 	r.dt.Jar, _ = cookiejar.New(nil)
-	if strings.Contains(sUrl, "OpenObjectBook") || strings.Contains(r.dt.Url, "OutOpenBook/OpenObjectPic") {
+	if strings.Contains(sUrl, "OutOpenBook/Open") {
 		r.body, _ = r.getBody(sUrl, r.dt.Jar)
 		r.dt.BookId = r.getBookId(string(r.body))
 	} else {
@@ -78,39 +80,29 @@ func (r *ChinaNlc) download() (msg string, err error) {
 		r.do(canvases)
 		return "", err
 	}
+	//对照阅读单册
+	if strings.Contains(r.dt.Url, "OpenTwoObjectBook") {
+		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+		v, _ := r.identifier(r.dt.Url)
+		filename := v.Get("bid") + ".pdf"
+		pageUrl := fmt.Sprintf("%s://%s/OutOpenBook/OpenObjectBook?aid=%s&bid=%s", r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host,
+			v.Get("aid"), v.Get("bid"))
+		err = r.doPdfUrl(pageUrl, filename)
+
+		filename = v.Get("cid") + ".pdf"
+		pageUrl = fmt.Sprintf("%s://%s/OutOpenBook/OpenObjectBook?aid=%s&bid=%s", r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host,
+			v.Get("aid"), v.Get("cid"))
+		err = r.doPdfUrl(pageUrl, filename)
+		return "", err
+	}
 	//多册/多图
-	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
+	err = r.downloadForPDFs()
 	if err != nil {
 		fmt.Println(err)
 		return "getVolumes", err
 	}
-	size := len(respVolume)
-	for i, vol := range respVolume {
-		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
-			continue
-		}
-		vid := util.GenNumberSorted(i + 1)
-		//图片
-		if strings.Contains(vol, "OpenObjectPic") {
-			r.dataType = 1
-			r.dt.VolumeId = r.dt.UrlParsed.Host + "_" + r.dt.BookId + "/vol." + vid
-			r.dt.SavePath = config.Conf.SaveFolder + string(os.PathSeparator) + r.dt.VolumeId
-			_ = os.MkdirAll(r.dt.SavePath, os.ModePerm)
-			canvases, err := r.getCanvases(vol, r.dt.Jar)
-			if err != nil || canvases == nil {
-				fmt.Println(err)
-				continue
-			}
-			log.Printf(" %d/%d volume, %d pages \n", i+1, size, len(canvases))
-			r.do(canvases)
-		} else {
-			//PDF
-			r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
-			log.Printf("Get %d/%d volume, URL: %s\n", i+1, size, vol)
-			filename := vid + ".pdf"
-			r.doPdfUrl(vol, filename)
-		}
-	}
+	//矢量多册PDF
+	r.downloadForOCR()
 	return "", nil
 }
 
@@ -161,23 +153,94 @@ func (r *ChinaNlc) do(imgUrls []string) (msg string, err error) {
 	return "", err
 }
 
+func (r *ChinaNlc) downloadForPDFs() error {
+	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
+	if err != nil {
+		return err
+	}
+	size := len(respVolume)
+	for i, vol := range respVolume {
+		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+			continue
+		}
+		vid := util.GenNumberSorted(i + 1)
+		//图片
+		if strings.Contains(vol, "OpenObjectPic") {
+			r.dataType = 1
+			r.dt.VolumeId = r.dt.UrlParsed.Host + "_" + r.dt.BookId + "/vol." + vid
+			r.dt.SavePath = config.Conf.SaveFolder + string(os.PathSeparator) + r.dt.VolumeId
+			_ = os.MkdirAll(r.dt.SavePath, os.ModePerm)
+			canvases, err := r.getCanvases(vol, r.dt.Jar)
+			if err != nil || canvases == nil {
+				fmt.Println(err)
+				continue
+			}
+			log.Printf(" %d/%d volume, %d pages \n", i+1, size, len(canvases))
+			r.do(canvases)
+		} else {
+			//PDF
+			r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+			log.Printf("Get %d/%d volume, URL: %s\n", i+1, size, vol)
+			filename := vid + ".pdf"
+			r.doPdfUrl(vol, filename)
+		}
+	}
+	return nil
+}
+
+func (r *ChinaNlc) downloadForOCR() {
+	if r.vectorBooks == nil {
+		return
+	}
+	for i, vol := range r.vectorBooks {
+		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+			continue
+		}
+		vid := util.GenNumberSorted(i + 1)
+		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId+"_ocr")
+		log.Printf("Get %d/%d volume, URL: %s\n", i+1, len(r.vectorBooks), vol)
+		filename := vid + ".pdf"
+		r.doPdfUrl(vol, filename)
+	}
+	return
+}
+
 func (r *ChinaNlc) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
 	r.body, err = r.getBody(r.dt.Url, r.dt.Jar)
 	if err != nil {
 		return nil, err
 	}
-	text := string(r.body)
+	text := util.SubText(string(r.body), "<div id=\"multiple\"", "id=\"catalogDiv\">")
 	//取册数
 	aUrls := regexp.MustCompile(`<a[^>]+class="a1"[^>].+href="/OutOpenBook/([^"]+)"`).FindAllStringSubmatch(text, -1)
 	for _, uri := range aUrls {
 		pageUrl := fmt.Sprintf("%s://%s/OutOpenBook/%s", r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host, uri[1])
 		volumes = append(volumes, pageUrl)
 	}
+	//
+	aid := ""
+	if volumes != nil {
+		match := regexp.MustCompile(`aid=([^&]+)`).FindStringSubmatch(volumes[0])
+		if match != nil {
+			aid = match[1]
+		}
+	}
+
+	//对照阅读
+	twoUrls := regexp.MustCompile(`openTwoBookNew\('([^"']+)','([^"']+)'`).FindAllStringSubmatch(text, -1)
+	if twoUrls != nil && aid != "" {
+		r.vectorBooks = make([]string, 0, len(twoUrls))
+		for _, uri := range twoUrls {
+			pageUrl := fmt.Sprintf("%s://%s/OutOpenBook/OpenObjectBook?aid=%s&bid=%s", r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host, aid, uri[2])
+			r.vectorBooks = append(r.vectorBooks, pageUrl)
+		}
+	}
 	return volumes, err
 }
 
 func (r *ChinaNlc) doPdfUrl(sUrl, filename string) error {
-	dest := config.GetDestPath(r.dt.Url, r.dt.BookId, filename)
+	//dest := config.GetDestPath(r.dt.Url, r.dt.BookId, filename)
+	dest := r.dt.SavePath + string(os.PathSeparator) + filename
 	if FileExist(dest) {
 		return nil
 	}

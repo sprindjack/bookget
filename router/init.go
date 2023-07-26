@@ -178,6 +178,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 
 		//俄罗斯图书馆
 		Router["viewer.rsl.ru"] = new(RslRu)
+		//越南汉喃古籍文献典藏数位计划
+		Router["lib.nomfoundation.org"] = new(Nomfoundation)
 
 		//}}} -----------------------------------------------------------------
 		Router["iiif.io"] = new(NormalIIIF)

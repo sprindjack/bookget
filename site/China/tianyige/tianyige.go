@@ -63,9 +63,13 @@ func Download(dt *DownloadTask) (msg string, err error) {
 			}
 			ext := util.FileExt(uri)
 			sortId := util.GenNumberSorted(i + 1)
-			log.Printf("Get %s  %s\n", sortId, uri)
 			fileName := sortId + ext
 			dest := config.GetDestPath(dt.Url, id, fileName)
+			if util.FileExist(dest) {
+				continue
+			}
+			log.Printf("Get %s  %s\n", sortId, uri)
+
 			gohttp.FastGet(ctx, uri, gohttp.Options{
 				Concurrency: config.Conf.Threads,
 				DestFile:    dest,

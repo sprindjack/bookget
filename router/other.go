@@ -75,3 +75,14 @@ func (p RslRu) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	}
 	return nil, nil
 }
+
+type Nomfoundation struct{}
+
+func (p Nomfoundation) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		n := i + 1
+		var nomfoundation app.Nomfoundation
+		nomfoundation.Init(n, s)
+	}
+	return nil, nil
+}
