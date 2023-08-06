@@ -25,22 +25,9 @@ func (r Waseda) Init(iTask int, sUrl string) (msg string, err error) {
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
 	r.dt.Index = iTask
-	r.dt.BookId = r.getBookId(r.dt.Url)
-	if r.dt.BookId == "" {
-		return "requested URL was not found.", err
-	}
+	r.dt.BookId = getBookId(r.dt.Url)
 	r.dt.Jar, _ = cookiejar.New(nil)
 	return r.download()
-}
-
-func (r Waseda) getBookId(sUrl string) (bookId string) {
-	if m := regexp.MustCompile(`kosho/[A-Za-z0-9_-]+/([A-Za-z0-9_-]+)/([A-Za-z0-9_-]+)/`).FindStringSubmatch(sUrl); m != nil {
-		return m[2]
-	}
-	if m := regexp.MustCompile(`kosho/[A-Za-z0-9_-]+/([A-Za-z0-9_-]+)/`).FindStringSubmatch(sUrl); m != nil {
-		return m[1]
-	}
-	return bookId
 }
 
 func (r Waseda) download() (msg string, err error) {
@@ -67,8 +54,11 @@ func (r Waseda) download() (msg string, err error) {
 				continue
 			}
 			vid := util.GenNumberSorted(i + 1)
-
-			r.dt.VolumeId = r.dt.BookId + "_vol." + vid
+			if len(respVolume) == 1 {
+				r.dt.VolumeId = r.dt.BookId
+			} else {
+				r.dt.VolumeId = r.dt.BookId + "_vol." + vid
+			}
 			canvases, err := r.getCanvases(vol, r.dt.Jar)
 			if err != nil || canvases == nil {
 				fmt.Println(err)

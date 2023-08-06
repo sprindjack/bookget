@@ -3,9 +3,13 @@ package app
 import (
 	"bookget/config"
 	"bookget/lib/gohttp"
+	xhash "bookget/lib/hash"
 	"bookget/lib/util"
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http/cookiejar"
 	"net/url"
@@ -38,6 +42,35 @@ type Volume struct {
 	Title string
 	Url   string
 	Seq   int
+}
+
+func getBookId(sUrl string) (bookId string) {
+	mh := xhash.NewMultiHasher()
+	io.Copy(mh, bytes.NewBuffer([]byte(sUrl)))
+	bookId, _ = mh.SumString(xhash.QuickXorHash, false)
+	return bookId
+}
+
+func getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
+	referer := url.QueryEscape(apiUrl)
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
+		CookieFile: config.Conf.CookieFile,
+		CookieJar:  jar,
+		Headers: map[string]interface{}{
+			"User-Agent": config.Conf.UserAgent,
+			"Referer":    referer,
+		},
+	})
+	resp, err := cli.Get(apiUrl)
+	if err != nil {
+		return nil, err
+	}
+	bs, _ := resp.GetBody()
+	if bs == nil {
+		return nil, errors.New(fmt.Sprintf("ErrCode:%d, %s", resp.GetStatusCode(), resp.GetReasonPhrase()))
+	}
+	return bs, nil
 }
 
 func NormalDownload(pageUrl, bookId string, imgUrls []string, jar *cookiejar.Jar) (err error) {

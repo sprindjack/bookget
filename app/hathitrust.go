@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -44,6 +45,7 @@ func (h Hathitrust) download() (msg string, err error) {
 	log.Printf("Get %s  %s\n", name, h.dt.Url)
 	canvases, err := h.getCanvases(h.dt.Url, h.dt.Jar)
 	if err != nil {
+		fmt.Println(err.Error())
 		return "requested URL was not found.", err
 	}
 	h.dt.SavePath = config.CreateDirectory(h.dt.Url, h.dt.BookId)
@@ -109,15 +111,14 @@ func (h Hathitrust) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []str
 	if err != nil || bs == nil {
 		return nil, err
 	}
-	//取页数
-	// <input id="range-seq" class="navigator-range" type="range" min="1" max="1036" value="2" aria-label="Progress" dir="rtl" />
-	matches := regexp.MustCompile(`<input(?:[^>]+)id="range-seq"(?:[^>]+)max="([0-9]+)"`).FindStringSubmatch(string(bs))
+	//
+	if !bytes.Contains(bs, []byte("HT.params.allowSinglePageDownload = true;")) {
+		return nil, errors.New("This item is not available online —  Limited - search only")
+	}
+	// HT.params.totalSeq = 1220;
+	matches := regexp.MustCompile(`HT.params.totalSeq = ([0-9]+);`).FindStringSubmatch(string(bs))
 	if matches == nil {
-		//或者This item is not available online ( Limited - search only) 取<p>154 page scans
-		matches = regexp.MustCompile(`<p>([0-9]+) page scans`).FindStringSubmatch(string(bs))
-		if matches == nil {
-			return
-		}
+		return
 	}
 	size, _ := strconv.Atoi(matches[1])
 
@@ -130,7 +131,7 @@ func (h Hathitrust) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []str
 		format = "tiff"
 	}
 	for i := 0; i < size; i++ {
-		imgurl := fmt.Sprintf("https://babel.hathitrust.org/cgi/imgsrv/image?id=%s&attachment=1&size=full&format=image/%s&seq=%d", h.dt.BookId, format, i+1)
+		imgurl := fmt.Sprintf("https://babel.hathitrust.org/cgi/imgsrv/image?id=%s&attachment=1&size=ppi%%3A300&format=image/%s&seq=%d", h.dt.BookId, format, i+1)
 		canvases = append(canvases, imgurl)
 	}
 	return canvases, err

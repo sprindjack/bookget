@@ -4,14 +4,11 @@ import (
 	"bookget/config"
 	"bookget/lib/curl"
 	"bookget/lib/gohttp"
-	xhash "bookget/lib/hash"
 	"bookget/lib/util"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http/cookiejar"
 	"net/url"
@@ -61,9 +58,7 @@ func (r *Familysearch) Init(iTask int, sUrl string) (msg string, err error) {
 func (r *Familysearch) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`(?i)wc=([^&]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
-		mh := xhash.NewMultiHasher()
-		io.Copy(mh, bytes.NewBuffer([]byte(m[1])))
-		bookId, _ = mh.SumString(xhash.CRC32, false)
+		bookId = getBookId(m[1])
 		r.urlType = 0 //中國族譜收藏 1239-2014年 https://www.familysearch.org/search/collection/1787988
 		return bookId
 	}

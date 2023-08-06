@@ -4,12 +4,9 @@ import (
 	"bookget/config"
 	"bookget/lib/file"
 	"bookget/lib/gohttp"
-	xhash "bookget/lib/hash"
 	"bookget/lib/util"
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"net/http/cookiejar"
 	"regexp"
@@ -50,9 +47,7 @@ func (w Wget) download() (msg string, err error) {
 		pageUrls, startIndex := w.getDownloadUrls(v)
 		if pageUrls != nil {
 			w.Index = startIndex
-			mh := xhash.NewMultiHasher()
-			io.Copy(mh, bytes.NewBuffer([]byte(v)))
-			w.BookId, _ = mh.SumString(xhash.CRC32, false)
+			w.BookId = getBookId(v)
 			config.CreateDirectory(v, w.BookId)
 			log.Printf("Get %d files.  %s\n", len(pageUrls), v)
 			w.do(pageUrls)

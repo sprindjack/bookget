@@ -3,14 +3,11 @@ package app
 import (
 	"bookget/config"
 	"bookget/lib/gohttp"
-	xhash "bookget/lib/hash"
 	"bookget/lib/util"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http/cookiejar"
 	"net/url"
@@ -81,10 +78,7 @@ func (f IIIF) getBookId(sUrl string) (bookId string) {
 		bookId = m[1]
 		return
 	}
-	mh := xhash.NewMultiHasher()
-	io.Copy(mh, bytes.NewBuffer([]byte(sUrl)))
-	bookId, _ = mh.SumString(xhash.CRC32, false)
-	return bookId
+	return getBookId(sUrl)
 }
 
 func (f IIIF) download() (msg string, err error) {
