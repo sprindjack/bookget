@@ -181,7 +181,7 @@ func (r *SillokGoKr) do(imgUrls []string) (msg string, err error) {
 		if FileExist(dest) {
 			continue
 		}
-		log.Printf("Get %d/%d page,  URL: %s\n", i+1, size, imgUrl)
+		log.Printf("Get %d/%d,  URL: %s\n", i+1, size, imgUrl)
 
 		wg.Add(1)
 		q.Go(func() {
@@ -212,12 +212,12 @@ func (r *SillokGoKr) getBooks(sUrl string, jar *cookiejar.Jar) (books []SillokGo
 		return
 	}
 	text := string(bs)
-	matches := regexp.MustCompile(`<li\sid="([A-z0-9_]+)"\skingCode="([^"]+)"\slevel="([A-z0-9_]+)"\stype="([A-z0-9_]+)"\snext="([A-z0-9_]*)"\sfirstchild="([A-z0-9_]+)">`).FindAllStringSubmatch(text, -1)
+	matches := regexp.MustCompile(`<li\s+id="([A-z0-9_]+)"\s+kingCode="([^"]+)"\s+level="([A-z0-9_]+)"\s+type="([A-z0-9_]+)"\s+next="([A-z0-9_]*)"\s+firstchild="([A-z0-9_]+)">`).FindAllStringSubmatch(text, -1)
 	if matches == nil {
 		return
 	}
 	books = make([]SillokGoKrBook, 0, len(matches))
-	mTitle := regexp.MustCompile(`clickExpand\(\$\(this\)\)\;">([^<]+)</a></span>`).FindAllStringSubmatch(text, -1)
+	mTitle := regexp.MustCompile(`<span class="folder(?:[^>]+)><a href=(?:[^>]+)>([^<]+)</a></span>`).FindAllStringSubmatch(text, -1)
 	if mTitle == nil {
 		return
 	}
@@ -349,7 +349,7 @@ func (r *SillokGoKr) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) 
 		return nil, err
 	}
 	bs, _ := resp.GetBody()
-	if resp.GetStatusCode() == 202 || bs == nil {
+	if resp.GetStatusCode() != 200 || bs == nil {
 		return nil, errors.New(fmt.Sprintf("ErrCode:%d, %s", resp.GetStatusCode(), resp.GetReasonPhrase()))
 	}
 	return bs, nil

@@ -47,7 +47,7 @@ func StartDownload(iTask int, taskUrl, bookId string) {
 			Overwrite:   false,
 			Concurrency: config.Conf.Threads,
 			Headers: map[string]interface{}{
-				"user-agent": config.UserAgent,
+				"user-agent": config.Conf.UserAgent,
 			},
 		})
 	}

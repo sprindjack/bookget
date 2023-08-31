@@ -56,7 +56,7 @@ func getManifestUrl(sUrl string) (Urls []string, err error) {
 		CookieJar:  jar,
 		CookieFile: config.Conf.CookieFile,
 		Headers: map[string]interface{}{
-			"user-agent": config.UserAgent,
+			"user-agent": config.Conf.UserAgent,
 		},
 	})
 	manifestUrls := ManifestUrls{}
@@ -77,7 +77,7 @@ func detectManifest(sUrl string) string {
 		CookieJar:  jar,
 		CookieFile: config.Conf.CookieFile,
 		Headers: map[string]interface{}{
-			"user-agent": config.UserAgent,
+			"user-agent": config.Conf.UserAgent,
 		},
 	})
 	bs, err := resp.GetBody()

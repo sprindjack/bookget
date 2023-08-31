@@ -56,7 +56,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 		CookieJar:   jar,
 		CookieFile:  config.Conf.CookieFile,
 		Headers: map[string]interface{}{
-			"user-agent": config.UserAgent,
+			"user-agent": config.Conf.UserAgent,
 			"Referer":    "https://www.ncpssd.org/",
 			"Origin":     "https://www.ncpssd.org/",
 			"site":       "npssd",

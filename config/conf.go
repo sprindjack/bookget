@@ -4,8 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"gopkg.in/ini.v1"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -39,43 +41,27 @@ type Input struct {
 
 func Init(ctx context.Context) bool {
 
-	//dir, _ := os.Executable()
 	dir, _ := os.Getwd()
-	//cwd := filepath.Dir(dir)
-	urls := dir + string(os.PathSeparator) + "urls.txt"
-	flag.StringVar(&Conf.UrlsFile, "i", urls, "下载的URLs，指定任意本地文件，例如：urls.txt")
-	flag.StringVar(&Conf.SaveFolder, "o", dir, "下载保存到目录")
-	flag.StringVar(&Conf.Seq, "seq", "", "页面范围，如4:434")
-	flag.IntVar(&Conf.Volume, "vol", 0, "多册图书，只下第N册")
-	flag.IntVar(&Conf.FullImageWidth, "w", 7000, "指定图片宽度像素。推荐2400，若>6400为最大图")
-	flag.StringVar(&Conf.UserAgent, "ua", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0", "user-agent")
-	flag.BoolVar(&Conf.MergePDFs, "mp", false, "合并PDF文件下载，可选值[0|1]。0=否，1=是。仅对 rbk-doc.npm.edu.tw 有效。")
-	flag.BoolVar(&Conf.UseDziRs, "dzi", false, "使用dezoomify-rs下载，仅对支持iiif的网站生效。")
-	flag.StringVar(&Conf.CookieFile, "c", "", "指定cookie.txt文件路径")
-	flag.StringVar(&Conf.FileExt, "ext", ".jpg", "指定文件扩展名[.jpg|.tif|.png]等")
-	c := uint(runtime.NumCPU() * 2)
-	flag.UintVar(&Conf.Threads, "n", c, "最大并发连接数")
-	flag.UintVar(&Conf.Speed, "speed", 0, "下载限速 N 秒/任务，cuhk推荐5-60")
-	flag.IntVar(&Conf.Retry, "r", 3, "下载重试次数")
-	flag.IntVar(&Conf.AutoDetect, "a", 0, "自动检测下载URL。可选值[0|1|2]，;0=默认;\n1=通用批量下载（类似IDM、迅雷）;\n2= IIIF manifest.json 自动检测下载图片")
+	iniConf, _ := initINI()
+
+	flag.StringVar(&Conf.UrlsFile, "i", iniConf.UrlsFile, "下载的URLs，指定任意本地文件，例如：urls.txt")
+	flag.StringVar(&Conf.SaveFolder, "o", iniConf.SaveFolder, "下载保存到目录")
+	flag.StringVar(&Conf.Seq, "seq", iniConf.Seq, "页面范围，如4:434")
+	flag.IntVar(&Conf.Volume, "vol", iniConf.Volume, "多册图书，只下第N册")
+	flag.IntVar(&Conf.FullImageWidth, "w", iniConf.FullImageWidth, "指定图片宽度像素。推荐2400，若>6400为最大图")
+	flag.StringVar(&Conf.UserAgent, "ua", iniConf.UserAgent, "user-agent")
+	flag.BoolVar(&Conf.MergePDFs, "mp", iniConf.MergePDFs, "合并PDF文件下载，可选值[0|1]。0=否，1=是。仅对 rbk-doc.npm.edu.tw 有效。")
+	flag.BoolVar(&Conf.UseDziRs, "dzi", iniConf.UseDziRs, "使用dezoomify-rs下载，仅对支持iiif的网站生效。")
+	flag.StringVar(&Conf.CookieFile, "c", iniConf.CookieFile, "指定cookie.txt文件路径")
+	flag.StringVar(&Conf.FileExt, "ext", iniConf.FileExt, "指定文件扩展名[.jpg|.tif|.png]等")
+	flag.UintVar(&Conf.Threads, "n", iniConf.Threads, "最大并发连接数")
+	flag.UintVar(&Conf.Speed, "speed", iniConf.Speed, "下载限速 N 秒/任务，cuhk推荐5-60")
+	flag.IntVar(&Conf.Retry, "r", iniConf.Retry, "下载重试次数")
+	flag.IntVar(&Conf.AutoDetect, "a", iniConf.AutoDetect, "自动检测下载URL。可选值[0|1|2]，;0=默认;\n1=通用批量下载（类似IDM、迅雷）;\n2= IIIF manifest.json 自动检测下载图片")
 	flag.BoolVar(&Conf.Help, "h", false, "显示帮助")
 	flag.BoolVar(&Conf.Version, "v", false, "显示版本")
-
-	//rs
-	if string(os.PathSeparator) == "\\" {
-		Conf.DezoomifyPath = "dezoomify-rs.exe"
-		if fi, err := os.Stat(dir + "\\dezoomify-rs.exe"); err == nil && fi.Size() > 0 {
-			Conf.DezoomifyPath = dir + "\\dezoomify-rs.exe"
-		}
-		flag.StringVar(&Conf.DezoomifyRs, "rs", "-l --compression 0", "dezoomify-rs 参数")
-	} else {
-		Conf.DezoomifyPath = "dezoomify-rs"
-		if fi, err := os.Stat(dir + "/dezoomify-rs"); err == nil && fi.Size() > 0 {
-			Conf.DezoomifyPath = dir + "/dezoomify-rs"
-		}
-		flag.StringVar(&Conf.DezoomifyRs, "rs", "-l --compression 0", "dezoomify-rs 参数")
-	}
-
+	flag.StringVar(&Conf.DezoomifyRs, "rs", iniConf.DezoomifyRs, "dezoomify-rs 参数")
+	Conf.DezoomifyPath = iniConf.DezoomifyPath
 	flag.Parse()
 
 	k := len(os.Args)
@@ -103,12 +89,87 @@ func Init(ctx context.Context) bool {
 	initSeq()
 	//保存目录处理
 	_ = os.Mkdir(Conf.SaveFolder, os.ModePerm)
-
-	//默认，加载当前目录下cookie
-	if Conf.CookieFile == "" {
-		Conf.CookieFile = dir + string(os.PathSeparator) + "cookie.txt"
-	}
 	return true
+}
+
+func initINI() (io Input, err error) {
+	dir, _ := os.Getwd()
+	fPath, _ := os.Executable()
+	root := filepath.Dir(fPath)
+
+	cFile := dir + string(os.PathSeparator) + "cookie.txt"
+	urls := dir + string(os.PathSeparator) + "urls.txt"
+	c := uint(runtime.NumCPU() * 2)
+
+	ua := "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/118.0"
+
+	io = Input{
+		DUrl:           "",
+		UrlsFile:       urls,
+		CookieFile:     cFile,
+		Seq:            "",
+		SeqStart:       0,
+		SeqEnd:         0,
+		Volume:         0,
+		Speed:          0,
+		SaveFolder:     dir,
+		FullImageWidth: 2400,
+		UserAgent:      ua,
+		AutoDetect:     0,
+		MergePDFs:      true,
+		DezoomifyPath:  "",
+		DezoomifyRs:    "-l --compression 20",
+		UseDziRs:       false,
+		FileExt:        ".jpg",
+		Threads:        c,
+		Retry:          3,
+		Help:           false,
+		Version:        false,
+	}
+
+	if string(os.PathSeparator) == "\\" {
+		io.DezoomifyPath = "dezoomify-rs.exe"
+		if fi, err := os.Stat(dir + "\\dezoomify-rs.exe"); err == nil && fi.Size() > 0 {
+			io.DezoomifyPath = dir + "\\dezoomify-rs.exe"
+		}
+	} else {
+		io.DezoomifyPath = "dezoomify-rs"
+		if fi, err := os.Stat(dir + "/dezoomify-rs"); err == nil && fi.Size() > 0 {
+			io.DezoomifyPath = dir + "/dezoomify-rs"
+		}
+	}
+
+	cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, root+string(os.PathSeparator)+"config.ini")
+	if err != nil {
+		return
+	}
+
+	io.AutoDetect = cfg.Section("").Key("app_mode").MustInt(0)
+	io.SaveFolder = cfg.Section("paths").Key("data").String()
+	if io.SaveFolder == "" {
+		io.SaveFolder = dir
+	}
+
+	secDown := cfg.Section("download")
+	io.FileExt = secDown.Key("ext").String()
+	io.Threads = secDown.Key("threads").MustUint(c)
+	if io.Threads == 0 {
+		io.Threads = c
+	}
+	io.Speed = secDown.Key("speed").MustUint(c)
+
+	secCus := cfg.Section("custom")
+	io.Seq = secCus.Key("seq").String()
+	io.Volume = secCus.Key("vol").MustInt(0)
+	io.MergePDFs = secCus.Key("mp").MustBool(true)
+	io.UserAgent = secCus.Key("ua").MustString(ua)
+
+	secDzi := cfg.Section("dzi")
+	io.UseDziRs = secDzi.Key("dzi").MustBool(false)
+	io.DezoomifyRs = secDzi.Key("rs").String()
+	io.FullImageWidth = secDzi.Key("width").MustInt(2400)
+
+	return io, nil
 }
 
 func printHelp() {

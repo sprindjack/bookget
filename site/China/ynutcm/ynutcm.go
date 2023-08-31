@@ -75,7 +75,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 				DestFile:    dest,
 				Overwrite:   false,
 				Headers: map[string]interface{}{
-					"user-agent": config.UserAgent,
+					"user-agent": config.Conf.UserAgent,
 				},
 			})
 			util.PrintSleepTime(config.Conf.Speed)

@@ -45,7 +45,7 @@ func StartDownload(iTask int, text, bookId string) {
 			DestFile:    dest,
 			Overwrite:   false,
 			Headers: map[string]interface{}{
-				"user-agent": config.UserAgent,
+				"user-agent": config.Conf.UserAgent,
 			},
 		})
 	}

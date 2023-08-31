@@ -2,7 +2,6 @@ package app
 
 import (
 	"bookget/config"
-	"bookget/lib/curl"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
 	"context"
@@ -25,6 +24,7 @@ type Familysearch struct {
 	dziTemplate string
 	userAgent   string
 	baseUrl     string
+	sgBaseUrl   string
 }
 type FamilysearchImageData struct {
 	DgsNum      string
@@ -48,7 +48,7 @@ func (r *Familysearch) Init(iTask int, sUrl string) (msg string, err error) {
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
 	}
-	r.baseUrl, _ = r.getBaseUrl(r.dt.Url)
+	r.baseUrl, r.sgBaseUrl, _ = r.getBaseUrl(r.dt.Url)
 	r.dt.Jar, _ = cookiejar.New(nil)
 	//  "https://www.familysearch.org/search/filmdata/filmdatainfo"
 	r.apiUrl = r.dt.UrlParsed.Scheme + "://" + r.dt.UrlParsed.Host + "/search/filmdata/filmdatainfo"
@@ -82,7 +82,7 @@ func (r *Familysearch) getBookId(sUrl string) (bookId string) {
 	return bookId
 }
 
-func (r *Familysearch) getBaseUrl(sUrl string) (baseUrl string, err error) {
+func (r *Familysearch) getBaseUrl(sUrl string) (baseUrl, sgBaseUrl string, err error) {
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
@@ -97,12 +97,15 @@ func (r *Familysearch) getBaseUrl(sUrl string) (baseUrl string, err error) {
 		return
 	}
 	bs, _ := resp.GetBody()
+
+	//SERVER_DATA.baseUrl = "https://www.familysearch.org";
+	m := regexp.MustCompile(`SERVER_DATA.baseUrl\s=\s"([^"]+)"`).FindSubmatch(bs)
+	baseUrl = string(m[1])
+
 	// SERVER_DATA.sgBaseUrl = "https://sg30p0.familysearch.org"
-	m := regexp.MustCompile(`SERVER_DATA.sgBaseUrl\s=\s"([^"]+)"`).FindSubmatch(bs)
-	if m != nil {
-		return string(m[1]), nil
-	}
-	return "", err
+	m = regexp.MustCompile(`SERVER_DATA.sgBaseUrl\s=\s"([^"]+)"`).FindSubmatch(bs)
+	sgBaseUrl = string(m[1])
+	return
 }
 
 func (r *Familysearch) download() (msg string, err error) {
@@ -142,12 +145,15 @@ func (r *Familysearch) do(iiifUrls []string) (msg string, err error) {
 		return
 	}
 	referer := url.QueryEscape(r.dt.Url)
-	header, _ := curl.GetHeaderFile(config.Conf.CookieFile)
+	bs, _ := os.ReadFile(config.Conf.CookieFile)
+	cookies := string(bs)
+	sid := r.getSessionId()
 	args := []string{"--dezoomer=deepzoom",
 		"-H", "authority:www.familysearch.org",
+		"-H", "Authorization:" + sid,
 		"-H", "referer:" + referer,
-		"-H", "User-Agent:" + header["User-Agent"],
-		"-H", "cookie:" + header["Cookie"],
+		"-H", "User-Agent:" + config.Conf.UserAgent,
+		"-H", "cookie:" + cookies,
 	}
 	size := len(iiifUrls)
 	for i, uri := range iiifUrls {
@@ -155,8 +161,7 @@ func (r *Familysearch) do(iiifUrls []string) (msg string, err error) {
 			continue
 		}
 		sortId := util.GenNumberSorted(i + 1)
-		filename := sortId + config.Conf.FileExt
-		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		dest := r.dt.SavePath + string(os.PathSeparator) + sortId + config.Conf.FileExt
 		if FileExist(dest) {
 			continue
 		}
@@ -295,6 +300,7 @@ func (r *Familysearch) getWaypointData(sUrl string, imageData FamilysearchImageD
 	}
 	//https://sg30p0.familysearch.org/service/records/storage/deepzoomcloud/dz/v1/{id}/{image}
 	r.dziTemplate = regexp.MustCompile(`\{[A-z]+\}`).ReplaceAllString(resp.Templates.DzTemplate, "%s")
+	r.dziTemplate = regexp.MustCompile(`https://([A-z0-9\./]+)/service/records/storage/deepzoomcloud`).ReplaceAllString(r.dziTemplate, r.baseUrl)
 	for _, image := range resp.Images {
 		m, err := url.Parse(image)
 		if err != nil {
@@ -333,7 +339,8 @@ func (r *Familysearch) getImageByGroupId(groupId string) (canvases []string, err
 	}
 	for _, group := range resp.Data.Group.ChildGroups {
 		for _, v := range group.ImageApids {
-			dzUrl := r.baseUrl + "/service/records/storage/deepzoomcloud/dz/v1/apid:" + v + "/image.xml"
+			dzUrl := r.baseUrl + "/dz/v1/apid:" + v + "/image.xml"
+			//dzUrl := r.sgBaseUrl + "/service/records/storage/deepzoomcloud/dz/v1/apid:" + v + "/image.xml"
 			canvases = append(canvases, dzUrl)
 		}
 	}
@@ -360,7 +367,7 @@ func (r *Familysearch) getImageByGroups(rmsId string) (canvases []string, err er
 	}
 	for _, group := range resp.Groups {
 		for _, v := range group.ImageUrls {
-			dzUrl := v + "/image.xml"
+			dzUrl := regexp.MustCompile(`https://([A-z0-9\./]+)/service/records/storage/deepzoomcloud`).ReplaceAllString(v, r.baseUrl) + "/image.xml"
 			canvases = append(canvases, dzUrl)
 		}
 	}
@@ -431,6 +438,7 @@ func (r *Familysearch) getFilmData(sUrl string, imageData FamilysearchImageData)
 	}
 	//https://sg30p0.familysearch.org/service/records/storage/deepzoomcloud/dz/v1/{id}/{image}
 	r.dziTemplate = regexp.MustCompile(`\{[A-z]+\}`).ReplaceAllString(resp.Templates.DzTemplate, "%s")
+	r.dziTemplate = regexp.MustCompile(`https://([A-z0-9\./]+)/service/records/storage/deepzoomcloud`).ReplaceAllString(r.dziTemplate, r.baseUrl)
 	for _, image := range resp.Images {
 		//https://familysearch.org/ark:/61903/3:1:3QSQ-G9MC-ZSQ7-3/image.xml
 		m := regexp.MustCompile(`(?i)ark:/(?:[A-z0-9-_:]+)/([A-z\d-_:]+)/image.xml`).FindStringSubmatch(image)
@@ -453,7 +461,7 @@ func (r *Familysearch) postJson(sUrl string, d interface{}) ([]byte, error) {
 			"User-Agent":   config.Conf.UserAgent,
 			"Content-Type": "application/json",
 			"authority":    "www.familysearch.org",
-			"origin":       "https://www.familysearch.org",
+			"origin":       r.baseUrl,
 			"referer":      r.dt.Url,
 		},
 		JSON: d,
@@ -467,9 +475,10 @@ func (r *Familysearch) postJson(sUrl string, d interface{}) ([]byte, error) {
 }
 
 func (r *Familysearch) getSessionId() string {
-	header, _ := curl.GetHeaderFile(config.Conf.CookieFile)
+	bs, _ := os.ReadFile(config.Conf.CookieFile)
+	cookies := string(bs)
 	//fssessionid=e10ce618-f7f7-45de-b2c3-d1a31d080d58-prod;
-	m := regexp.MustCompile(`fssessionid=([^;]+);`).FindStringSubmatch(header["Cookie"])
+	m := regexp.MustCompile(`fssessionid=([^;]+);`).FindStringSubmatch(cookies)
 	if m != nil {
 		return "bearer " + m[1]
 	}
@@ -486,7 +495,7 @@ func (r *Familysearch) postBody(sUrl string, d []byte) ([]byte, error) {
 			"User-Agent":    config.Conf.UserAgent,
 			"Content-Type":  "application/json",
 			"authority":     "www.familysearch.org",
-			"origin":        "https://www.familysearch.org",
+			"origin":        r.baseUrl,
 			"authorization": sid,
 			"referer":       r.dt.Url,
 		},
@@ -509,7 +518,7 @@ func (r *Familysearch) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error
 			"User-Agent":   config.Conf.UserAgent,
 			"Content-Type": "application/json",
 			"authority":    "www.familysearch.org",
-			"origin":       "https://www.familysearch.org",
+			"origin":       r.baseUrl,
 			"referer":      r.dt.Url,
 		},
 	})

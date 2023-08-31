@@ -262,28 +262,28 @@ func (r *Request) parseCookieFile() {
 	if err != nil {
 		return
 	}
-	sHeader := string(bsHeader)
-	mHeader := strings.Split(sHeader, "\n")
-
-	for _, line := range mHeader {
-		s := strings.Trim(line, "\r")
-		i := strings.Index(s, ":")
-		if i == -1 {
-			continue
-		}
-		k := s[:i]
-		v := strings.Trim(s[i+1:], " ")
-		if v == "" {
-			continue
-		}
-		if "cookie" == strings.ToLower(k) {
-			r.req.Header.Add("Cookie", v)
-		} else if "user-agent" == strings.ToLower(k) {
-			r.req.Header.Set("User-Agent", v)
-		} else {
-			r.req.Header.Set(k, v)
-		}
-	}
+	c := strings.ReplaceAll(string(bsHeader), "\r\n", "\n")
+	r.req.Header.Add("Cookie", c)
+	//mHeader := strings.Split(sHeader, "\n")
+	//for _, line := range mHeader {
+	//	s := strings.Trim(line, "\r")
+	//	i := strings.Index(s, ":")
+	//	if i == -1 {
+	//		continue
+	//	}
+	//	k := s[:i]
+	//	v := strings.TrimSpace(s[i+1:])
+	//	if v == "" {
+	//		continue
+	//	}
+	//	if "cookie" == strings.ToLower(k) {
+	//		r.req.Header.Add("Cookie", v)
+	//	} else if "user-agent" == strings.ToLower(k) {
+	//		r.req.Header.Set("User-Agent", v)
+	//	} else {
+	//		r.req.Header.Set(k, v)
+	//	}
+	//}
 }
 
 func (r *Request) parseHeaders() {

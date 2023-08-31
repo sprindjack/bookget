@@ -54,7 +54,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 			Overwrite:   false,
 			CookieJar:   dt.Jar,
 			Headers: map[string]interface{}{
-				"user-agent": config.UserAgent,
+				"user-agent": config.Conf.UserAgent,
 			},
 		})
 	}
