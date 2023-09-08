@@ -5,7 +5,6 @@ import (
 	"bookget/site/Japan/emuseum"
 	"bookget/site/Japan/gprime"
 	"bookget/site/Japan/kanjikyoto"
-	"bookget/site/Japan/keio"
 	"bookget/site/Japan/kokusho"
 	"bookget/site/Japan/kyoto"
 	"bookget/site/Japan/national"
@@ -46,6 +45,7 @@ type SidoKeio struct{}
 
 func (p SidoKeio) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var keio app.Keio
 		keio.Init(i+1, s)
 	}
 	return nil, nil
