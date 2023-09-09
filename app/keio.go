@@ -3,12 +3,17 @@ package app
 import (
 	"bookget/config"
 	"bookget/lib/gohttp"
+	"bookget/lib/util"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"regexp"
+	"sync"
 )
 
 type Keio struct {
@@ -25,13 +30,7 @@ func (r *Keio) Init(iTask int, sUrl string) (msg string, err error) {
 		return "requested URL was not found.", err
 	}
 	r.dt.Jar, _ = cookiejar.New(nil)
-	//return r.download()
-	manifestUrl, err := r.getManifestUrl(sUrl)
-	if err != nil {
-		return "requested URL was not found.", err
-	}
-	var iiif IIIF
-	return iiif.InitWithId(iTask, manifestUrl, r.dt.BookId)
+	return r.download()
 }
 
 func (r *Keio) getBookId(sUrl string) (bookId string) {
@@ -60,23 +59,100 @@ func (r *Keio) getManifestUrl(sUrl string) (uri string, err error) {
 }
 
 func (r *Keio) download() (msg string, err error) {
-	//TODO implement me
-	panic("implement me")
+	name := util.GenNumberSorted(r.dt.Index)
+	log.Printf("Get %s  %s\n", name, r.dt.Url)
+
+	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
+	if err != nil {
+		fmt.Println(err)
+		return "getVolumes", err
+	}
+	for i, vol := range respVolume {
+		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+			continue
+		}
+		vid := util.GenNumberSorted(i + 1)
+		r.dt.VolumeId = getBookId(r.dt.Url) + "_vol." + vid
+		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.VolumeId)
+		canvases, err := r.getCanvases(vol, r.dt.Jar)
+		if err != nil || canvases == nil {
+			fmt.Println(err)
+			continue
+		}
+		log.Printf(" %d/%d volume, %d pages \n", i+1, len(respVolume), len(canvases))
+		r.do(canvases)
+	}
+	return "", nil
 }
 
 func (r *Keio) do(imgUrls []string) (msg string, err error) {
-	//TODO implement me
-	panic("implement me")
+	if config.Conf.UseDziRs {
+		r.doDezoomifyRs(imgUrls)
+	} else {
+		r.doNormal(imgUrls)
+	}
+	return "", err
 }
 
 func (r *Keio) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	//TODO implement me
-	panic("implement me")
+	bs, err := r.getBody(sUrl, r.dt.Jar)
+	matches := regexp.MustCompile(`data-folid=['|"]([A-z0-9]+)['|"]`).FindAllSubmatch(bs, -1)
+	if matches == nil {
+		return
+	}
+	var isFolid4Digit bool
+	m := regexp.MustCompile(`id="isFolid4Digit"\s value=['|"]([A-z0-9]+)['|"]`).FindSubmatch(bs)
+	if m != nil {
+		isFolid4Digit = string(m[1]) == "1"
+	}
+	//<input type="hidden" id="isFolid4Digit" value="0"><input type="hidden" id="bibid" value="006845">
+	for _, v := range matches {
+		childId := r.makeId(string(v[1]), r.dt.BookId, isFolid4Digit)
+		fmt.Sprintf("%s\n", childId)
+		uri := fmt.Sprintf("https://db2.sido.keio.ac.jp/iiif/manifests/kanseki/%s/%s/manifest.json", r.dt.BookId, childId)
+		volumes = append(volumes, uri)
+	}
+	return volumes, nil
 }
 
 func (r *Keio) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	//TODO implement me
-	panic("implement me")
+	bs, err := r.getBody(sUrl, jar)
+	if err != nil {
+		return nil, err
+	}
+	var manifest = new(ResponseManifest)
+	if err = json.Unmarshal(bs, manifest); err != nil {
+		log.Printf("json.Unmarshal failed: %s\n", err)
+		return
+	}
+	if len(manifest.Sequences) == 0 {
+		return
+	}
+	newWidth := ""
+	//>6400使用原图
+	if config.Conf.FullImageWidth > 6400 {
+		newWidth = "full/full"
+	} else if config.Conf.FullImageWidth >= 1000 {
+		newWidth = fmt.Sprintf("full/%d,", config.Conf.FullImageWidth)
+	}
+
+	size := len(manifest.Sequences[0].Canvases)
+	canvases = make([]string, 0, size)
+	for _, canvase := range manifest.Sequences[0].Canvases {
+		for _, image := range canvase.Images {
+			if config.Conf.UseDziRs {
+				//iifUrl, _ := url.QueryUnescape(image.Resource.Service.Id)
+				//dezoomify-rs URL
+				iiiInfo := fmt.Sprintf("%s/info.json", image.Resource.Service.Id)
+				canvases = append(canvases, iiiInfo)
+			} else {
+				//JPEG URL
+				imgUrl := fmt.Sprintf("%s/%s/0/default.jpg", image.Resource.Service.Id, newWidth)
+				canvases = append(canvases, imgUrl)
+			}
+		}
+	}
+	return canvases, nil
 }
 
 func (r *Keio) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
@@ -99,4 +175,86 @@ func (r *Keio) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 		return nil, errors.New(fmt.Sprintf("ErrCode:%d, %s", resp.GetStatusCode(), resp.GetReasonPhrase()))
 	}
 	return bs, nil
+}
+
+func (r *Keio) makeId(childId string, bookId string, isFolid4Digit bool) string {
+	childIDfmt := ""
+	iLen := 3
+	if isFolid4Digit {
+		iLen = 4
+	}
+	for k := iLen - len(childId); k > 0; k-- {
+		childIDfmt += "0"
+	}
+	childIDfmt += childId
+	return bookId + "-" + childIDfmt
+}
+
+func (r *Keio) doNormal(imgUrls []string) bool {
+	if imgUrls == nil {
+		return false
+	}
+	fmt.Println()
+	size := len(imgUrls)
+	var wg sync.WaitGroup
+	q := QueueNew(int(config.Conf.Threads))
+	for i, dUrl := range imgUrls {
+		if dUrl == "" || !config.PageRange(i, size) {
+			continue
+		}
+		ext := util.FileExt(dUrl)
+		sortId := util.GenNumberSorted(i + 1)
+		filename := sortId + ext
+		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		if FileExist(dest) {
+			continue
+		}
+		imgUrl := dUrl
+		log.Printf("Get %d/%d  %s\n", i+1, size, imgUrl)
+		wg.Add(1)
+		q.Go(func() {
+			defer wg.Done()
+			ctx := context.Background()
+			opts := gohttp.Options{
+				DestFile:    dest,
+				Overwrite:   false,
+				Concurrency: 1,
+				CookieFile:  config.Conf.CookieFile,
+				CookieJar:   r.dt.Jar,
+				Headers: map[string]interface{}{
+					"User-Agent": config.Conf.UserAgent,
+				},
+			}
+			gohttp.FastGet(ctx, imgUrl, opts)
+		})
+	}
+	wg.Wait()
+	return true
+}
+
+func (r *Keio) doDezoomifyRs(iiifUrls []string) bool {
+	if iiifUrls == nil {
+		return false
+	}
+	referer := url.QueryEscape(r.dt.Url)
+	args := []string{
+		"-H", "Origin:" + referer,
+		"-H", "Referer:" + referer,
+		"-H", "User-Agent:" + config.Conf.UserAgent,
+	}
+	size := len(iiifUrls)
+	for i, uri := range iiifUrls {
+		if uri == "" || !config.PageRange(i, size) {
+			continue
+		}
+		sortId := util.GenNumberSorted(i + 1)
+		filename := sortId + config.Conf.FileExt
+		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		if FileExist(dest) {
+			continue
+		}
+		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
+		util.StartProcess(uri, dest, args)
+	}
+	return true
 }
