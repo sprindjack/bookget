@@ -169,9 +169,7 @@ func (r DziCnLib) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 
 	canvases = make([]string, 0, len(result.Tiles))
 	for key, item := range result.Tiles {
-		k := regexp.MustCompile(`(\d+)`).FindString(key)
-		i, _ := strconv.Atoi(k)
-		sortId := fmt.Sprintf("%s.json", util.GenNumberSorted(i))
+		sortId := fmt.Sprintf("%s.json", key)
 		dest := config.GetDestPath(r.dt.Url, r.dt.BookId, sortId)
 		serverUrl := fmt.Sprintf("%s/tiles/%s/", r.ServerHost, key)
 		if r.Extention == "" {
