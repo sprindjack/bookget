@@ -105,7 +105,7 @@ func (r NdlJP) do(imgUrls []string) (msg string, err error) {
 }
 
 func (r NdlJP) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	apiUrl := "https://dl.ndl.go.jp/api/meta/search/toc/facet/" + r.dt.BookId
+	apiUrl := "https://" + r.dt.UrlParsed.Host + "/api/meta/search/toc/facet/" + r.dt.BookId
 	bs, err := r.getBody(apiUrl, jar)
 	if err != nil {
 		return
@@ -129,6 +129,25 @@ func (r NdlJP) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, er
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
 	}
+	if result.Children == nil {
+		bs, err := r.getBody("https://"+r.dt.UrlParsed.Host+"/api/item/search/info:ndljp/pid/"+r.dt.BookId, jar)
+		if err != nil {
+			return nil, err
+		}
+		type ResponseBody2 struct {
+			Item struct {
+				IiifManifestUrl string `json:"iiifManifestUrl"`
+			} `json:"item"`
+		}
+		var result2 = new(ResponseBody2)
+		if err = json.Unmarshal(bs, result2); err != nil {
+			log.Printf("json.Unmarshal failed: %s\n", err)
+			return nil, err
+		}
+		volumes = append(volumes, result2.Item.IiifManifestUrl)
+		return volumes, nil
+	}
+
 	volumes = make([]string, 0, len(result.Children))
 
 	var template string
@@ -157,8 +176,8 @@ func (r NdlJP) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, 
 		return
 	}
 	newWidth := ""
-	//>6400使用原图
-	if config.Conf.FullImageWidth > 6400 {
+	//>2400使用原图
+	if config.Conf.FullImageWidth > 2400 {
 		newWidth = "full/full"
 	} else if config.Conf.FullImageWidth >= 1000 {
 		newWidth = fmt.Sprintf("full/%d,", config.Conf.FullImageWidth)

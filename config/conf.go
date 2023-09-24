@@ -48,7 +48,7 @@ func Init(ctx context.Context) bool {
 	flag.StringVar(&Conf.SaveFolder, "o", iniConf.SaveFolder, "下载保存到目录")
 	flag.StringVar(&Conf.Seq, "seq", iniConf.Seq, "页面范围，如4:434")
 	flag.IntVar(&Conf.Volume, "vol", iniConf.Volume, "多册图书，只下第N册")
-	flag.IntVar(&Conf.FullImageWidth, "w", iniConf.FullImageWidth, "指定图片宽度像素。推荐2400，若>6400为最大图")
+	flag.IntVar(&Conf.FullImageWidth, "w", iniConf.FullImageWidth, "指定图片宽度像素。推荐2400，若>2400为最大图")
 	flag.StringVar(&Conf.UserAgent, "ua", iniConf.UserAgent, "user-agent")
 	flag.BoolVar(&Conf.MergePDFs, "mp", iniConf.MergePDFs, "合并PDF文件下载，可选值[0|1]。0=否，1=是。仅对 rbk-doc.npm.edu.tw 有效。")
 	flag.BoolVar(&Conf.UseDziRs, "dzi", iniConf.UseDziRs, "使用dezoomify-rs下载，仅对支持iiif的网站生效。")

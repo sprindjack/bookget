@@ -66,7 +66,7 @@ func getPages(uri string) (pages []string, iiifInfo []string) {
 	pages = make([]string, 0, i)
 	newWidth := ""
 	//此站最大只支持5000
-	if config.Conf.FullImageWidth > 6400 {
+	if config.Conf.FullImageWidth > 2400 {
 		newWidth = "full/full/"
 	}
 	if config.Conf.FullImageWidth >= 1000 {

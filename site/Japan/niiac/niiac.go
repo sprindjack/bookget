@@ -59,8 +59,8 @@ func getImageUrls(bookId, bookUrl string) (imgUrls []string, iiifUrls []string) 
 	imgUri := make([]string, 0, i)
 	iiifUri := make([]string, 0, i)
 	newWidth := ""
-	//>6400使用原图
-	if config.Conf.FullImageWidth > 6400 {
+	//>2400使用原图
+	if config.Conf.FullImageWidth > 2400 {
 		newWidth = "/full/full/0/default.jpg"
 	} else if config.Conf.FullImageWidth >= 1000 {
 		newWidth = fmt.Sprintf("/full/%d,/0/default.jpg", config.Conf.FullImageWidth)

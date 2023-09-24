@@ -57,10 +57,10 @@ func (p DigitalarchiveNpmTw) getRouterInit(sUrl []string) (map[string]interface{
 type CuHk struct{}
 
 func (p CuHk) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	//for i, s := range sUrl {
-	//	var cuhk app.Cuhk
-	//	cuhk.Init(i+1, s)
-	//}
+	for i, s := range sUrl {
+		var cuhk app.Cuhk
+		cuhk.Init(i+1, s)
+	}
 	return nil, nil
 }
 

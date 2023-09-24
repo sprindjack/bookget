@@ -181,7 +181,7 @@ func (r *Loc) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, e
 	}
 	newWidth := ""
 	//限制图片最大宽度
-	if config.Conf.FullImageWidth > 6400 {
+	if config.Conf.FullImageWidth > 2400 {
 		newWidth = "full/pct:100/"
 	} else if config.Conf.FullImageWidth >= 1000 {
 		newWidth = fmt.Sprintf("full/%d,/", config.Conf.FullImageWidth)

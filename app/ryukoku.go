@@ -186,8 +186,8 @@ func (r *Ryukoku) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 		return
 	}
 	newWidth := ""
-	//>6400使用原图
-	if config.Conf.FullImageWidth > 6400 {
+	//>2400使用原图
+	if config.Conf.FullImageWidth > 2400 {
 		newWidth = "full/full"
 	} else if config.Conf.FullImageWidth >= 1000 {
 		newWidth = fmt.Sprintf("full/%d,", config.Conf.FullImageWidth)

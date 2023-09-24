@@ -104,8 +104,8 @@ func getVolumeByURL(uri string) (images []string) {
 	i := len(manifest2.Sequences[0].Canvases)
 	images = make([]string, 0, i)
 	newWidth := ""
-	//此站最大只支持6400
-	if config.Conf.FullImageWidth > 6400 {
+	//此站最大只支持2400
+	if config.Conf.FullImageWidth > 2400 {
 		newWidth = "full/full/"
 	} else if config.Conf.FullImageWidth >= 1000 {
 		newWidth = fmt.Sprintf("full/%d,/", config.Conf.FullImageWidth)

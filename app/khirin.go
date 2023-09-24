@@ -170,8 +170,8 @@ func (r *Khirin) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string
 			} else {
 				//JPEG URL,默认原图
 				newWidth := image.Resource.Width
-				//用户指定宽度 6400
-				if config.Conf.FullImageWidth >= 1000 && config.Conf.FullImageWidth <= 6400 {
+				//用户指定宽度 2400
+				if config.Conf.FullImageWidth >= 1000 && config.Conf.FullImageWidth <= 2400 {
 					newWidth = config.Conf.FullImageWidth
 				}
 				imgUrl := fmt.Sprintf("%s/full/%d,/0/default.jpg", image.Resource.Service.Id, newWidth)
