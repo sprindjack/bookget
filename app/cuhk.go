@@ -38,20 +38,12 @@ func (r *Cuhk) Init(iTask int, sUrl string) (msg string, err error) {
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
 	r.dt.Index = iTask
-	r.dt.BookId = r.getBookId(r.dt.Url)
+	r.dt.BookId = getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
 	}
 	r.dt.Jar, _ = cookiejar.New(nil)
 	return r.download()
-}
-
-func (r *Cuhk) getBookId(sUrl string) (bookId string) {
-	m := regexp.MustCompile(`item/cuhk-([A-Za-z0-9]+)`).FindStringSubmatch(sUrl)
-	if m != nil {
-		bookId = m[1]
-	}
-	return bookId
 }
 
 func (r *Cuhk) download() (msg string, err error) {
