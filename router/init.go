@@ -41,6 +41,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["mylib.nlc.cn"] = new(ChinaNcl)
 		//[中国]台北古籍与特藏文献
 		//Router["rbook.ncl.edu.tw"] = new(RbookNcl)
+		//[中国]臺灣華文電子書庫
+		Router["taiwanebook.ncl.edu.tw"] = new(Huawen)
 		//[中国]香港中文大学图书馆cuhk.Init
 		Router["repository.lib.cuhk.edu.hk"] = new(CuHk)
 		//[中国]香港科技大学图书馆 usthk.Init
@@ -174,7 +176,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[韩国]
 		Router["kyudb.snu.ac.kr"] = new(KyudbSnu)
 		Router["sillok.history.go.kr"] = new(Sillokgokr)
-		Router["lod.nl.go.kr"] = new(DlibGoKr)
+		//Router["lod.nl.go.kr"] = new(DlibGoKr)
 
 		//俄罗斯图书馆
 		Router["viewer.rsl.ru"] = new(RslRu)

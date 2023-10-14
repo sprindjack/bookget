@@ -52,3 +52,14 @@ func GetHostUrl(uri string) string {
 	var hostUrl = fmt.Sprintf("%s://%s/", u.Scheme, u.Host)
 	return hostUrl
 }
+
+func RemoveDuplicate(source []string) []string {
+	mTmp := map[string]string{}
+	newArray := make([]string, len(source), 0)
+	for e := range source {
+		if value, ok := mTmp[source[e]]; !ok {
+			newArray = append(newArray, value)
+		}
+	}
+	return newArray
+}

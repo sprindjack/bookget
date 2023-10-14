@@ -29,10 +29,10 @@ func (p ChinaNcl) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 type RbookNcl struct{}
 
 func (p RbookNcl) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	for i, s := range sUrl {
-		var nlc app.NclTw
-		nlc.Init(i+1, s)
-	}
+	//for i, s := range sUrl {
+	//	var nlc app.NclTw
+	//	nlc.Init(i+1, s)
+	//}
 	return nil, nil
 }
 
@@ -57,10 +57,10 @@ func (p DigitalarchiveNpmTw) getRouterInit(sUrl []string) (map[string]interface{
 type CuHk struct{}
 
 func (p CuHk) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	for i, s := range sUrl {
-		var cuhk app.Cuhk
-		cuhk.Init(i+1, s)
-	}
+	//for i, s := range sUrl {
+	//	var cuhk app.Cuhk
+	//	cuhk.Init(i+1, s)
+	//}
 	return nil, nil
 }
 
@@ -220,6 +220,16 @@ func (p Szmuseum) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
 		var szlib app.Szmuseum
 		szlib.Init(i+1, s)
+	}
+	return nil, nil
+}
+
+type Huawen struct{}
+
+func (p Huawen) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var hw app.Huawen
+		hw.Init(i+1, s)
 	}
 	return nil, nil
 }

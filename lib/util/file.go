@@ -75,6 +75,10 @@ func FileName(uri string) string {
 		pos := strings.Index(uri, "?")
 		uri = uri[:pos]
 	}
+	if strings.Contains(uri, "&") {
+		pos := strings.Index(uri, "&")
+		uri = uri[:pos]
+	}
 	name := ""
 	for i := len(uri) - 1; i >= 0; i-- {
 		if uri[i] == '/' {
