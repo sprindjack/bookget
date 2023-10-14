@@ -20,6 +20,9 @@ type Huawen struct {
 }
 
 func (r *Huawen) Init(iTask int, sUrl string) (msg string, err error) {
+	if !strings.Contains(sUrl, "/reader") && strings.Contains(sUrl, "/zh-tw/book/") {
+		sUrl += "/reader"
+	}
 	r.dt = new(DownloadTask)
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
@@ -90,12 +93,15 @@ func (r *Huawen) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, 
 	if err != nil {
 		return
 	}
-	matches := regexp.MustCompile(`viewer.html\?file=([^"]+)"`).FindAllSubmatch(bs, -1)
+	matches := regexp.MustCompile(`(?i)viewer.html\?file=([^"]+)"`).FindAllSubmatch(bs, -1)
 	if matches == nil {
 		return
 	}
 	for _, match := range matches {
 		sPath := strings.TrimSpace(string(match[1]))
+		if pos := strings.Index(sPath, "&"); pos > 0 {
+			sPath = sPath[:pos]
+		}
 		pdfUrl := "https://" + r.dt.UrlParsed.Host + sPath
 		volumes = append(volumes, pdfUrl)
 	}
