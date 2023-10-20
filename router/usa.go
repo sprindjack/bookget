@@ -3,7 +3,6 @@ package router
 import (
 	"bookget/app"
 	"bookget/site/USA/harvard"
-	"bookget/site/USA/princeton"
 )
 
 type Harvard struct {
@@ -32,7 +31,8 @@ type Princeton struct {
 
 func (p Princeton) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
-		princeton.Init(i+1, s)
+		var p app.Princeton
+		p.Init(i+1, s)
 	}
 	return nil, nil
 }
