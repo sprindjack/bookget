@@ -124,19 +124,21 @@ func (p *Harvard) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string,
 }
 
 func (p *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	bs, err := p.getBody(sUrl, jar)
-	if err != nil {
-		return
+	var manifestUri = sUrl
+	if !strings.Contains(sUrl, "iiif.lib.harvard.edu") {
+		bs, err := p.getBody(sUrl, jar)
+		if err != nil {
+			return nil, err
+		}
+		//"manifestUri": "https://iiif.lib.harvard.edu/manifests/drs:428501920"
+		match := regexp.MustCompile(`"manifestUri": "([^"]+?)"`).FindSubmatch(bs)
+		if match != nil {
+			manifestUri = string(match[1])
+		} else {
+			return nil, errors.New("requested URL was not found.")
+		}
 	}
-	var manifestUri string
-	//"manifestUri": "https://iiif.lib.harvard.edu/manifests/drs:428501920"
-	match := regexp.MustCompile(`"manifestUri": "([^"]+?)"`).FindSubmatch(bs)
-	if match != nil {
-		manifestUri = string(match[1])
-	} else {
-		return nil, errors.New("requested URL was not found.")
-	}
-	bs, err = p.getBody(manifestUri, jar)
+	bs, err := p.getBody(manifestUri, jar)
 	if err != nil {
 		return
 	}
