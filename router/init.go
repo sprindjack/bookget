@@ -133,6 +133,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//{{{---------------美国、欧洲--------------------------------------------------
 		//[美国]哈佛大学图书馆
 		Router["iiif.lib.harvard.edu"] = new(Harvard)
+		Router["listview.lib.harvard.edu"] = new(Harvard)
+		Router["curiosity.lib.harvard.edu"] = new(Harvard)
 		//[美国]hathitrust 数字图书馆
 		Router["babel.hathitrust.org"] = new(Hathitrust)
 		//[美国]普林斯顿大学图书馆
@@ -176,7 +178,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[韩国]
 		Router["kyudb.snu.ac.kr"] = new(KyudbSnu)
 		Router["sillok.history.go.kr"] = new(Sillokgokr)
-		//Router["lod.nl.go.kr"] = new(DlibGoKr)
+		Router["lod.nl.go.kr"] = new(DlibGoKr)
 
 		//俄罗斯图书馆
 		Router["viewer.rsl.ru"] = new(RslRu)

@@ -2,7 +2,6 @@ package router
 
 import (
 	"bookget/app"
-	"bookget/site/USA/harvard"
 )
 
 type Harvard struct {
@@ -10,6 +9,7 @@ type Harvard struct {
 
 func (p Harvard) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var harvard app.Harvard
 		harvard.Init(i+1, s)
 	}
 	return nil, nil
@@ -31,8 +31,8 @@ type Princeton struct {
 
 func (p Princeton) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
-		var p app.Princeton
-		p.Init(i+1, s)
+		var princeton app.Princeton
+		princeton.Init(i+1, s)
 	}
 	return nil, nil
 }
