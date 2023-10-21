@@ -3,14 +3,14 @@ package router
 import (
 	"bookget/app"
 	"bookget/site/China/idp"
-	"bookget/site/Universal"
 )
 
 type NormalIIIF struct{}
 
 func (p NormalIIIF) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
-		Universal.AutoDetectManifest(i+1, s)
+		var iiif app.IIIF
+		iiif.AutoDetectManifest(i+1, s)
 	}
 	return nil, nil
 }
@@ -57,11 +57,11 @@ func (p Sillokgokr) getRouterInit(sUrl []string) (map[string]interface{}, error)
 type DlibGoKr struct{}
 
 func (p DlibGoKr) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	//for i, s := range sUrl {
-	//	n := i + 1
-	//	var libgokr app.DlibGoKr
-	//	libgokr.Init(n, s)
-	//}
+	for i, s := range sUrl {
+		n := i + 1
+		var libgokr app.DlibGoKr
+		libgokr.Init(n, s)
+	}
 	return nil, nil
 }
 
