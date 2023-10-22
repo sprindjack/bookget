@@ -131,7 +131,7 @@ func (p *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 			return nil, err
 		}
 		//"manifestUri": "https://iiif.lib.harvard.edu/manifests/drs:428501920"
-		match := regexp.MustCompile(`"manifestUri": "([^"]+?)"`).FindSubmatch(bs)
+		match := regexp.MustCompile(`"manifestUri":[\s+]"([^"]+?)"`).FindSubmatch(bs)
 		if match != nil {
 			manifestUri = string(match[1])
 		} else {

@@ -86,3 +86,14 @@ func (p Nomfoundation) getRouterInit(sUrl []string) (map[string]interface{}, err
 	}
 	return nil, nil
 }
+
+type HannomNlv struct{}
+
+func (p HannomNlv) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		n := i + 1
+		var hannomnlv app.HannomNlv
+		hannomnlv.Init(n, s)
+	}
+	return nil, nil
+}
