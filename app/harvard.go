@@ -88,7 +88,7 @@ func (p *Harvard) download() (msg string, err error) {
 			fmt.Println(err)
 			continue
 		}
-		log.Printf(" %d/%d volume, %d pages \n", i+1, len(respVolume), len(canvases))
+		log.Printf(" %d/%d volume, %d pages \n", i+1, sizeVol, len(canvases))
 		p.do(canvases)
 	}
 	return "", nil

@@ -7,7 +7,7 @@ import (
 
 var Conf Input
 
-const version = "1.2.3"
+const version = "1.2.4"
 
 // initSeq    false = 最小值 <= 当前页码 <=  最大值
 func initSeq() {

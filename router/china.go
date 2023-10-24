@@ -7,7 +7,6 @@ import (
 	"bookget/site/China/ncpssd"
 	"bookget/site/China/npmtw"
 	"bookget/site/China/ouroots"
-	"bookget/site/China/rbkdocnpmtw"
 	"bookget/site/China/sdutcm"
 	"bookget/site/China/szlib"
 	"bookget/site/China/tianyige"
@@ -40,7 +39,8 @@ type RbkdocNpmTw struct{}
 
 func (p RbkdocNpmTw) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
-		rbkdocnpmtw.Init(i+1, s)
+		var npm app.NpmTw
+		npm.Init(i+1, s)
 	}
 	return nil, nil
 }
