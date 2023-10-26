@@ -2,7 +2,6 @@ package router
 
 import (
 	"bookget/app"
-	"bookget/site/China/bjdpm"
 	"bookget/site/China/luoyang"
 	"bookget/site/China/ncpssd"
 	"bookget/site/China/npmtw"
@@ -143,7 +142,8 @@ type MinghuajiBjDpm struct{}
 
 func (p MinghuajiBjDpm) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
-		bjdpm.Init(i+1, s)
+		var dpmbj app.DpmBj
+		dpmbj.Init(i+1, s)
 	}
 	return nil, nil
 }
