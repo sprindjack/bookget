@@ -233,3 +233,13 @@ func (p Huawen) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	}
 	return nil, nil
 }
+
+type Modernhistory struct{}
+
+func (p Modernhistory) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var mh app.Modernhistory
+		mh.Init(i+1, s)
+	}
+	return nil, nil
+}
