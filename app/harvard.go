@@ -125,7 +125,8 @@ func (p *Harvard) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string,
 
 func (p *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
 	var manifestUri = sUrl
-	if !strings.Contains(sUrl, "iiif.lib.harvard.edu") {
+	if strings.Contains(sUrl, "iiif.lib.harvard.edu/manifests/view/") ||
+		strings.Contains(sUrl, "nrs.harvard.edu") {
 		bs, err := p.getBody(sUrl, jar)
 		if err != nil {
 			return nil, err
