@@ -16,41 +16,58 @@ import (
 	"strings"
 )
 
-type IIIF struct {
+type IIIFv3 struct {
 	dt         *DownloadTask
 	xmlContent []byte
 	BookId     string
 }
 
-// ResponseManifest  by view-source:https://iiif.lib.harvard.edu/manifests/drs:53262215
-type ResponseManifest struct {
-	Sequences []struct {
-		Canvases []struct {
-			Id     string `json:"@id"`
-			Type   string `json:"@type"`
-			Height int    `json:"height"`
-			Images []struct {
-				Id       string `json:"@id"`
-				Type     string `json:"@type"`
-				On       string `json:"on"`
-				Resource struct {
-					Id      string `json:"@id"`
-					Type    string `json:"@type"`
+// ResponseManifestv3  https://iiif.io/api/presentation/3.0/#52-manifest
+type ResponseManifestv3 struct {
+	Id    string `json:"id"`
+	Type  string `json:"type"`
+	Label struct {
+		None []string `json:"none"`
+	} `json:"label"`
+	Height int `json:"height"`
+	Width  int `json:"width"`
+	Items  []struct {
+		Id     string `json:"id"`
+		Type   string `json:"type"`
+		Height int    `json:"height"`
+		Width  int    `json:"width"`
+		Items  []struct {
+			Type  string `json:"type"`
+			Items []struct {
+				Type       string `json:"type"`
+				Motivation string `json:"motivation"`
+				Body       struct {
+					Id      string `json:"id"`
+					Type    string `json:"type"`
 					Format  string `json:"format"`
-					Height  int    `json:"height"`
-					Service struct {
-						Id string `json:"@id"`
+					Service []struct {
+						Id      string `json:"id"`
+						Type    string `json:"type"`
+						Profile string `json:"profile"`
 					} `json:"service"`
-					Width int `json:"width"`
-				} `json:"resource"`
-			} `json:"images"`
-			Label string `json:"label"`
-			Width int    `json:"width"`
-		} `json:"canvases"`
-	} `json:"sequences"`
+				} `json:"body"`
+				Target string `json:"target"`
+			} `json:"items"`
+		} `json:"items"`
+	} `json:"items"`
+	Annotations []struct {
+		Id    string        `json:"id"`
+		Type  string        `json:"type"`
+		Items []interface{} `json:"items"`
+	} `json:"annotations"`
 }
 
-func (p *IIIF) Init(iTask int, sUrl string) (msg string, err error) {
+type ManifestPresentation struct {
+	Context string `json:"@context"`
+	Id      string `json:"id"`
+}
+
+func (p *IIIFv3) Init(iTask int, sUrl string) (msg string, err error) {
 	p.dt = new(DownloadTask)
 	p.dt.UrlParsed, err = url.Parse(sUrl)
 	p.dt.Url = sUrl
@@ -63,7 +80,7 @@ func (p *IIIF) Init(iTask int, sUrl string) (msg string, err error) {
 	return p.download()
 }
 
-func (p *IIIF) InitWithId(iTask int, sUrl string, id string) (msg string, err error) {
+func (p *IIIFv3) InitWithId(iTask int, sUrl string, id string) (msg string, err error) {
 	p.dt = new(DownloadTask)
 	p.dt.UrlParsed, err = url.Parse(sUrl)
 	p.dt.Url = sUrl
@@ -73,7 +90,7 @@ func (p *IIIF) InitWithId(iTask int, sUrl string, id string) (msg string, err er
 	return p.download()
 }
 
-func (p *IIIF) getBookId(sUrl string) (bookId string) {
+func (p *IIIFv3) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`/([^/]+)/manifest.json`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
@@ -82,7 +99,7 @@ func (p *IIIF) getBookId(sUrl string) (bookId string) {
 	return getBookId(sUrl)
 }
 
-func (p *IIIF) download() (msg string, err error) {
+func (p *IIIFv3) download() (msg string, err error) {
 	p.xmlContent, err = p.getBody(p.dt.Url, p.dt.Jar)
 	if err != nil || p.xmlContent == nil {
 		return "requested URL was not found.", err
@@ -95,7 +112,7 @@ func (p *IIIF) download() (msg string, err error) {
 	return p.do(canvases)
 }
 
-func (p *IIIF) do(imgUrls []string) (msg string, err error) {
+func (p *IIIFv3) do(imgUrls []string) (msg string, err error) {
 	if config.Conf.UseDziRs {
 		p.doDezoomifyRs(imgUrls)
 	} else {
@@ -104,35 +121,35 @@ func (p *IIIF) do(imgUrls []string) (msg string, err error) {
 	return "", nil
 }
 
-func (p *IIIF) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	var manifest = new(ResponseManifest)
+func (p *IIIFv3) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+	var manifest = new(ResponseManifestv3)
 	if err = json.Unmarshal(p.xmlContent, manifest); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
 	}
-	if len(manifest.Sequences) == 0 {
+	if len(manifest.Items) == 0 {
 		return
 	}
 	newWidth := ""
 	//>2400使用原图
 	if config.Conf.FullImageWidth > 2400 {
-		newWidth = "full/full"
+		newWidth = "full/max"
 	} else if config.Conf.FullImageWidth >= 1000 {
 		newWidth = fmt.Sprintf("full/%d,", config.Conf.FullImageWidth)
 	}
 
-	size := len(manifest.Sequences[0].Canvases)
+	size := len(manifest.Items)
 	canvases = make([]string, 0, size)
-	for _, canvase := range manifest.Sequences[0].Canvases {
-		for _, image := range canvase.Images {
+	for _, canvase := range manifest.Items {
+		for _, image := range canvase.Items[0].Items {
 			if config.Conf.UseDziRs {
-				//iifUrl, _ := url.QueryUnescape(image.Resource.Service.Id)
+				//iifUrl, _ := url.QueryUnescape(image.Resource.Service[0].Id)
 				//dezoomify-rs URL
-				iiiInfo := fmt.Sprintf("%s/info.json", image.Resource.Service.Id)
+				iiiInfo := fmt.Sprintf("%s/info.json", image.Body.Service[0].Id)
 				canvases = append(canvases, iiiInfo)
 			} else {
 				//JPEG URL
-				imgUrl := fmt.Sprintf("%s/%s/0/default.jpg", image.Resource.Service.Id, newWidth)
+				imgUrl := fmt.Sprintf("%s/%s/0/default.jpg", image.Body.Service[0].Id, newWidth)
 				canvases = append(canvases, imgUrl)
 			}
 		}
@@ -140,7 +157,7 @@ func (p *IIIF) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, 
 	return canvases, nil
 }
 
-func (p *IIIF) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (p *IIIFv3) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
@@ -158,20 +175,10 @@ func (p *IIIF) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 		err = errors.New(resp.GetReasonPhrase())
 		return nil, err
 	}
-	//fix bug https://www.dh-jac.net/db1/books/results-iiif.php?f1==nar-h13-01-01&f12=1&enter=portal
-	//delete '?'
-	if bs[0] != 123 {
-		for i := 0; i < len(bs); i++ {
-			if bs[i] == 123 {
-				bs = bs[i:]
-				break
-			}
-		}
-	}
 	return bs, nil
 }
 
-func (p *IIIF) doDezoomifyRs(iiifUrls []string) bool {
+func (p *IIIFv3) doDezoomifyRs(iiifUrls []string) bool {
 	if iiifUrls == nil {
 		return false
 	}
@@ -198,7 +205,7 @@ func (p *IIIF) doDezoomifyRs(iiifUrls []string) bool {
 	return true
 }
 
-func (p *IIIF) doNormal(imgUrls []string) bool {
+func (p *IIIFv3) doNormal(imgUrls []string) bool {
 	if imgUrls == nil {
 		return false
 	}
@@ -236,7 +243,7 @@ func (p *IIIF) doNormal(imgUrls []string) bool {
 	return true
 }
 
-func (p *IIIF) AutoDetectManifest(iTask int, sUrl string) (msg string, err error) {
+func (p *IIIFv3) AutoDetectManifest(iTask int, sUrl string) (msg string, err error) {
 	name := util.GenNumberSorted(iTask)
 	log.Printf("Auto Detect %s  %s\n", name, sUrl)
 	ctx := context.Background()
@@ -273,24 +280,17 @@ func (p *IIIF) AutoDetectManifest(iTask int, sUrl string) (msg string, err error
 		}
 	}
 	return "", errors.New("URL not found: manifest.json")
+	return
 }
 
-func (p *IIIF) getManifestUrl(pageUrl, text string) string {
+func (p *IIIFv3) getManifestUrl(pageUrl, text string) string {
 	//最后是，相对URI
 	u, err := url.Parse(pageUrl)
 	if err != nil {
 		return ""
 	}
 	host := fmt.Sprintf("%s://%s/", u.Scheme, u.Host)
-	//url包含manifest json
-	if strings.Contains(pageUrl, ".json") {
-		m := regexp.MustCompile(`manifest=([^&]+)`).FindStringSubmatch(pageUrl)
-		if m != nil {
-			return p.padUri(host, m[1])
-		}
-		return pageUrl
-	}
-	//网页内含manifest URL
+	//优先明显是manifest的
 	m := regexp.MustCompile(`manifest=(\S+).json["']`).FindStringSubmatch(text)
 	if m != nil {
 		return p.padUri(host, m[1]+".json")
@@ -309,8 +309,7 @@ func (p *IIIF) getManifestUrl(pageUrl, text string) string {
 	}
 	return p.padUri(host, m[1]+"/manifest.json")
 }
-
-func (p *IIIF) padUri(host, uri string) string {
+func (p *IIIFv3) padUri(host, uri string) string {
 	//https:// 或 http:// 绝对URL
 	if strings.HasPrefix(uri, "https://") || strings.HasPrefix(uri, "http://") {
 		return uri
