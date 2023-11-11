@@ -11,36 +11,37 @@ import (
 	"log"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"regexp"
-	"strings"
+	"sync"
 )
 
 type NdlJP struct {
 	dt *DownloadTask
 }
 
-func (r NdlJP) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
-	r.dt.UrlParsed, err = url.Parse(sUrl)
-	r.dt.Url = sUrl
-	r.dt.Index = iTask
-	r.dt.BookId = r.getBookId(r.dt.Url)
-	if r.dt.BookId == "" {
+func (p *NdlJP) Init(iTask int, sUrl string) (msg string, err error) {
+	p.dt = new(DownloadTask)
+	p.dt.UrlParsed, err = url.Parse(sUrl)
+	p.dt.Url = sUrl
+	p.dt.Index = iTask
+	p.dt.BookId = p.getBookId(p.dt.Url)
+	if p.dt.BookId == "" {
 		return "requested URL was not found.", err
 	}
-	r.dt.Jar, _ = cookiejar.New(nil)
-	return r.download()
+	p.dt.Jar, _ = cookiejar.New(nil)
+	return p.download()
 }
 
-func (r NdlJP) getBookId(sUrl string) (bookId string) {
+func (p *NdlJP) getBookId(sUrl string) (bookId string) {
 	if m := regexp.MustCompile(`/pid/([A-Za-z0-9]+)`).FindStringSubmatch(sUrl); m != nil {
 		bookId = m[1]
 	}
 	return bookId
 }
 
-func (r NdlJP) download() (msg string, err error) {
-	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
+func (p *NdlJP) download() (msg string, err error) {
+	respVolume, err := p.getVolumes(p.dt.Url, p.dt.Jar)
 	if err != nil {
 		fmt.Println(err)
 		return "getVolumes", err
@@ -50,63 +51,66 @@ func (r NdlJP) download() (msg string, err error) {
 			continue
 		}
 		vid := util.GenNumberSorted(i + 1)
-		r.dt.VolumeId = r.dt.BookId + "_vol." + vid
-		canvases, err := r.getCanvases(vol, r.dt.Jar)
+		p.dt.VolumeId = p.dt.BookId + "_vol." + vid
+		canvases, err := p.getCanvases(vol, p.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
 			continue
 		}
-		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.VolumeId)
+		p.dt.SavePath = config.CreateDirectory(p.dt.Url, p.dt.VolumeId)
 		log.Printf(" %d/%d volume, %d pages \n", i+1, len(respVolume), len(canvases))
-		r.do(canvases)
+		p.do(canvases)
 	}
 	return msg, err
 }
 
-func (r NdlJP) do(imgUrls []string) (msg string, err error) {
+func (p *NdlJP) do(imgUrls []string) (msg string, err error) {
 	if imgUrls == nil {
-		return
+		return "", nil
 	}
-	fmt.Println()
-	referer := url.QueryEscape(r.dt.Url)
 	size := len(imgUrls)
-	ctx := context.Background()
+	fmt.Println()
+	var wg sync.WaitGroup
+	q := QueueNew(int(config.Conf.Threads))
 	for i, uri := range imgUrls {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		dest := config.GetDestPath(r.dt.Url, r.dt.VolumeId, filename)
+		dest := p.dt.SavePath + string(os.PathSeparator) + filename
 		if FileExist(dest) {
 			continue
 		}
-		log.Printf("Get %d/%d page, URL: %s\n", i+1, size, uri)
-		opts := gohttp.Options{
-			DestFile:    dest,
-			Overwrite:   false,
-			Concurrency: 1,
-			CookieFile:  config.Conf.CookieFile,
-			CookieJar:   r.dt.Jar,
-			Headers: map[string]interface{}{
-				"User-Agent": config.Conf.UserAgent,
-				"Referer":    referer,
-			},
-		}
-		_, err = gohttp.FastGet(ctx, uri, opts)
-		if err != nil {
-			fmt.Println(err)
-			util.PrintSleepTime(config.Conf.Speed)
-		}
+		imgUrl := uri
 		fmt.Println()
+		log.Printf("Get %d/%d  %s\n", i+1, size, imgUrl)
+		wg.Add(1)
+		q.Go(func() {
+			defer wg.Done()
+			ctx := context.Background()
+			opts := gohttp.Options{
+				DestFile:    dest,
+				Overwrite:   false,
+				Concurrency: 1,
+				CookieFile:  config.Conf.CookieFile,
+				CookieJar:   p.dt.Jar,
+				Headers: map[string]interface{}{
+					"User-Agent": config.Conf.UserAgent,
+				},
+			}
+			gohttp.FastGet(ctx, imgUrl, opts)
+			fmt.Println()
+		})
 	}
+	wg.Wait()
 	fmt.Println()
 	return "", err
 }
 
-func (r NdlJP) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	apiUrl := "https://" + r.dt.UrlParsed.Host + "/api/meta/search/toc/facet/" + r.dt.BookId
-	bs, err := r.getBody(apiUrl, jar)
+func (p *NdlJP) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
+	apiUrl := "https://" + p.dt.UrlParsed.Host + "/api/meta/search/toc/facet/" + p.dt.BookId
+	bs, err := p.getBody(apiUrl, jar)
 	if err != nil {
 		return
 	}
@@ -122,7 +126,6 @@ func (r NdlJP) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, er
 			Parent  string `json:"parent"`
 			Level   string `json:"level"`
 		} `json:"children"`
-		Parent interface{} `json:"parent"`
 	}
 	var result = new(ResponseBody)
 	if err = json.Unmarshal(bs, result); err != nil {
@@ -130,7 +133,7 @@ func (r NdlJP) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, er
 		return
 	}
 	if result.Children == nil {
-		bs, err := r.getBody("https://"+r.dt.UrlParsed.Host+"/api/item/search/info:ndljp/pid/"+r.dt.BookId, jar)
+		bs, err := p.getBody("https://"+p.dt.UrlParsed.Host+"/api/item/search/info:ndljp/pid/"+p.dt.BookId, jar)
 		if err != nil {
 			return nil, err
 		}
@@ -150,20 +153,18 @@ func (r NdlJP) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, er
 
 	volumes = make([]string, 0, len(result.Children))
 
-	var template string
-	for i, v := range result.Children {
-		if i == 0 {
-			vUrl, _ := r.getManifestUrl(v.Id)
-			template = strings.Replace(vUrl, v.Id, "%s", -1)
+	for _, v := range result.Children {
+		iiifUrl, _ := p.getManifestUrl(v.Id)
+		if iiifUrl == "" {
+			continue
 		}
-		iiifUrl := fmt.Sprintf(template, v.Id)
 		volumes = append(volumes, iiifUrl)
 	}
 	return volumes, nil
 }
 
-func (r NdlJP) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	bs, err := r.getBody(sUrl, jar)
+func (p *NdlJP) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+	bs, err := p.getBody(sUrl, jar)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +196,7 @@ func (r NdlJP) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, 
 	return canvases, nil
 }
 
-func (r NdlJP) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (p *NdlJP) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	referer := url.QueryEscape(apiUrl)
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
@@ -217,7 +218,7 @@ func (r NdlJP) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	return bs, nil
 }
 
-func (r NdlJP) getManifestUrl(id string) (iiifUrl string, err error) {
+func (p *NdlJP) getManifestUrl(id string) (iiifUrl string, err error) {
 	type ResponseBody struct {
 		Item struct {
 			Pid             string `json:"pid"`
@@ -227,7 +228,7 @@ func (r NdlJP) getManifestUrl(id string) (iiifUrl string, err error) {
 		MetaMap interface{} `json:"metaMap"`
 	}
 	apiUrl := "https://dl.ndl.go.jp/api/item/search/info:ndljp/pid/" + id
-	bs, err := r.getBody(apiUrl, r.dt.Jar)
+	bs, err := p.getBody(apiUrl, p.dt.Jar)
 	if err != nil {
 		return "", err
 	}
