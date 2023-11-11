@@ -1,4 +1,7 @@
-ver="1.2.4"
+#ver="1.2.4"
+ver=$(date "+%y%m%d")
+
+sed -i '/const version = */c const version = "'"$ver"'"' config/init.go
 
 mkdir -p target/bookget-${ver}.linux/
 mkdir -p target/bookget-${ver}.macOS/
@@ -24,10 +27,15 @@ cp target/dezoomify-rs/x86_64-apple/dezoomify-rs target/bookget-${ver}.macOS/dez
 cp target/dezoomify-rs/aarch64-apple/dezoomify-rs target/bookget-${ver}.macOS-arm64/dezoomify-rs
 
 
-cd target/
+cd target/ || exit
 #7za a -t7z bookget-${ver}.windows.7z bookget-${ver}.windows
 tar cjf bookget-${ver}.linux.tar.bz2 bookget-${ver}.linux
 tar cjf bookget-${ver}.macOS.tar.bz2 bookget-${ver}.macOS
 tar cjf bookget-${ver}.macOS-arm64.tar.bz2 bookget-${ver}.macOS-arm64
 
+
+cd ../
+rm -fr target/bookget-${ver}.linux/
+rm -fr target/bookget-${ver}.macOS/
+rm -fr target/bookget-${ver}.macOS-arm64/
 
