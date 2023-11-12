@@ -25,18 +25,18 @@ type Input struct {
 	SaveFolder string //下载文件存放目录，默认为当前文件夹下 Downloads 目录下
 	//;生成 dezoomify-rs 可用的文件(默认生成文件名 dezoomify-rs.urls.txt）
 	// ;0 = 禁用，1=启用 （只对支持的图书馆有效）
-	FullImageWidth int    //;全高清图下载时，指定宽度像素（16开纸185mm*260mm，像素2185*3071）
-	UserAgent      string //自定义UserAgent
-	AutoDetect     int    //自动检测下载URL。可选值[0|1|2]，;0=默认;1=通用批量下载（类似IDM、迅雷）;2= IIIF manifest.json 自动检测下载图片
-	MergePDFs      bool   //;台北故宫博物院 - 善本古籍，是否整册合并一个PDF下载？0=否，1=是。整册合并一个PDF遇到某一册最后一章节【无影像】会导致下载失败。 如：新刊校定集注杜詩 三十六卷 第二十四冊 聞惠子過東溪 无影像
-	DezoomifyPath  string //dezoomify-rs 本地目录位置
-	DezoomifyRs    string //dezoomify-rs 参数
-	UseDziRs       bool   //启用DezoomifyRs下载IIIF
-	FileExt        string //指定下载的扩展名
-	Threads        uint
-	Retry          int //重试次数
-	Help           bool
-	Version        bool
+	Format        string //;全高清图下载时，指定宽度像素（16开纸185mm*260mm，像素2185*3071）
+	UserAgent     string //自定义UserAgent
+	AutoDetect    int    //自动检测下载URL。可选值[0|1|2]，;0=默认;1=通用批量下载（类似IDM、迅雷）;2= IIIF manifest.json 自动检测下载图片
+	MergePDFs     bool   //;台北故宫博物院 - 善本古籍，是否整册合并一个PDF下载？0=否，1=是。整册合并一个PDF遇到某一册最后一章节【无影像】会导致下载失败。 如：新刊校定集注杜詩 三十六卷 第二十四冊 聞惠子過東溪 无影像
+	DezoomifyPath string //dezoomify-rs 本地目录位置
+	DezoomifyRs   string //dezoomify-rs 参数
+	UseDziRs      bool   //启用DezoomifyRs下载IIIF
+	FileExt       string //指定下载的扩展名
+	Threads       uint
+	Retry         int //重试次数
+	Help          bool
+	Version       bool
 }
 
 func Init(ctx context.Context) bool {
@@ -48,7 +48,7 @@ func Init(ctx context.Context) bool {
 	flag.StringVar(&Conf.SaveFolder, "o", iniConf.SaveFolder, "下载保存到目录")
 	flag.StringVar(&Conf.Seq, "seq", iniConf.Seq, "页面范围，如4:434")
 	flag.IntVar(&Conf.Volume, "vol", iniConf.Volume, "多册图书，只下第N册")
-	flag.IntVar(&Conf.FullImageWidth, "w", iniConf.FullImageWidth, "指定图片宽度像素。推荐2400，若>2400为最大图")
+	flag.StringVar(&Conf.Format, "fmt", iniConf.Format, "IIIF 图像请求URI: full/full/0/default.jpg")
 	flag.StringVar(&Conf.UserAgent, "ua", iniConf.UserAgent, "user-agent")
 	flag.BoolVar(&Conf.MergePDFs, "mp", iniConf.MergePDFs, "合并PDF文件下载，可选值[0|1]。0=否，1=是。仅对 rbk-doc.npm.edu.tw 有效。")
 	flag.BoolVar(&Conf.UseDziRs, "dzi", iniConf.UseDziRs, "使用dezoomify-rs下载，仅对支持iiif的网站生效。")
@@ -95,36 +95,42 @@ func Init(ctx context.Context) bool {
 func initINI() (io Input, err error) {
 	dir, _ := os.Getwd()
 	fPath, _ := os.Executable()
-	root := filepath.Dir(fPath)
-
+	binDir := filepath.Dir(fPath)
+	var iniFile string
+	fi, err := os.Stat("/etc/bookget/config.ini")
+	if string(os.PathSeparator) == "/" && err == nil && fi.Size() > 0 {
+		iniFile = "/etc/bookget/config.ini"
+	} else {
+		iniFile = binDir + string(os.PathSeparator) + "config.ini"
+	}
 	cFile := dir + string(os.PathSeparator) + "cookie.txt"
 	urls := dir + string(os.PathSeparator) + "urls.txt"
 	c := uint(runtime.NumCPU() * 2)
 
 	ua := "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/118.0"
-
+	format := "full/full/0/default.jpg"
 	io = Input{
-		DUrl:           "",
-		UrlsFile:       urls,
-		CookieFile:     cFile,
-		Seq:            "",
-		SeqStart:       0,
-		SeqEnd:         0,
-		Volume:         0,
-		Speed:          0,
-		SaveFolder:     dir,
-		FullImageWidth: 2400,
-		UserAgent:      ua,
-		AutoDetect:     0,
-		MergePDFs:      true,
-		DezoomifyPath:  "",
-		DezoomifyRs:    "-l --compression 20",
-		UseDziRs:       false,
-		FileExt:        ".jpg",
-		Threads:        c,
-		Retry:          3,
-		Help:           false,
-		Version:        false,
+		DUrl:          "",
+		UrlsFile:      urls,
+		CookieFile:    cFile,
+		Seq:           "",
+		SeqStart:      0,
+		SeqEnd:        0,
+		Volume:        0,
+		Speed:         0,
+		SaveFolder:    dir,
+		Format:        format,
+		UserAgent:     ua,
+		AutoDetect:    0,
+		MergePDFs:     true,
+		DezoomifyPath: "",
+		DezoomifyRs:   "-l --compression 20",
+		UseDziRs:      false,
+		FileExt:       ".jpg",
+		Threads:       c,
+		Retry:         3,
+		Help:          false,
+		Version:       false,
 	}
 
 	if string(os.PathSeparator) == "\\" {
@@ -139,7 +145,7 @@ func initINI() (io Input, err error) {
 		}
 	}
 
-	cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, root+string(os.PathSeparator)+"config.ini")
+	cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, iniFile)
 	if err != nil {
 		return
 	}
@@ -167,7 +173,7 @@ func initINI() (io Input, err error) {
 	secDzi := cfg.Section("dzi")
 	io.UseDziRs = secDzi.Key("dzi").MustBool(false)
 	io.DezoomifyRs = secDzi.Key("rs").String()
-	io.FullImageWidth = secDzi.Key("width").MustInt(2400)
+	io.Format = secDzi.Key("format").MustString(format)
 
 	return io, nil
 }

@@ -64,14 +64,6 @@ func getPages(uri string) (pages []string, iiifInfo []string) {
 
 	i := len(manifest.Sequences[0].Canvases)
 	pages = make([]string, 0, i)
-	newWidth := ""
-	//此站最大只支持5000
-	if config.Conf.FullImageWidth > 2400 {
-		newWidth = "full/full/"
-	}
-	if config.Conf.FullImageWidth >= 1000 {
-		newWidth = fmt.Sprintf("full/%d,/", config.Conf.FullImageWidth)
-	}
 	for _, sequence := range manifest.Sequences {
 		for _, canvase := range sequence.Canvases {
 			for _, image := range canvase.Images {
@@ -84,10 +76,7 @@ func getPages(uri string) (pages []string, iiifInfo []string) {
 				iiifInfo = append(iiifInfo, iiifUrl)
 
 				//JPEG URL
-				imgUrl := image.Resource.Id
-				if newWidth != "" {
-					imgUrl = strings.Replace(image.Resource.Id, "full/full/", newWidth, 1)
-				}
+				imgUrl := image.Resource.Service.Id + "/" + config.Conf.Format
 				pages = append(pages, imgUrl)
 				break
 			}

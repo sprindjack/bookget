@@ -53,11 +53,6 @@ func getPages(bookId string) (pages []string, iiifInfo []string) {
 
 	i := len(manifests.Sequences[0].Canvases)
 	pages = make([]string, 0, i)
-	newWidth := config.Conf.FullImageWidth
-	//此站最大只支持3000
-	if newWidth < 1000 || newWidth > 3000 {
-		newWidth = 3000
-	}
 	for _, sequence := range manifests.Sequences {
 		for _, canvase := range sequence.Canvases {
 			for _, image := range canvase.Images {
@@ -65,8 +60,8 @@ func getPages(bookId string) (pages []string, iiifInfo []string) {
 				iiifUrl := fmt.Sprintf("%s/info.json", image.Resource.Service.Id)
 				iiifInfo = append(iiifInfo, iiifUrl)
 				//JPEG URL
-				imgurl := fmt.Sprintf("%s/full/%d,/0/default.jpg", image.Resource.Service.Id, newWidth)
-				pages = append(pages, imgurl)
+				imgUrl := image.Resource.Service.Id + "/" + config.Conf.Format
+				pages = append(pages, imgUrl)
 			}
 		}
 	}

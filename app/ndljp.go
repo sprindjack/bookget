@@ -50,9 +50,13 @@ func (p *NdlJP) download() (msg string, err error) {
 		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
 			continue
 		}
+		iiifUrl, _ := p.getManifestUrl(vol)
+		if iiifUrl == "" {
+			continue
+		}
 		vid := util.GenNumberSorted(i + 1)
 		p.dt.VolumeId = p.dt.BookId + "_vol." + vid
-		canvases, err := p.getCanvases(vol, p.dt.Jar)
+		canvases, err := p.getCanvases(iiifUrl, p.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
 			continue
@@ -154,11 +158,7 @@ func (p *NdlJP) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, e
 	volumes = make([]string, 0, len(result.Children))
 
 	for _, v := range result.Children {
-		iiifUrl, _ := p.getManifestUrl(v.Id)
-		if iiifUrl == "" {
-			continue
-		}
-		volumes = append(volumes, iiifUrl)
+		volumes = append(volumes, v.Id)
 	}
 	return volumes, nil
 }
@@ -176,20 +176,12 @@ func (p *NdlJP) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string,
 	if len(manifest.Sequences) == 0 {
 		return
 	}
-	newWidth := ""
-	//>2400使用原图
-	if config.Conf.FullImageWidth > 2400 {
-		newWidth = "full/full"
-	} else if config.Conf.FullImageWidth >= 1000 {
-		newWidth = fmt.Sprintf("full/%d,", config.Conf.FullImageWidth)
-	}
-
 	size := len(manifest.Sequences[0].Canvases)
 	canvases = make([]string, 0, size)
 	for _, canvase := range manifest.Sequences[0].Canvases {
 		for _, image := range canvase.Images {
 			//JPEG URL
-			imgUrl := fmt.Sprintf("%s/%s/0/default.jpg", image.Resource.Service.Id, newWidth)
+			imgUrl := image.Resource.Service.Id + "/" + config.Conf.Format
 			canvases = append(canvases, imgUrl)
 		}
 	}

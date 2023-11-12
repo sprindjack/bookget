@@ -33,7 +33,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 
 	imageRecords, err := getImageRecord(dt.BookId, config.Conf.CookieFile)
 	if err != nil {
-		log.Println("A cookie file is required.")
+		log.Println(err)
 		return
 	}
 	maxSize := len(imageRecords)

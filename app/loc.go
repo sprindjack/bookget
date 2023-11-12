@@ -179,20 +179,14 @@ func (r *Loc) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, e
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
 	}
-	newWidth := ""
-	//限制图片最大宽度
-	if config.Conf.FullImageWidth > 2400 {
-		newWidth = "full/pct:100/"
-	} else if config.Conf.FullImageWidth >= 1000 {
-		newWidth = fmt.Sprintf("full/%d,/", config.Conf.FullImageWidth)
-	}
+
 	for _, resource := range manifests.Resources {
 		if resource.Url != sUrl {
 			continue
 		}
 		for _, file := range resource.Files {
 			//每页有6种下载方式
-			imgUrl, ok := r.getImagePage(file, newWidth)
+			imgUrl, ok := r.getImagePage(file)
 			if ok {
 				canvases = append(canvases, imgUrl)
 			}
@@ -223,12 +217,12 @@ func (r *Loc) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	}
 	return bs, nil
 }
-func (r *Loc) getImagePage(fileUrls []LocImageFile, newWidth string) (downloadUrl string, ok bool) {
+func (r *Loc) getImagePage(fileUrls []LocImageFile) (downloadUrl string, ok bool) {
 	for _, f := range fileUrls {
 		if config.Conf.FileExt == ".jpg" && f.Mimetype == "image/jpeg" {
 			if strings.Contains(f.Url, "full/pct:100/") {
-				if newWidth != "" && newWidth != "full/pct:100/" {
-					downloadUrl = strings.Replace(f.Url, "full/pct:100/", newWidth, 1)
+				if config.Conf.Format != "" {
+					downloadUrl = regexp.MustCompile(`full/pct:(.+)`).ReplaceAllString(f.Url, config.Conf.Format)
 				} else {
 					downloadUrl = f.Url
 				}
@@ -237,7 +231,6 @@ func (r *Loc) getImagePage(fileUrls []LocImageFile, newWidth string) (downloadUr
 			}
 		} else if f.Mimetype != "image/jpeg" {
 			downloadUrl = f.Url
-			//downloadUrl = strings.Replace(f.Url, "https://tile.loc.gov/storage-services/", "http://140.147.239.202/", 1)
 			ok = true
 			break
 		}

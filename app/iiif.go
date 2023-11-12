@@ -113,26 +113,17 @@ func (p *IIIF) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, 
 	if len(manifest.Sequences) == 0 {
 		return
 	}
-	newWidth := ""
-	//>2400使用原图
-	if config.Conf.FullImageWidth > 2400 {
-		newWidth = "full/full"
-	} else if config.Conf.FullImageWidth >= 1000 {
-		newWidth = fmt.Sprintf("full/%d,", config.Conf.FullImageWidth)
-	}
-
 	size := len(manifest.Sequences[0].Canvases)
 	canvases = make([]string, 0, size)
 	for _, canvase := range manifest.Sequences[0].Canvases {
 		for _, image := range canvase.Images {
 			if config.Conf.UseDziRs {
-				//iifUrl, _ := url.QueryUnescape(image.Resource.Service.Id)
 				//dezoomify-rs URL
 				iiiInfo := fmt.Sprintf("%s/info.json", image.Resource.Service.Id)
 				canvases = append(canvases, iiiInfo)
 			} else {
 				//JPEG URL
-				imgUrl := fmt.Sprintf("%s/%s/0/default.jpg", image.Resource.Service.Id, newWidth)
+				imgUrl := image.Resource.Service.Id + "/" + config.Conf.Format
 				canvases = append(canvases, imgUrl)
 			}
 		}

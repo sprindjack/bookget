@@ -58,13 +58,6 @@ func getImageUrls(bookId, bookUrl string) (imgUrls []string, iiifUrls []string) 
 	i := len(manifest.Sequences[0].Canvases)
 	imgUri := make([]string, 0, i)
 	iiifUri := make([]string, 0, i)
-	newWidth := ""
-	//>2400使用原图
-	if config.Conf.FullImageWidth > 2400 {
-		newWidth = "/full/full/0/default.jpg"
-	} else if config.Conf.FullImageWidth >= 1000 {
-		newWidth = fmt.Sprintf("/full/%d,/0/default.jpg", config.Conf.FullImageWidth)
-	}
 	for _, canvase := range manifest.Sequences[0].Canvases {
 		for _, image := range canvase.Images {
 			//dezoomify-rs URL
@@ -72,12 +65,7 @@ func getImageUrls(bookId, bookUrl string) (imgUrls []string, iiifUrls []string) 
 			iiifUri = append(iiifUri, iiiInfo)
 
 			//JPEG URL
-			imgUrl := ""
-			if newWidth == "" {
-				imgUrl = image.Resource.Id
-			} else {
-				imgUrl = fmt.Sprintf("%s%s", image.Resource.Service.Id, newWidth)
-			}
+			imgUrl := image.Resource.Service.Id + "/" + config.Conf.Format
 			imgUri = append(imgUri, imgUrl)
 		}
 	}

@@ -117,7 +117,7 @@ func (p *Princeton) getBookId(sUrl string) (bookId string) {
 	if m != nil {
 		bookId = m[1]
 	}
-	return bookId
+	return ""
 }
 
 func (p *Princeton) download() (msg string, err error) {
@@ -261,22 +261,13 @@ func (p *Princeton) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []str
 	}
 	i := len(manifest2.Sequences[0].Canvases)
 	canvases = make([]string, 0, i)
-	newWidth := ""
-	//此站最大只支持2400
-	if config.Conf.FullImageWidth > 2400 {
-		newWidth = "full/full/"
-	} else if config.Conf.FullImageWidth >= 1000 {
-		newWidth = fmt.Sprintf("full/%d,/", config.Conf.FullImageWidth)
-	}
+
 	//分卷URL处理
 	for _, sequences := range manifest2.Sequences {
 		for _, canvase := range sequences.Canvases {
 			for _, image := range canvase.Images {
 				//JPEG URL
-				imgUrl := image.Resource.Id
-				if newWidth != "" {
-					imgUrl = strings.Replace(image.Resource.Id, "full/1000,/", newWidth, 1)
-				}
+				imgUrl := image.Resource.Service.Id + "/" + config.Conf.Format
 				canvases = append(canvases, imgUrl)
 			}
 		}
