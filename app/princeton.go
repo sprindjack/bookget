@@ -117,7 +117,7 @@ func (p *Princeton) getBookId(sUrl string) (bookId string) {
 	if m != nil {
 		bookId = m[1]
 	}
-	return ""
+	return bookId
 }
 
 func (p *Princeton) download() (msg string, err error) {
