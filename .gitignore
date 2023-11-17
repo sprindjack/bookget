@@ -6,3 +6,5 @@
 .fleet/
 *.xml
 *.7z
+*.bak
+build.sh
