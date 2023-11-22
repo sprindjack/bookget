@@ -137,26 +137,10 @@ func (p *NdlJP) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, e
 		return
 	}
 	if result.Children == nil {
-		bs, err := p.getBody("https://"+p.dt.UrlParsed.Host+"/api/item/search/info:ndljp/pid/"+p.dt.BookId, jar)
-		if err != nil {
-			return nil, err
-		}
-		type ResponseBody2 struct {
-			Item struct {
-				IiifManifestUrl string `json:"iiifManifestUrl"`
-			} `json:"item"`
-		}
-		var result2 = new(ResponseBody2)
-		if err = json.Unmarshal(bs, result2); err != nil {
-			log.Printf("json.Unmarshal failed: %s\n", err)
-			return nil, err
-		}
-		volumes = append(volumes, result2.Item.IiifManifestUrl)
+		volumes = append(volumes, p.dt.BookId)
 		return volumes, nil
 	}
-
 	volumes = make([]string, 0, len(result.Children))
-
 	for _, v := range result.Children {
 		volumes = append(volumes, v.Id)
 	}
@@ -213,13 +197,10 @@ func (p *NdlJP) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 func (p *NdlJP) getManifestUrl(id string) (iiifUrl string, err error) {
 	type ResponseBody struct {
 		Item struct {
-			Pid             string `json:"pid"`
-			Parent          string `json:"parent"`
 			IiifManifestUrl string `json:"iiifManifestUrl"`
 		} `json:"item"`
-		MetaMap interface{} `json:"metaMap"`
 	}
-	apiUrl := "https://dl.ndl.go.jp/api/item/search/info:ndljp/pid/" + id
+	apiUrl := "https://" + p.dt.UrlParsed.Host + "/api/item/search/info:ndljp/pid/" + id
 	bs, err := p.getBody(apiUrl, p.dt.Jar)
 	if err != nil {
 		return "", err
