@@ -16,31 +16,79 @@ import (
 )
 
 type Modernhistory struct {
-	dt *DownloadTask
+	dt              *DownloadTask
+	docType         string
+	fileCode        string
+	jsonUrlTemplate string
 }
 
-type ResponseModernhistoryIiif struct {
+type ModernhistoryDetailsInfo struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 	Result  struct {
-		CollectNum string `json:"collectNum"`
-		Info       struct {
-			Title   string `json:"title"`
-			IiifObj struct {
-				FileCode    string      `json:"fileCode"`
-				UniqTag     interface{} `json:"uniqTag"`
-				VolumeInfo  interface{} `json:"volumeInfo"`
-				DirName     string      `json:"dirName"`
-				DirCode     string      `json:"dirCode"`
-				CurrentPage string      `json:"currentPage"`
-				StartPageId string      `json:"startPageId"`
-				ImgUrl      string      `json:"imgUrl"`
-				Content     string      `json:"content"`
-				JsonUrl     string      `json:"jsonUrl"`
-				IsUp        interface{} `json:"isUp"`
-			} `json:"iiifObj"`
-		} `json:"info"`
+		CollectNum string            `json:"collectNum"`
+		Info       ModernhistoryInfo `json:"info"`
 	} `json:"result"`
+}
+
+type ModernhistoryInfo struct {
+	Notes                   string      `json:"notes"`
+	SecondResponsibleNation interface{} `json:"secondResponsibleNation"`
+	Language                []string    `json:"language"`
+	Title                   string      `json:"title"`
+	OriginalPlace           []string    `json:"originalPlace"`
+	Duration                string      `json:"duration"`
+	SeriesVolume            string      `json:"seriesVolume"`
+	SeriesSubName           string      `json:"seriesSubName"`
+	PublishEvolution        interface{} `json:"publishEvolution"`
+	ImageUrl                string      `json:"imageUrl"`
+	StartPageId             string      `json:"startPageId"`
+	PageAmount              string      `json:"pageAmount"`
+	Id                      string      `json:"id"`
+	Place                   []string    `json:"place"`
+	CreateTimeStr           interface{} `json:"createTimeStr"`
+	RedFlag                 string      `json:"redFlag"`
+	TimeRange               string      `json:"timeRange"`
+	FirstResponsible        []string    `json:"firstResponsible"`
+	PublishTimeAll          string      `json:"publishTimeAll"`
+	PublishName             string      `json:"publishName"`
+	KeyWords                []string    `json:"keyWords"`
+	PublishTime             string      `json:"publishTime"`
+	Amount                  interface{} `json:"amount"`
+	OrgName                 string      `json:"orgName"`
+	DocFormat               string      `json:"docFormat"`
+	DocType                 string      `json:"docType"` //ts=图书，qk=期刊，bz=报纸
+	SeriesName              string      `json:"seriesName"`
+	IsResearch              string      `json:"isResearch"`
+	IiifObj                 struct {
+		FileCode    string      `json:"fileCode"`
+		UniqTag     interface{} `json:"uniqTag"`
+		VolumeInfo  interface{} `json:"volumeInfo"`
+		DirName     string      `json:"dirName"`
+		DirCode     string      `json:"dirCode"`
+		CurrentPage string      `json:"currentPage"`
+		StartPageId string      `json:"startPageId"`
+		ImgUrl      string      `json:"imgUrl"`
+		Content     string      `json:"content"`
+		JsonUrl     string      `json:"jsonUrl"`
+		IsUp        interface{} `json:"isUp"`
+	} `json:"iiifObj"`
+	FileCode               string      `json:"fileCode"`
+	FirstCreationWay       []string    `json:"firstCreationWay"`
+	ContentDesc            string      `json:"contentDesc"`
+	DownloadSum            string      `json:"downloadSum"`
+	Version                string      `json:"version"`
+	Url                    string      `json:"url"`
+	FirstResponsibleNation interface{} `json:"firstResponsibleNation"`
+	CreateTime             interface{} `json:"createTime"`
+	PublishCycle           []string    `json:"publishCycle"`
+	OriginalTitle          string      `json:"originalTitle"`
+	Publisher              []string    `json:"publisher"`
+	VolumeInfoAllStr       string      `json:"volumeInfoAllStr"`
+	SecondCreationWay      interface{} `json:"secondCreationWay"`
+	Roundup                string      `json:"roundup"`
+	SecondResponsible      []string    `json:"secondResponsible"`
+	Remarks                string      `json:"remarks"`
 }
 
 type ResponseModernhistoryManifest struct {
@@ -81,6 +129,45 @@ type ResponseModernhistoryManifest struct {
 	} `json:"sequences"`
 }
 
+type ModernhistoryQk struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Result  []struct {
+		Title string `json:"title"`
+		List  []struct {
+			Year     string `json:"year"`
+			DataList []struct {
+				Id        string `json:"id"`
+				Directory string `json:"directory"`
+			} `json:"dataList"`
+		} `json:"list"`
+	} `json:"result"`
+}
+
+type ModernhistoryfindDirectoryByMonth struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Result  []struct {
+		Date    string `json:"date"`
+		IiifObj struct {
+			FileCode    string      `json:"fileCode"`
+			UniqTag     string      `json:"uniqTag"`
+			VolumeInfo  interface{} `json:"volumeInfo"`
+			DirName     string      `json:"dirName"`
+			DirCode     string      `json:"dirCode"`
+			CurrentPage string      `json:"currentPage"`
+			StartPageId string      `json:"startPageId"`
+			ImgUrl      string      `json:"imgUrl"`
+			Content     string      `json:"content"`
+			JsonUrl     string      `json:"jsonUrl"`
+			IsUp        interface{} `json:"isUp"`
+		} `json:"iiifObj"`
+		DirCode     string `json:"dirCode"`
+		StartPageId string `json:"startPageId"`
+		Id          string `json:"id"`
+	} `json:"result"`
+}
+
 func (p *Modernhistory) Init(iTask int, sUrl string) (msg string, err error) {
 	p.dt = new(DownloadTask)
 	p.dt.UrlParsed, err = url.Parse(sUrl)
@@ -102,21 +189,51 @@ func (p *Modernhistory) getBookId(sUrl string) (bookId string) {
 	return ""
 }
 
+func (p *Modernhistory) mkdirAll(directory, vid string) (dirPath string) {
+	switch p.docType {
+	case "ts":
+		p.dt.VolumeId = p.dt.UrlParsed.Host + "_" + p.dt.BookId + string(os.PathSeparator) + directory + "_vol." + vid
+		break
+	case "bz":
+		p.dt.VolumeId = p.dt.UrlParsed.Host + "_" + p.dt.BookId + string(os.PathSeparator) + directory
+		break
+	case "qk":
+		p.dt.VolumeId = p.dt.UrlParsed.Host + "_" + p.dt.BookId + string(os.PathSeparator) + directory + "_vol." + vid
+		break
+	default:
+	}
+	p.dt.SavePath = config.Conf.SaveFolder + string(os.PathSeparator) + p.dt.VolumeId
+	_ = os.MkdirAll(p.dt.SavePath, os.ModePerm)
+	return p.dt.SavePath
+}
+
 func (p *Modernhistory) download() (msg string, err error) {
 	name := util.GenNumberSorted(p.dt.Index)
 	log.Printf("Get %s  %s\n", name, p.dt.Url)
-	p.dt.SavePath = config.CreateDirectory(p.dt.Url, p.dt.BookId)
 	apiUrl := "https://" + p.dt.UrlParsed.Host + "/backend-prod/esBook/findDetailsInfo/" + p.dt.BookId
-	manifestUrl, err := p.getManifestUrl(apiUrl, p.dt.Jar)
+	partialVolumes, err := p.getVolumes(apiUrl, p.dt.Jar)
 	if err != nil {
-		return "", err
+		fmt.Println(err)
+		return "getVolumes", err
 	}
-	canvases, err := p.getCanvases(manifestUrl, p.dt.Jar)
-	if err != nil || canvases == nil {
-		return "", err
+	for k, parts := range partialVolumes {
+		if config.Conf.Volume > 0 && config.Conf.Volume != k+1 {
+			continue
+		}
+		log.Printf(" %d/%d book, %d volumes \n", k+1, len(partialVolumes), len(parts.volumes))
+		for i, vol := range parts.volumes {
+			vid := util.GenNumberSorted(i + 1)
+			p.mkdirAll(parts.directory, vid)
+			canvases, err := p.getCanvases(vol, p.dt.Jar)
+			if err != nil || canvases == nil {
+				fmt.Println(err)
+				continue
+			}
+			log.Printf(" %d/%d volume, %d pages \n", i+1, len(parts.volumes), len(canvases))
+			p.do(canvases)
+		}
 	}
-	log.Printf(" %d pages \n", len(canvases))
-	return p.do(canvases)
+	return "", err
 }
 
 func (p *Modernhistory) do(canvases []string) (msg string, err error) {
@@ -158,21 +275,161 @@ func (p *Modernhistory) do(canvases []string) (msg string, err error) {
 	return "", err
 }
 
-func (p *Modernhistory) getManifestUrl(apiUrl string, jar *cookiejar.Jar) (manifestUrl string, err error) {
+func (p *Modernhistory) getVolumes(apiUrl string, jar *cookiejar.Jar) (volumes []PartialVolumes, err error) {
 	bs, err := p.getBody(apiUrl, jar)
+	if err != nil {
+		return nil, err
+	}
+	var resp ModernhistoryDetailsInfo
+	if err = json.Unmarshal(bs, &resp); err != nil {
+		return nil, err
+	}
+	p.docType = resp.Result.Info.DocType
+	p.fileCode = resp.Result.Info.FileCode
+	jsonUrl := resp.Result.Info.IiifObj.JsonUrl
+	p.jsonUrlTemplate, _ = p.getJsonUrlTemplate(jsonUrl, p.fileCode, p.docType)
+	switch p.docType {
+	case "ts":
+		partVol := PartialVolumes{
+			directory: p.fileCode,
+			Title:     resp.Result.Info.Title,
+			volumes:   []string{jsonUrl},
+		}
+		volumes = append(volumes, partVol)
+		break
+	case "bz":
+		volumes, err = p.getVolumesForBz(jsonUrl, p.dt.Jar)
+		break
+	case "qk":
+		volumes, err = p.getVolumesForQk(jsonUrl, p.dt.Jar)
+		break
+	default:
+	}
+	return volumes, nil
+}
+
+func (p *Modernhistory) getJsonUrlTemplate(jsonUrl, fileCode, docType string) (jsonUrlTemplate string, err error) {
+	if jsonUrl == "" {
+		return "", err
+	}
+	u, err := url.Parse(jsonUrl)
 	if err != nil {
 		return "", err
 	}
-	var resp ResponseModernhistoryIiif
-	if err = json.Unmarshal(bs, &resp); err != nil {
-		return "", err
+	if docType == "ts" {
+		jsonUrlTemplate = u.Scheme + "://" + u.Host + "/" + fileCode + "/%s.json"
+	} else {
+		jsonUrlTemplate = u.Scheme + "://" + u.Host + "/" + fileCode + "/%s/%s.json"
 	}
-	return resp.Result.Info.IiifObj.JsonUrl, nil
+	return jsonUrlTemplate, err
 }
 
-func (p *Modernhistory) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	//TODO implement me
-	panic("implement me")
+func (p *Modernhistory) getVolumesForBz(sUrl string, jar *cookiejar.Jar) (volumes []PartialVolumes, err error) {
+	years, err := p.findBzYear(p.fileCode)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println()
+	for _, year := range years {
+		months, err := p.findBzMonth(year)
+		if err != nil {
+			continue
+		}
+		for _, month := range months {
+			if len(month) == 1 {
+				fmt.Printf("Test %s-0%s\r", year, month)
+			} else {
+				fmt.Printf("Test %s-%s\r", year, month)
+			}
+			apiUrl := "https://" + p.dt.UrlParsed.Host + "/backend-prod/esBook/findDirectoryByMonth?fileCode=" + p.fileCode + "&year=" + year + "&month=" + month
+			bs, err := p.getBody(apiUrl, jar)
+			if err != nil {
+				break
+			}
+			var resp = new(ModernhistoryfindDirectoryByMonth)
+			if err := json.Unmarshal(bs, resp); err != nil {
+				log.Printf("json.Unmarshal failed: %s\n", err)
+				break
+			}
+			for _, item := range resp.Result {
+				partVol := PartialVolumes{
+					directory: year + "/" + item.Date,
+					Title:     item.Date,
+					volumes:   []string{item.IiifObj.JsonUrl},
+				}
+				volumes = append(volumes, partVol)
+			}
+		}
+	}
+	fmt.Println()
+	return volumes, err
+}
+
+func (p *Modernhistory) findBzYear(fileCode string) (years []string, err error) {
+	apiUrl := "https://" + p.dt.UrlParsed.Host + "/backend-prod/esBook/findYear/" + fileCode
+	bs, err := p.getBody(apiUrl, p.dt.Jar)
+	if err != nil {
+		return nil, err
+	}
+	type Response struct {
+		Code    string   `json:"code"`
+		Message string   `json:"message"`
+		Result  []string `json:"result"`
+	}
+	var resp = new(Response)
+	if err = json.Unmarshal(bs, resp); err != nil {
+		log.Printf("json.Unmarshal failed: %s\n", err)
+		return
+	}
+	return resp.Result, err
+}
+
+func (p *Modernhistory) findBzMonth(year string) (years []string, err error) {
+	apiUrl := "https://" + p.dt.UrlParsed.Host + "/backend-prod/esBook/findMonth?fileCode=" + p.fileCode + "&year=" + year
+	bs, err := p.getBody(apiUrl, p.dt.Jar)
+	if err != nil {
+		return nil, err
+	}
+	type Response struct {
+		Code    string   `json:"code"`
+		Message string   `json:"message"`
+		Result  []string `json:"result"`
+	}
+	var resp = new(Response)
+	if err = json.Unmarshal(bs, resp); err != nil {
+		log.Printf("json.Unmarshal failed: %s\n", err)
+		return
+	}
+	return resp.Result, err
+}
+
+func (p *Modernhistory) getVolumesForQk(sUrl string, jar *cookiejar.Jar) (volumes []PartialVolumes, err error) {
+	apiUrl := "https://" + p.dt.UrlParsed.Host + "/backend-prod/esBook/findDirectoryByYear/" + p.fileCode
+	bs, err := p.getBody(apiUrl, jar)
+	if err != nil {
+		return nil, err
+	}
+	var resp = new(ModernhistoryQk)
+	if err = json.Unmarshal(bs, resp); err != nil {
+		log.Printf("json.Unmarshal failed: %s\n", err)
+		return
+	}
+	for _, items := range resp.Result {
+		for _, item := range items.List {
+			partVol := PartialVolumes{
+				directory: item.Year,
+				Title:     items.Title,
+				volumes:   nil,
+			}
+			partVol.volumes = make([]string, 0, len(item.DataList))
+			for _, v := range item.DataList {
+				jsonUrl := fmt.Sprintf(p.jsonUrlTemplate, v.Id, v.Id)
+				partVol.volumes = append(partVol.volumes, jsonUrl)
+			}
+			volumes = append(volumes, partVol)
+		}
+	}
+	return volumes, err
 }
 
 func (p *Modernhistory) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {

@@ -45,6 +45,11 @@ type Volume struct {
 	Url   string
 	Seq   int
 }
+type PartialVolumes struct {
+	directory string
+	Title     string
+	volumes   []string
+}
 
 func getBookId(sUrl string) (bookId string) {
 	mh := xhash.NewMultiHasher()

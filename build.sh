@@ -1,5 +1,5 @@
-#ver="1.2.4"
-ver=$(date "+%y%m%d")
+ver="1.2.5"
+#ver=$(date "+%y%m%d")
 
 sed -i '/const version = */c const version = "'"$ver"'"' config/init.go
 
