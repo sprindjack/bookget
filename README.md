@@ -9,7 +9,7 @@ bookget 数字图书馆下载工具，目前支持约50+个数字图书馆。
 
 #### 从源码构建编译
 从源码构建，仅对计算机程序员参考。普通用户可直接跳过阅读。   
-阅读 golang 官方文档 https://golang.google.cn/doc/install ，给您的电脑安装 golang 开发环境。
+阅读 [golang 官方文档](https://golang.google.cn/doc/install) ，给您的电脑安装 golang 开发环境。
 ```shell
 git clone --depth=1 https://github.com/deweizhu/bookget.git
 cd bookget
