@@ -22,8 +22,8 @@ go build .
 ### 捐赠方式
 - 捐赠链接：https://github.com/deweizhu/bookget/wiki/SPONSOR
 
-### 问题
-- 问题讨论: https://github.com/deweizhu/bookget/issues
+### 问题讨论
+- Bug报告、问题讨论: https://github.com/deweizhu/bookget/issues
 - [书格](https://new.shuge.org/) 交流区(https://www.shuge.org/meet/at/80240/)
 - Email：zhudwi@foxmail.com (仅回复正式书信格式邮件，或涉及隐私问题的邮件)
 
