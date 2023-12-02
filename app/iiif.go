@@ -227,43 +227,53 @@ func (p *IIIF) doNormal(imgUrls []string) bool {
 	return true
 }
 
+// AutoDetectManifest
+// https://dcollections.lib.keio.ac.jp/sites/default/files/iiif/KAN/110X-24-1/manifest.json
+// https://snu.alma.exlibrisgroup.com/view/iiif/presentation/82SNU_INST/12748596580002591/manifest?iiifVersion=3
+// https://catalog.lib.kyushu-u.ac.jp/image/manifest/1/820/1446033.json
+// https://iiif.dl.itc.u-tokyo.ac.jp/repo/iiif/07956eb1-931c-74ff-61e9-e66d4c30817d/manifest
 func (p *IIIF) AutoDetectManifest(iTask int, sUrl string) (msg string, err error) {
 	name := util.GenNumberSorted(iTask)
 	log.Printf("Auto Detect %s  %s\n", name, sUrl)
-	ctx := context.Background()
-	cli := gohttp.NewClient(ctx, gohttp.Options{
-		CookieFile: config.Conf.CookieFile,
-		Headers: map[string]interface{}{
-			"User-Agent": config.Conf.UserAgent,
-		},
-	})
-	resp, err := cli.Get(sUrl)
+	bs, err := getBody(sUrl, nil)
 	if err != nil {
-		return
+		return "", err
 	}
-	bs, _ := resp.GetBody()
-	//https://dcollections.lib.keio.ac.jp/sites/default/files/iiif/KAN/110X-24-1/manifest.json
-	//https://snu.alma.exlibrisgroup.com/view/iiif/presentation/82SNU_INST/12748596580002591/manifest?iiifVersion=3
-	//https://catalog.lib.kyushu-u.ac.jp/image/manifest/1/820/1446033.json
-	manifestUrl := p.getManifestUrl(sUrl, string(bs))
-	//查找到新的 manifestUrl
-	if manifestUrl != sUrl {
-		resp, err = cli.Get(manifestUrl)
-		if err != nil {
-			return
+	ver, err := p.checkVersion(bs)
+	if err != nil {
+		jsonUrl := p.getManifestUrl(sUrl, string(bs))
+		//查找到新的 jsonUrl
+		if jsonUrl != sUrl && jsonUrl != "" {
+			bs, err = getBody(jsonUrl, nil)
+			if err != nil {
+				return "", err
+			}
+			ver, err = p.checkVersion(bs)
+			if err != nil {
+				return "", err
+			}
+			sUrl = jsonUrl
 		}
-		bs, _ = resp.GetBody()
 	}
+	if ver == 3 {
+		var iiif IIIFv3
+		return iiif.Init(iTask, sUrl)
+	} else if ver == 2 {
+		var iiif IIIF
+		return iiif.Init(iTask, sUrl)
+	}
+	return "", err
+}
+
+func (p *IIIF) checkVersion(bs []byte) (int, error) {
 	var presentation ManifestPresentation
-	if err = json.Unmarshal(bs, &presentation); err == nil {
-		if strings.Contains(presentation.Context, "presentation/3/") {
-			var iiif IIIFv3
-			return iiif.Init(iTask, manifestUrl)
-		} else {
-			return p.Init(iTask, manifestUrl)
-		}
+	if err := json.Unmarshal(bs, &presentation); err != nil {
+		return 0, err
 	}
-	return "", errors.New("URL not found: manifest.json")
+	if strings.Contains(presentation.Context, "presentation/3/") {
+		return 3, nil
+	}
+	return 2, nil
 }
 
 func (p *IIIF) getManifestUrl(pageUrl, text string) string {
