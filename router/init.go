@@ -112,7 +112,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[日本]国書数据库（古典籍）
 		Router["kokusho.nijl.ac.jp"] = new(KokushoNijlAc)
 		//[日本]京都大学人文科学研究所 东方学数字图书博物馆
-		Router["kanji.zinbun.kyoto-u.ac.jp"] = new(KanjiZinbunKyotouAc)
+		Router["kanji.zinbun.kyoto-u.ac.jp"] = new(Kyotou)
 
 		//[日本]駒澤大学 电子贵重书库
 		Router["repo.komazawa-u.ac.jp"] = new(NormalIIIF)

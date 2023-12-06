@@ -4,7 +4,6 @@ import (
 	"bookget/app"
 	"bookget/site/Japan/emuseum"
 	"bookget/site/Japan/gprime"
-	"bookget/site/Japan/kanjikyoto"
 	"bookget/site/Japan/kokusho"
 	"bookget/site/Japan/kyoto"
 	"bookget/site/Japan/national"
@@ -87,11 +86,12 @@ func (p KokushoNijlAc) getRouterInit(sUrl []string) (map[string]interface{}, err
 	return nil, nil
 }
 
-type KanjiZinbunKyotouAc struct{}
+type Kyotou struct{}
 
-func (p KanjiZinbunKyotouAc) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+func (p Kyotou) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
-		kanjikyoto.Init(i+1, s)
+		var kyotou app.Kyotou
+		kyotou.Init(i+1, s)
 	}
 	return nil, nil
 }
