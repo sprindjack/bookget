@@ -8,7 +8,6 @@ import (
 	"bookget/site/China/ouroots"
 	"bookget/site/China/sdutcm"
 	"bookget/site/China/szlib"
-	"bookget/site/China/tianyige"
 	"bookget/site/China/usthk"
 	"bookget/site/China/wzlib"
 	"bookget/site/China/ynutcm"
@@ -113,6 +112,7 @@ type TianYiGeLib struct{}
 
 func (p TianYiGeLib) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var tianyige app.Tianyige
 		tianyige.Init(i+1, s)
 	}
 	return nil, nil
