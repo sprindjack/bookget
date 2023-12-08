@@ -3,7 +3,9 @@ package app
 import (
 	"bookget/config"
 	"bookget/lib/gohttp"
+	xhash "bookget/lib/hash"
 	"bookget/lib/util"
+	"bytes"
 	"context"
 	"crypto/aes"
 	"encoding/base64"
@@ -12,6 +14,7 @@ import (
 	"fmt"
 	"github.com/andreburgaud/crypt2go/ecb"
 	"github.com/andreburgaud/crypt2go/padding"
+	"io"
 	"log"
 	"math/rand"
 	"net/http/cookiejar"
@@ -202,12 +205,26 @@ func (p *Tianyige) do(records []TygImageRecord) (msg string, err error) {
 	fmt.Println()
 	var wg sync.WaitGroup
 	q := QueueNew(int(config.Conf.Threads))
-	for i, record := range records {
-		uri, _, err := p.getImageById(record.ImageId, config.Conf.CookieFile)
+
+	idDict := make(map[string]string, 1000)
+
+	i := 0
+	for _, record := range records {
+		uri, _, err := p.getImageById(record.ImageId)
 		if err != nil || uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		mh := xhash.NewMultiHasher()
+		_, _ = io.Copy(mh, bytes.NewBuffer([]byte(uri)))
+		kId, _ := mh.SumString(xhash.MD5, false)
+		_, ok := idDict[kId]
+		if ok {
+			continue
+		} else {
+			idDict[kId] = uri
+		}
+		i++
+		sortId := util.GenNumberSorted(i)
 		filename := sortId + config.Conf.FileExt
 		dest := p.dt.SavePath + string(os.PathSeparator) + filename
 		if FileExist(dest) {
@@ -273,7 +290,7 @@ func (p *Tianyige) getCanvases(bookId string, jar *cookiejar.Jar) (canvases []Ty
 	return canvases, nil
 }
 
-func (p *Tianyige) getImageById(imageId, cookieFile string) (imgUrl, ocrUrl string, err error) {
+func (p *Tianyige) getImageById(imageId string) (imgUrl, ocrUrl string, err error) {
 	//https://gj.tianyige.com.cn/fileUpload/56956d82679111ec85ee7020840b69ac/ANB/ANB_IMAGE_PHOTO/ANB/ANB_IMAGE_PHOTO/20220324/febd8c1dcd134c33b5c1cad8883dd1cd1648107167499.jpg
 	//cookie 处理
 	jar, _ := cookiejar.New(nil)
@@ -281,7 +298,7 @@ func (p *Tianyige) getImageById(imageId, cookieFile string) (imgUrl, ocrUrl stri
 	ctx := context.Background()
 	token := p.getToken()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
-		CookieFile: cookieFile,
+		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{
 			"User-Agent":   config.Conf.UserAgent,
