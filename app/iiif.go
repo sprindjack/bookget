@@ -26,18 +26,20 @@ type IIIF struct {
 type ResponseManifest struct {
 	Sequences []struct {
 		Canvases []struct {
-			Id     string `json:"@id"`
-			Type   string `json:"@type"`
-			Height int    `json:"height"`
+			Id   string `json:"@id"`
+			Type string `json:"@type"`
+			//兼容某些不正规的网站竟然用了string类型，见https://digitalarchive.npm.gov.tw/Antique/setJsonU?uid=58102&Dept=U
+			//Height int    `json:"height"`
 			Images []struct {
 				Id       string `json:"@id"`
 				Type     string `json:"@type"`
 				On       string `json:"on"`
 				Resource struct {
-					Id      string `json:"@id"`
-					Type    string `json:"@type"`
-					Format  string `json:"format"`
-					Height  int    `json:"height"`
+					Id     string `json:"@id"`
+					Type   string `json:"@type"`
+					Format string `json:"format"`
+					//兼容digitalarchive.npm.gov.tw
+					//Height  int    `json:"height"`
 					Service struct {
 						Id string `json:"@id"`
 					} `json:"service"`
@@ -45,7 +47,7 @@ type ResponseManifest struct {
 				} `json:"resource"`
 			} `json:"images"`
 			Label string `json:"label"`
-			Width int    `json:"width"`
+			//Width int    `json:"width"`
 		} `json:"canvases"`
 	} `json:"sequences"`
 }

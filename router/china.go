@@ -4,7 +4,6 @@ import (
 	"bookget/app"
 	"bookget/site/China/luoyang"
 	"bookget/site/China/ncpssd"
-	"bookget/site/China/npmtw"
 	"bookget/site/China/ouroots"
 	"bookget/site/China/sdutcm"
 	"bookget/site/China/szlib"
@@ -39,15 +38,6 @@ func (p RbkdocNpmTw) getRouterInit(sUrl []string) (map[string]interface{}, error
 	for i, s := range sUrl {
 		var npm app.NpmTw
 		npm.Init(i+1, s)
-	}
-	return nil, nil
-}
-
-type DigitalarchiveNpmTw struct{}
-
-func (p DigitalarchiveNpmTw) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	for i, s := range sUrl {
-		npmtw.Init(i+1, s)
 	}
 	return nil, nil
 }

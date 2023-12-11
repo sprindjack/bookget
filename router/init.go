@@ -49,8 +49,6 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["lbezone.hkust.edu.hk"] = new(UstHk)
 		//[中国]台北故宫博物院 - 古籍善本 rbkdocnpmtw.Init
 		Router["rbk-doc.npm.edu.tw"] = new(RbkdocNpmTw)
-		//[中国]台北故宫博物院 - 典藏资料 npmtw.Init
-		Router["digitalarchive.npm.gov.tw"] = new(DigitalarchiveNpmTw)
 		//[中国]洛阳市图书馆
 		Router["111.7.82.29:8090"] = new(LuoYang)
 		//[中国]温州市图书馆
