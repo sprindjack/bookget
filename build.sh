@@ -3,39 +3,62 @@ ver="1.2.5"
 
 sed -i '/const version = */c const version = "'"$ver"'"' config/init.go
 
-mkdir -p target/bookget-${ver}.linux/
-mkdir -p target/bookget-${ver}.macOS/
-mkdir -p target/bookget-${ver}.macOS-arm64/
+function buildWindows() {
+    ver=$1
+    targetDir="target/bookget-${ver}.windows-amd64/"
+    mkdir -p $targetDir
+    CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o "${targetDir}/bookget" .
+    cp cookie.txt "${targetDir}/cookie.txt"
+    cp config.ini "${targetDir}/config.ini"
+    cp target/dezoomify-rs/x86_64-windows/dezoomify-rs.exe "${targetDir}/dezoomify-rs"
+    cd target/ || return
+    tar cjf bookget-${ver}.windows-amd64.tar.bz2 "bookget-${ver}.windows-amd64"
+    cd ../
+    rm -fr target/bookget-${ver}.windows-amd64/
+}
 
-#CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o target/bookget-${ver}.windows/bookget.exe .
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o target/bookget-${ver}.linux/bookget .
-CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o target/bookget-${ver}.macOS/bookget .
-CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o target/bookget-${ver}.macOS-arm64/bookget .
+function buildLinux() {
+    ver=$1
+    targetDir="target/bookget-${ver}.linux-amd64/"
+    mkdir -p $targetDir
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o "${targetDir}/bookget" .
+    cp cookie.txt "${targetDir}/cookie.txt"
+    cp config.ini "${targetDir}/config.ini"
+    cp target/dezoomify-rs/x86_64-linux/dezoomify-rs "${targetDir}/dezoomify-rs"
+    cd target/ || return
+    tar cjf bookget-${ver}.linux-amd64.tar.bz2 "bookget-${ver}.linux-amd64"
+    cd ../
+    rm -fr target/bookget-${ver}.linux-amd64/
+}
 
+function buildDarwin() {
+    targetDir="target/bookget-${ver}.macOS/"
+    mkdir -p $targetDir
+    CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o "${targetDir}/bookget" .
+    cp cookie.txt "${targetDir}/cookie.txt"
+    cp config.ini "${targetDir}/config.ini"
+    cp target/dezoomify-rs/x86_64-apple/dezoomify-rs "${targetDir}/dezoomify-rs"
+    cd target/ || return
+    tar cjf bookget-${ver}.macOS.tar.bz2 "bookget-${ver}.macOS"
+    cd ../
+    rm -fr target/bookget-${ver}.macOS/
+}
 
-cp cookie.txt target/bookget-${ver}.linux/cookie.txt
-cp cookie.txt target/bookget-${ver}.macOS/cookie.txt
-cp cookie.txt target/bookget-${ver}.macOS-arm64/cookie.txt
-#cp cookie.txt target/bookget-${ver}.windows/cookie.txt
+function buildDarwinArm64() {
+    targetDir="target/bookget-${ver}.macOS-arm64/"
+    mkdir -p $targetDir
+    CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o "${targetDir}/bookget" .
 
-cp config.ini target/bookget-${ver}.linux/config.ini
-cp config.ini target/bookget-${ver}.macOS/config.ini
-cp config.ini target/bookget-${ver}.macOS-arm64/config.ini
+    cp cookie.txt "${targetDir}/cookie.txt"
+    cp config.ini "${targetDir}/config.ini"
+    cp target/dezoomify-rs/aarch64-apple/dezoomify-rs "${targetDir}/dezoomify-rs"
+    cd target/ || return
+    tar cjf bookget-${ver}.macOS-arm64.tar.bz2 "bookget-${ver}.macOS-arm64"
+    cd ../
+    rm -fr target/bookget-${ver}.macOS-arm64/
+}
 
-cp target/dezoomify-rs/x86_64-linux/dezoomify-rs target/bookget-${ver}.linux/dezoomify-rs
-cp target/dezoomify-rs/x86_64-apple/dezoomify-rs target/bookget-${ver}.macOS/dezoomify-rs
-cp target/dezoomify-rs/aarch64-apple/dezoomify-rs target/bookget-${ver}.macOS-arm64/dezoomify-rs
-
-
-cd target/ || exit
-#7za a -t7z bookget-${ver}.windows.7z bookget-${ver}.windows
-tar cjf bookget-${ver}.linux.tar.bz2 bookget-${ver}.linux
-tar cjf bookget-${ver}.macOS.tar.bz2 bookget-${ver}.macOS
-tar cjf bookget-${ver}.macOS-arm64.tar.bz2 bookget-${ver}.macOS-arm64
-
-
-cd ../
-rm -fr target/bookget-${ver}.linux/
-rm -fr target/bookget-${ver}.macOS/
-rm -fr target/bookget-${ver}.macOS-arm64/
-
+#buildWindows $ver
+buildLinux $ver
+buildDarwin $ver
+buildDarwinArm64 $ver
