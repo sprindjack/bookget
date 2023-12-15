@@ -42,10 +42,10 @@ func (r Waseda) download() (msg string, err error) {
 				continue
 			}
 			sortId := util.GenNumberSorted(i + 1)
-			r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 			log.Printf(" %d/%d volume, URL:%s \n", i+1, len(respVolume), vol)
 			filename := sortId + config.Conf.FileExt
-			dest := config.GetDestPath(r.dt.Url, r.dt.BookId, filename)
+			dest := r.dt.SavePath + filename
 			r.doDownload(vol, dest)
 		}
 	} else {
@@ -53,18 +53,18 @@ func (r Waseda) download() (msg string, err error) {
 			if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
 				continue
 			}
-			vid := util.GenNumberSorted(i + 1)
 			if len(respVolume) == 1 {
-				r.dt.VolumeId = r.dt.BookId
+				r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 			} else {
-				r.dt.VolumeId = r.dt.BookId + "_vol." + vid
+				vid := util.GenNumberSorted(i + 1)
+				r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 			}
 			canvases, err := r.getCanvases(vol, r.dt.Jar)
 			if err != nil || canvases == nil {
 				fmt.Println(err)
 				continue
 			}
-			r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.VolumeId)
+
 			log.Printf(" %d/%d volume, %d pages \n", i+1, len(respVolume), len(canvases))
 			r.do(canvases)
 		}
@@ -87,7 +87,7 @@ func (r Waseda) do(imgUrls []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		dest := config.GetDestPath(r.dt.Url, r.dt.VolumeId, filename)
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

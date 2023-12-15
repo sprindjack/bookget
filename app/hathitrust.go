@@ -48,7 +48,7 @@ func (h Hathitrust) download() (msg string, err error) {
 		fmt.Println(err.Error())
 		return "requested URL was not found.", err
 	}
-	h.dt.SavePath = config.CreateDirectory(h.dt.Url, h.dt.BookId)
+	h.dt.SavePath = CreateDirectory(h.dt.UrlParsed.Host, h.dt.BookId, "")
 	msg, err = h.do(canvases)
 	return msg, err
 }
@@ -69,7 +69,7 @@ func (h Hathitrust) do(imgUrls []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		dest := config.GetDestPath(uri, h.dt.BookId, filename)
+		dest := h.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

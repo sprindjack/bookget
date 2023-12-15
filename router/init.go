@@ -66,7 +66,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["gj.tianyige.com.cn"] = new(TianYiGeLib)
 		//[中国]江苏珍贵古籍数字图书馆
 		//Router["218.2.105.121"] = new(GuijiJslib)
-		//041.北京故宫博物院-故宫名画记
+		Router["jsgxgj.nju.edu.cn"] = new(Njuedu)
+		//北京故宫博物院-故宫名画记
 		Router["minghuaji.dpm.org.cn"] = new(MinghuajiBjDpm)
 		Router["m-minghuaji.dpm.org.cn"] = new(MinghuajiBjDpm)
 		Router["digicol.dpm.org.cn"] = new(MinghuajiBjDpm)
@@ -100,7 +101,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[日本]东京大学东洋文化研究所（汉籍善本资料库）
 		Router["shanben.ioc.u-tokyo.ac.jp"] = new(ShanbenuTokyo)
 		//[日本]国立公文书馆（内阁文库）
-		Router["www.digital.archives.go.jp"] = new(ArchivesGo)
+		Router["www.digital.archives.go.jp"] = new(Nationaljp)
 		//[日本]东洋文库
 		Router["dsr.nii.ac.jp"] = new(DsrNiiAc)
 		//[日本]早稻田大学图书馆
@@ -160,6 +161,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["asia.si.edu"] = new(SiEdu)
 		//[美國]柏克萊加州大學東亞圖書館
 		Router["digicoll.lib.berkeley.edu"] = new(Berkeley)
+		//奥地利国图
+		Router["digital.onb.ac.at"] = new(OnbDigital)
 
 		//}}} -----------------------------------------------------------------
 

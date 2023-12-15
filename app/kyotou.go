@@ -5,11 +5,11 @@ import (
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -54,13 +54,12 @@ func (p *Kyotou) download() (msg string, err error) {
 		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
 			continue
 		}
-		vid := util.GenNumberSorted(i + 1)
 		if sizeVol == 1 {
-			p.dt.VolumeId = p.dt.BookId
+			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
 		} else {
-			p.dt.VolumeId = p.dt.BookId + "_vol." + vid
+			vid := util.GenNumberSorted(i + 1)
+			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
 		}
-		p.dt.SavePath = config.CreateDirectory(p.dt.Url, p.dt.VolumeId)
 		canvases, err := p.getCanvases(vol, p.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
@@ -86,7 +85,7 @@ func (p *Kyotou) do(imgUrls []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		dest := p.dt.SavePath + string(os.PathSeparator) + filename
+		dest := p.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -117,7 +116,7 @@ func (p *Kyotou) do(imgUrls []string) (msg string, err error) {
 }
 
 func (p *Kyotou) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	bs, err := getBody(sUrl, nil)
+	bs, err := p.getBody(sUrl, jar)
 	if err != nil {
 		return
 	}
@@ -141,7 +140,7 @@ func (p *Kyotou) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, 
 }
 
 func (p *Kyotou) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	bs, err := getBody(sUrl, nil)
+	bs, err := p.getBody(sUrl, jar)
 	if err != nil {
 		return
 	}
@@ -170,8 +169,25 @@ func (p *Kyotou) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string
 }
 
 func (p *Kyotou) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	referer := url.QueryEscape(sUrl)
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
+		CookieFile: config.Conf.CookieFile,
+		CookieJar:  jar,
+		Headers: map[string]interface{}{
+			"User-Agent": config.Conf.UserAgent,
+			"Referer":    referer,
+		},
+	})
+	resp, err := cli.Get(sUrl)
+	if err != nil {
+		return nil, err
+	}
+	bs, _ := resp.GetBody()
+	if resp.GetStatusCode() != 200 || bs == nil {
+		return nil, errors.New(fmt.Sprintf("ErrCode:%d, %s", resp.GetStatusCode(), resp.GetReasonPhrase()))
+	}
+	return bs, nil
 }
 
 func (p *Kyotou) postBody(sUrl string, d []byte) ([]byte, error) {

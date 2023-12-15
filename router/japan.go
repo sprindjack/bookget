@@ -2,20 +2,13 @@ package router
 
 import (
 	"bookget/app"
-	"bookget/site/Japan/emuseum"
-	"bookget/site/Japan/gprime"
-	"bookget/site/Japan/kokusho"
-	"bookget/site/Japan/kyoto"
-	"bookget/site/Japan/national"
-	"bookget/site/Japan/niiac"
-	"bookget/site/Japan/utokyo"
-	"bookget/site/Japan/yonezawa"
 )
 
 type RmdaKyoto struct{}
 
 func (p RmdaKyoto) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var kyoto app.Kyoto
 		kyoto.Init(i+1, s)
 	}
 	return nil, nil
@@ -35,6 +28,7 @@ type EmuseumNich struct{}
 
 func (p EmuseumNich) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var emuseum app.Emuseum
 		emuseum.Init(i+1, s)
 	}
 	return nil, nil
@@ -54,16 +48,18 @@ type ShanbenuTokyo struct{}
 
 func (p ShanbenuTokyo) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var utokyo app.Utokyo
 		utokyo.Init(i+1, s)
 	}
 	return nil, nil
 }
 
-type ArchivesGo struct{}
+type Nationaljp struct{}
 
-func (p ArchivesGo) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+func (p Nationaljp) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
-		national.Init(i+1, s)
+		var npj app.Nationaljp
+		npj.Init(i+1, s)
 	}
 	return nil, nil
 }
@@ -72,6 +68,7 @@ type DsrNiiAc struct{}
 
 func (p DsrNiiAc) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var niiac app.Niiac
 		niiac.Init(i+1, s)
 	}
 	return nil, nil
@@ -81,6 +78,7 @@ type KokushoNijlAc struct{}
 
 func (p KokushoNijlAc) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var kokusho app.Kokusho
 		kokusho.Init(i+1, s)
 	}
 	return nil, nil
@@ -100,6 +98,7 @@ type ElibGprime struct{}
 
 func (p ElibGprime) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var gprime app.Gprime
 		gprime.Init(i+1, s)
 	}
 	return nil, nil
@@ -124,6 +123,7 @@ type LibYonezawa struct{}
 
 func (p LibYonezawa) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var yonezawa app.Yonezawa
 		yonezawa.Init(i+1, s)
 	}
 	return nil, nil

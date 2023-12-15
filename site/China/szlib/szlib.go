@@ -1,6 +1,7 @@
 package szlib
 
 import (
+	"bookget/app"
 	"bookget/config"
 	"bookget/lib/curl"
 	"bookget/lib/gohttp"
@@ -9,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"regexp"
 	"strings"
 )
@@ -18,7 +20,6 @@ func Init(iTask int, taskUrl string) (msg string, err error) {
 	m := regexp.MustCompile(`book_id=([A-z\d]+)`).FindStringSubmatch(taskUrl)
 	if m != nil {
 		bookId = m[1]
-		config.CreateDirectory(taskUrl, bookId)
 		StartDownload(iTask, taskUrl, bookId)
 	}
 	return "", err
@@ -27,6 +28,8 @@ func Init(iTask int, taskUrl string) (msg string, err error) {
 func StartDownload(iTask int, taskUrl, bookId string) {
 	name := util.GenNumberSorted(iTask)
 	log.Printf("Get %s  %s\n", name, taskUrl)
+	UrlParsed, _ := url.Parse(taskUrl)
+	destPath := app.CreateDirectory(UrlParsed.Host, bookId, "")
 
 	rstVolumes := getMultiplebooks(bookId)
 	if rstVolumes == nil {
@@ -51,7 +54,7 @@ func StartDownload(iTask int, taskUrl, bookId string) {
 			sortId := util.GenNumberSorted(i + 1)
 			log.Printf("Get %s  %s\n", sortId, imgUrl)
 			fileName := fmt.Sprintf("vol%d_%s%s", j+1, sortId, ext)
-			dest := config.GetDestPath(taskUrl, bookId, fileName)
+			dest := destPath + fileName
 			gohttp.FastGet(ctx, imgUrl, gohttp.Options{
 				DestFile:    dest,
 				Overwrite:   false,

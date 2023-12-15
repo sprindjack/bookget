@@ -143,7 +143,6 @@ func (r *SillokGoKr) download() (msg string, err error) {
 			r.dt.VolumeId = r.dt.UrlParsed.Host + "_book." + book.Id + "." + book.Title + string(os.PathSeparator) + "vol." + vid + "." + v.Title
 			r.dt.SavePath = config.Conf.SaveFolder + string(os.PathSeparator) + r.dt.VolumeId
 			_ = os.MkdirAll(r.dt.SavePath, os.ModePerm)
-			//util.FileWrite([]byte(r.bookMark), r.dt.VolumeId+string(os.PathSeparator)+"bookmark.txt")
 			r.do(nil)
 		}
 	}
@@ -177,7 +176,7 @@ func (r *SillokGoKr) do(imgUrls []string) (msg string, err error) {
 		imgUrl := r.imageIdUrl(v.KingCode, v.ImageId)
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + ".jpg"
-		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

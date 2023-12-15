@@ -1,6 +1,7 @@
 package ynutcm
 
 import (
+	"bookget/app"
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
@@ -36,7 +37,6 @@ func Download(dt *DownloadTask) (msg string, err error) {
 	if dt.BookId == "" {
 		return "", err
 	}
-	//dt.SavePath = config.CreateDirectory(dt.Url, dt.BookId)
 	name := util.GenNumberSorted(dt.Index)
 	log.Printf("Get %s %s %s\n", name, dt.Title, dt.Url)
 
@@ -51,14 +51,14 @@ func Download(dt *DownloadTask) (msg string, err error) {
 		if config.Conf.Volume > 0 && config.Conf.Volume != k+1 {
 			continue
 		}
-		id := fmt.Sprintf("%s_volume%s", dt.BookId, util.GenNumberSorted(k+1))
-		config.CreateDirectory(page, id)
+		vid := util.GenNumberSorted(k + 1)
+		dt.SavePath = app.CreateDirectory(dt.UrlParsed.Host, dt.BookId, vid)
 		canvases := getCanvases(serverUrl, page, dt.Jar)
 		log.Printf(" %d/%d volume, %d pages \n", k+1, len(bookUrls), len(canvases))
 		if canvases == nil {
 			continue
 		}
-		dt.SavePath = config.CreateDirectory(dt.Url, id)
+
 		size := len(canvases)
 		ctx := context.Background()
 		for i, uri := range canvases {
@@ -68,8 +68,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 			ext := util.FileExt(uri)
 			sortId := util.GenNumberSorted(i + 1)
 			log.Printf("Get %s  %s\n", sortId, uri)
-			fileName := sortId + ext
-			dest := config.GetDestPath(dt.Url, id, fileName)
+			dest := dt.SavePath + sortId + ext
 			gohttp.FastGet(ctx, uri, gohttp.Options{
 				Concurrency: config.Conf.Threads,
 				DestFile:    dest,

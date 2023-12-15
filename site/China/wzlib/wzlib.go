@@ -1,6 +1,7 @@
 package wzlib
 
 import (
+	"bookget/app"
 	"bookget/config"
 	"bookget/lib/curl"
 	"bookget/lib/gohttp"
@@ -10,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"regexp"
 )
 
@@ -18,7 +20,6 @@ func Init(iTask int, taskUrl string) (msg string, err error) {
 	m := regexp.MustCompile(`\?id=([A-z\d]+)`).FindStringSubmatch(taskUrl)
 	if m != nil {
 		bookId = m[1]
-		config.CreateDirectory(taskUrl, bookId)
 		StartDownload(iTask, taskUrl, bookId)
 	}
 	return "", err
@@ -41,6 +42,9 @@ func StartDownload(iTask int, taskUrl, bookId string) {
 	}
 	log.Printf(" %d PDFs.\n", size)
 
+	UrlParsed, _ := url.Parse(taskUrl)
+	destPath := app.CreateDirectory(UrlParsed.Host, bookId, "")
+
 	ext := ".pdf"
 	ctx := context.Background()
 	for i, v := range pdfUrls {
@@ -49,8 +53,7 @@ func StartDownload(iTask int, taskUrl, bookId string) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		log.Printf("Get %s  %s\n", sortId, v.Url)
-		fileName := v.Name + ext
-		dest := config.GetDestPath(taskUrl, bookId, fileName)
+		dest := destPath + v.Name + ext
 		gohttp.FastGet(ctx, v.Url, gohttp.Options{
 			DestFile:    dest,
 			Overwrite:   false,

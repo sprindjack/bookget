@@ -8,7 +8,7 @@ import (
 type DownloadTask struct {
 	Index     int
 	Url       string
-	ParsedUrl *url.URL
+	UrlParsed *url.URL
 	BookId    string
 	CookieJar *cookiejar.Jar
 }

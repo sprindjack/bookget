@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -74,11 +73,10 @@ func (p *NpmTw) download() (msg string, err error) {
 		}
 		vid := util.GenNumberSorted(i + 1)
 		if sizeVol == 1 || config.Conf.MergePDFs {
-			p.dt.VolumeId = p.dt.BookId
+			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
 		} else {
-			p.dt.VolumeId = p.dt.BookId + "_vol." + vid
+			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
 		}
-		p.dt.SavePath = config.CreateDirectory(p.dt.Url, p.dt.VolumeId)
 		canvases, err := p.getCanvases(vol, p.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
@@ -86,7 +84,7 @@ func (p *NpmTw) download() (msg string, err error) {
 		}
 		if config.Conf.MergePDFs {
 			filename := vid + ".pdf"
-			dest := p.dt.SavePath + string(os.PathSeparator) + filename
+			dest := p.dt.SavePath + filename
 			if FileExist(dest) {
 				continue
 			}
@@ -134,7 +132,7 @@ func (p *NpmTw) do(imgUrls []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + ".pdf"
-		dest := p.dt.SavePath + string(os.PathSeparator) + filename
+		dest := p.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

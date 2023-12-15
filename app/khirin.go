@@ -46,8 +46,7 @@ func (r *Khirin) getBookId(sUrl string) (bookId string) {
 func (r *Khirin) download() (msg string, err error) {
 	name := util.GenNumberSorted(r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
-	r.dt.VolumeId = r.dt.BookId
-	r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.VolumeId)
+	r.dt.SavePath = CreateDirectory(r.dt.Url, r.dt.BookId, "")
 	manifestUrl, err := r.getManifestUrl(r.dt.Url)
 	if err != nil {
 		return "requested URL was not found.", err
@@ -86,14 +85,14 @@ func (r *Khirin) doDezoomifyRs(canvases []string) bool {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		inputUri := r.dt.SavePath + string(os.PathSeparator) + sortId + "_info.json"
+		inputUri := r.dt.SavePath + sortId + "_info.json"
 		bs, err := r.getBody(uri, r.dt.Jar)
 		if err != nil {
 			continue
 		}
 		bsNew := regexp.MustCompile(`profile":\[([^{]+)\{"formats":([^\]]+)\],`).ReplaceAll(bs, []byte(`profile":[{"formats":["jpg"],`))
 		os.WriteFile(inputUri, bsNew, os.ModePerm)
-		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -118,7 +117,7 @@ func (r *Khirin) doNormal(canvases []string) bool {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		dest := config.GetDestPath(r.dt.Url, r.dt.VolumeId, filename)
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

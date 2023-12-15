@@ -19,7 +19,6 @@ import (
 	"math/rand"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -187,10 +186,8 @@ func (p *Tianyige) download() (msg string, err error) {
 		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
 			continue
 		}
-		//vid := util.GenNumberSorted(i + 1)
 		vid := util.GenNumberSorted(vol.Sort)
-		p.dt.VolumeId = p.dt.BookId + "_vol." + vid
-		p.dt.SavePath = config.CreateDirectory(p.dt.Url, p.dt.VolumeId)
+		p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
 		log.Printf(" %d/%d volume, %d pages \n", i+1, len(respVolume), len(parts[vol.FascicleId]))
 		p.do(parts[vol.FascicleId])
 	}
@@ -226,7 +223,7 @@ func (p *Tianyige) do(records []TygImageRecord) (msg string, err error) {
 		i++
 		sortId := util.GenNumberSorted(i)
 		filename := sortId + config.Conf.FileExt
-		dest := p.dt.SavePath + string(os.PathSeparator) + filename
+		dest := p.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -293,27 +290,15 @@ func (p *Tianyige) getCanvases(bookId string, jar *cookiejar.Jar) (canvases []Ty
 func (p *Tianyige) getImageById(imageId string) (imgUrl, ocrUrl string, err error) {
 	//https://gj.tianyige.com.cn/fileUpload/56956d82679111ec85ee7020840b69ac/ANB/ANB_IMAGE_PHOTO/ANB/ANB_IMAGE_PHOTO/20220324/febd8c1dcd134c33b5c1cad8883dd1cd1648107167499.jpg
 	//cookie 处理
-	jar, _ := cookiejar.New(nil)
 	apiUrl := fmt.Sprintf("https://%s/g/sw-anb/api/queryOcrFileByimageId?imageId=%s", p.dt.UrlParsed.Host, imageId)
-	ctx := context.Background()
-	token := p.getToken()
-	cli := gohttp.NewClient(ctx, gohttp.Options{
-		CookieFile: config.Conf.CookieFile,
-		CookieJar:  jar,
-		Headers: map[string]interface{}{
-			"User-Agent":   config.Conf.UserAgent,
-			"Content-Type": "application/json;charset=UTF-8",
-			"token":        token,
-			"appId":        TIANYIGE_ID,
-		},
-	})
-	resp, err := cli.Get(apiUrl)
-	if err != nil {
-		return
+	var bs []byte
+	for i := 0; i < 3; i++ {
+		bs, err = p.getBody(apiUrl, p.dt.Jar)
+		if bs != nil {
+			break
+		}
 	}
-	bs, _ := resp.GetBody()
-	if bs == nil || resp.GetStatusCode() == 401 {
-		fmt.Printf("Please try again later.[401 %s]\n", resp.GetReasonPhrase())
+	if err != nil {
 		return
 	}
 	var resObj TygResponseFile

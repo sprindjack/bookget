@@ -1,6 +1,7 @@
 package ncpssd
 
 import (
+	"bookget/app"
 	"bookget/config"
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
@@ -40,13 +41,11 @@ func Download(dt *DownloadTask) (msg string, err error) {
 	if dUrl == "" {
 		return "requested URL was not found.", err
 	}
-	dt.SavePath = config.CreateDirectory(dt.Url, "")
+	dt.SavePath = app.CreateDirectory(dt.UrlParsed.Host, dt.BookId, "")
 	token, _ := getToken(dt.Url)
 	ext := util.FileExt(dUrl)
-	//sortId := util.GenNumberSorted(1) + "_" + dt.BookId
 	log.Printf("Get %s  %s\n", dt.BookId, dUrl)
-	fileName := dt.BookId + ext
-	dest := config.GetDestPath(dt.Url, "", fileName)
+	dest := dt.SavePath + dt.BookId + ext
 	jar, _ := cookiejar.New(nil)
 	ctx := context.Background()
 	gohttp.FastGet(ctx, dUrl, gohttp.Options{

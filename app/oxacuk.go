@@ -12,26 +12,14 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"regexp"
-	"strings"
 	"sync"
 )
 
-type Harvard struct {
+type Oxacuk struct {
 	dt *DownloadTask
 }
 
-func (p *Harvard) Init(iTask int, sUrl string) (msg string, err error) {
-	if strings.Contains(sUrl, "curiosity.lib.harvard.edu") {
-		bs, err := p.getBody(sUrl, nil)
-		if err != nil {
-			return "", err
-		}
-		m := regexp.MustCompile(`manifestId=([^“]+?)"`).FindSubmatch(bs)
-		if m != nil {
-			sUrl = string(m[1])
-		}
-	}
-
+func (p *Oxacuk) Init(iTask int, sUrl string) (msg string, err error) {
 	p.dt = new(DownloadTask)
 	p.dt.UrlParsed, err = url.Parse(sUrl)
 	p.dt.Url = sUrl
@@ -44,24 +32,15 @@ func (p *Harvard) Init(iTask int, sUrl string) (msg string, err error) {
 	return p.download()
 }
 
-func (p *Harvard) getBookId(sUrl string) (bookId string) {
-	m := regexp.MustCompile(`manifests/view/([A-z0-9-_:]+)`).FindStringSubmatch(sUrl)
+func (p *Oxacuk) getBookId(sUrl string) (bookId string) {
+	m := regexp.MustCompile(`objects/([A-z0-9_-]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
-		return m[1]
+		bookId = m[1]
 	}
-	m = regexp.MustCompile(`/manifests/([A-z0-9-_:]+)`).FindStringSubmatch(sUrl)
-	if m != nil {
-		return m[1]
-	}
-	//https://listview.lib.harvard.edu/lists/drs-54194370
-	m = regexp.MustCompile(`/lists/([A-z0-9-_:]+)`).FindStringSubmatch(sUrl)
-	if m != nil {
-		return m[1]
-	}
-	return ""
+	return bookId
 }
 
-func (p *Harvard) download() (msg string, err error) {
+func (p *Oxacuk) download() (msg string, err error) {
 	name := util.GenNumberSorted(p.dt.Index)
 	log.Printf("Get %s  %s\n", name, p.dt.Url)
 
@@ -93,7 +72,7 @@ func (p *Harvard) download() (msg string, err error) {
 	return "", nil
 }
 
-func (p *Harvard) do(imgUrls []string) (msg string, err error) {
+func (p *Oxacuk) do(imgUrls []string) (msg string, err error) {
 	if config.Conf.UseDziRs {
 		p.doDezoomifyRs(imgUrls)
 	} else {
@@ -102,43 +81,22 @@ func (p *Harvard) do(imgUrls []string) (msg string, err error) {
 	return "", err
 }
 
-func (p *Harvard) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	if strings.Contains(sUrl, "listview.lib.harvard.edu") {
-		bs, err := p.getBody(sUrl, nil)
-		if err != nil {
-			return nil, err
-		}
-		matches := regexp.MustCompile(`target="_blank" href="https://nrs.harvard.edu([^"]+)"`).FindAllSubmatch(bs, -1)
-		if matches == nil {
-			return nil, err
-		}
-		for _, m := range matches {
-			volUrl := "https://nrs.harvard.edu" + strings.Replace(string(m[1]), "//", "/", -1)
-			volumes = append(volumes, volUrl)
-		}
-	} else if strings.Contains(sUrl, "iiif.lib.harvard.edu") {
-		volumes = append(volumes, sUrl)
+func (p *Oxacuk) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
+	bs, err := getBody(sUrl, jar)
+	if err != nil {
+		return
 	}
+	match := regexp.MustCompile(`https://(.+)/manifest.json`).FindSubmatch(bs)
+	if match == nil {
+		return
+	}
+	jsonUrl := "https://" + string(match[1]) + "/manifest.json"
+	volumes = append(volumes, jsonUrl)
 	return volumes, nil
 }
 
-func (p *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	var manifestUri = sUrl
-	if strings.Contains(sUrl, "iiif.lib.harvard.edu/manifests/view/") ||
-		strings.Contains(sUrl, "nrs.harvard.edu") {
-		bs, err := p.getBody(sUrl, jar)
-		if err != nil {
-			return nil, err
-		}
-		//"manifestUri": "https://iiif.lib.harvard.edu/manifests/drs:428501920"
-		match := regexp.MustCompile(`"manifestUri":[\s+]"([^"]+?)"`).FindSubmatch(bs)
-		if match != nil {
-			manifestUri = string(match[1])
-		} else {
-			return nil, errors.New("requested URL was not found.")
-		}
-	}
-	bs, err := p.getBody(manifestUri, jar)
+func (p *Oxacuk) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+	bs, err := p.getBody(sUrl, jar)
 	if err != nil {
 		return
 	}
@@ -169,7 +127,7 @@ func (p *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 
 }
 
-func (p *Harvard) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (p *Oxacuk) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	referer := url.QueryEscape(sUrl)
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
@@ -191,12 +149,12 @@ func (p *Harvard) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	return bs, nil
 }
 
-func (p *Harvard) postBody(sUrl string, d []byte) ([]byte, error) {
+func (p *Oxacuk) postBody(sUrl string, d []byte) ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Harvard) doDezoomifyRs(iiifUrls []string) bool {
+func (p *Oxacuk) doDezoomifyRs(iiifUrls []string) bool {
 	if iiifUrls == nil {
 		return false
 	}
@@ -223,7 +181,7 @@ func (p *Harvard) doDezoomifyRs(iiifUrls []string) bool {
 	return true
 }
 
-func (p *Harvard) doNormal(imgUrls []string) bool {
+func (p *Oxacuk) doNormal(imgUrls []string) bool {
 	if imgUrls == nil {
 		return false
 	}

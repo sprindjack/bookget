@@ -4,17 +4,14 @@ import (
 	"bookget/config"
 	"bookget/lib/gohttp"
 	xhash "bookget/lib/hash"
-	"bookget/lib/util"
 	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http/cookiejar"
 	"net/url"
 	"os"
-	"strings"
 )
 
 type Downloader interface {
@@ -53,7 +50,7 @@ type PartialVolumes struct {
 
 func getBookId(sUrl string) (bookId string) {
 	mh := xhash.NewMultiHasher()
-	io.Copy(mh, bytes.NewBuffer([]byte(sUrl)))
+	_, _ = io.Copy(mh, bytes.NewBuffer([]byte(sUrl)))
 	bookId, _ = mh.SumString(xhash.QuickXorHash, false)
 	return bookId
 }
@@ -118,77 +115,20 @@ func postJSON(sUrl string, d interface{}, jar *cookiejar.Jar) ([]byte, error) {
 	return bs, err
 }
 
-func NormalDownload(pageUrl, bookId string, imgUrls []string, jar *cookiejar.Jar) (err error) {
-	if imgUrls == nil {
-		return
-	}
-	if jar == nil {
-		jar, err = cookiejar.New(nil)
-	}
-	threads := config.Conf.Threads
-	if strings.Contains(imgUrls[0], "/full/") || strings.HasSuffix(imgUrls[0], "/0/default.jpg") {
-		threads = 1
-	}
-	size := len(imgUrls)
-	ctx := context.Background()
-	for i, uri := range imgUrls {
-		if uri == "" || !config.PageRange(i, size) {
-			continue
-		}
-		ext := util.FileExt(uri)
-		sortId := util.GenNumberSorted(i + 1)
-		log.Printf("Get %s  %s\n", sortId, uri)
-		filename := sortId + ext
-		dest := config.GetDestPath(pageUrl, bookId, filename)
-		opts := gohttp.Options{
-			DestFile:    dest,
-			Overwrite:   false,
-			Concurrency: threads,
-			CookieFile:  config.Conf.CookieFile,
-			CookieJar:   jar,
-			Headers: map[string]interface{}{
-				"User-Agent": config.Conf.UserAgent,
-			},
-		}
-		_, err = gohttp.FastGet(ctx, uri, opts)
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
-	}
-	return err
-}
-
-func DziDownload(pageUrl, bookId string, iiifUrls []string) {
-	if iiifUrls == nil {
-		return
-	}
-	referer := url.QueryEscape(pageUrl)
-	args := []string{
-		"-H", "Origin:" + referer,
-		"-H", "Referer:" + referer,
-		"-H", "User-Agent:" + config.Conf.UserAgent,
-	}
-	size := len(iiifUrls)
-	for i, uri := range iiifUrls {
-		if uri == "" || !config.PageRange(i, size) {
-			continue
-		}
-		sortId := util.GenNumberSorted(i + 1)
-		filename := sortId + config.Conf.FileExt
-		dest := config.GetDestPath(pageUrl, bookId, filename)
-		if FileExist(dest) {
-			continue
-		}
-		log.Printf("Get %s  %s\n", sortId, uri)
-		util.StartProcess(uri, dest, args)
-	}
-}
-
 func FileExist(path string) bool {
 	fi, err := os.Stat(path)
 	if err == nil && fi.Size() > 0 {
 		return true
 	}
 	return false
+}
+
+func CreateDirectory(domain, bookId, volumeId string) string {
+	bookIdEncode := getBookId(bookId)
+	dirPath := config.Conf.SaveFolder + string(os.PathSeparator) + domain + "_" + bookIdEncode + string(os.PathSeparator)
+	if volumeId != "" {
+		dirPath += "vol." + volumeId + string(os.PathSeparator)
+	}
+	_ = os.MkdirAll(dirPath, os.ModePerm)
+	return dirPath
 }

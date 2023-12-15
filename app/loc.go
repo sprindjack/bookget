@@ -65,8 +65,7 @@ func (r *Loc) download() (msg string, err error) {
 	if r.isChinaIP() {
 		name := util.GenNumberSorted(r.dt.Index)
 		log.Printf("Get %s  %s\n", name, r.dt.Url)
-		r.dt.VolumeId = r.dt.BookId
-		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 		canvases, err := r.getCanvasesJPG2000(r.dt.Url)
 		if err != nil || canvases == nil {
 			return "requested URL was not found.", err
@@ -95,8 +94,7 @@ func (r *Loc) download() (msg string, err error) {
 			continue
 		}
 		vid := util.GenNumberSorted(i + 1)
-		r.dt.VolumeId = r.dt.BookId + "_vol." + vid
-		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.VolumeId)
+		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 		canvases, err := r.getCanvases(vol, r.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
@@ -124,7 +122,7 @@ func (r *Loc) do(imgUrls []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		dest := config.GetDestPath(r.dt.Url, r.dt.VolumeId, filename)
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

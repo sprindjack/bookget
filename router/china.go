@@ -2,7 +2,6 @@ package router
 
 import (
 	"bookget/app"
-	"bookget/site/China/luoyang"
 	"bookget/site/China/ncpssd"
 	"bookget/site/China/ouroots"
 	"bookget/site/China/sdutcm"
@@ -19,16 +18,6 @@ func (p ChinaNcl) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 		var nlc app.ChinaNlc
 		nlc.Init(i+1, s)
 	}
-	return nil, nil
-}
-
-type RbookNcl struct{}
-
-func (p RbookNcl) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	//for i, s := range sUrl {
-	//	var nlc app.NclTw
-	//	nlc.Init(i+1, s)
-	//}
 	return nil, nil
 }
 
@@ -65,6 +54,7 @@ type LuoYang struct{}
 
 func (p LuoYang) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var luoyang app.Luoyang
 		luoyang.Init(i+1, s)
 	}
 	return nil, nil
@@ -220,6 +210,16 @@ func (p Huawen) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
 		var hw app.Huawen
 		hw.Init(i+1, s)
+	}
+	return nil, nil
+}
+
+type Njuedu struct{}
+
+func (p Njuedu) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var nju app.Njuedu
+		nju.Init(i+1, s)
 	}
 	return nil, nil
 }

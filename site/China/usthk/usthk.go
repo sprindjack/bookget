@@ -1,6 +1,7 @@
 package usthk
 
 import (
+	"bookget/app"
 	"bookget/config"
 	"bookget/lib/curl"
 	"bookget/lib/util"
@@ -35,7 +36,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 	if dt.BookId == "" {
 		return "", err
 	}
-	dt.SavePath = config.CreateDirectory(dt.Url, dt.BookId)
+	dt.SavePath = app.CreateDirectory(dt.UrlParsed.Host, dt.BookId, "")
 
 	name := util.GenNumberSorted(dt.Index)
 	log.Printf("Get %s  %s\n", name, dt.Url)
@@ -43,21 +44,16 @@ func Download(dt *DownloadTask) (msg string, err error) {
 	canvases := getCanvases(dt)
 	log.Printf(" %d pages.\n", canvases.Size)
 	for i, uri := range canvases.ImgUrls {
-		if !config.PageRange(i, canvases.Size) {
-			continue
-		}
-		if uri == "" {
+		if uri == "" || !config.PageRange(i, canvases.Size) {
 			continue
 		}
 		ext := util.FileExt(uri)
 		sortId := util.GenNumberSorted(i + 1)
 		log.Printf("Get %s  %s\n", sortId, uri)
 
-		fileName := sortId + ext
-		dest := config.GetDestPath(dt.Url, dt.BookId, fileName)
+		dest := dt.SavePath + sortId + ext
 		curl.FastGet(uri, dest, nil, true)
 	}
-
 	return
 }
 

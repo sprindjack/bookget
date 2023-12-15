@@ -44,7 +44,7 @@ func (r Gzlib) getBookId(sUrl string) (bookId string) {
 func (r Gzlib) download() (msg string, err error) {
 	name := util.GenNumberSorted(r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
-	r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 	canvases, err := r.getCanvases(r.dt.Url, r.dt.Jar)
 	if err != nil || canvases == nil {
 		fmt.Println(err)
@@ -68,7 +68,7 @@ func (r Gzlib) do(dUrls []string) (msg string, err error) {
 			continue
 		}
 		ext := util.FileExt(uri)
-		dest := config.GetDestPath(r.dt.Url, r.dt.BookId, r.dt.BookId+ext)
+		dest := r.dt.SavePath + r.dt.BookId + ext
 		opts := gohttp.Options{
 			DestFile:    dest,
 			Overwrite:   false,

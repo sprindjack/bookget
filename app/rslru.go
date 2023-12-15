@@ -91,8 +91,8 @@ func (r *RslRu) download() (msg string, err error) {
 	if err != nil {
 		return "requested URL was not found.", err
 	}
-	r.dt.VolumeId = r.dt.BookId + "." + r.response.Description.Title
-	r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.VolumeId)
+	vid := r.response.Description.Title
+	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 	canvases, err := r.getCanvases(r.dt.Url, r.dt.Jar)
 	if err != nil || canvases == nil {
 		return "requested URL was not found.", err
@@ -116,7 +116,7 @@ func (r *RslRu) do(canvases []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		dest := config.GetDestPath(r.dt.Url, r.dt.VolumeId, filename)
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

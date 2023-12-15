@@ -5,10 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"gopkg.in/ini.v1"
-	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 )
@@ -188,39 +186,4 @@ func printHelp() {
 
 func printVersion() {
 	fmt.Printf("bookget v%s\n", version)
-}
-
-func CreateDirectory(sUrl, id string) string {
-	u, err := url.Parse(sUrl)
-	if err != nil {
-		return ""
-	}
-	domain := strings.Replace(u.Host, ":", "", 1)
-	sPath := Conf.SaveFolder + string(os.PathSeparator) + domain
-	if id != "" {
-		sPath += "_" + LetterNumberEscape(id)
-	}
-	_ = os.Mkdir(sPath, os.ModePerm)
-	return sPath
-}
-
-func GetDestPath(sUrl, id, filename string) string {
-	u, _ := url.Parse(sUrl)
-	domain := strings.Replace(u.Host, ":", "", 1)
-	sPath := Conf.SaveFolder + string(os.PathSeparator) + domain
-	if id != "" {
-		sPath += "_" + LetterNumberEscape(id)
-	}
-	return sPath + string(os.PathSeparator) + filename
-
-}
-
-func LetterNumberEscape(input string) string {
-	//m := regexp.MustCompile(`([A-Za-z0-9-_.]+)`).FindAllString(s, -1)
-	//if m != nil {
-	//	s = strings.Join(m, "")
-	//}
-	fooRegexp := regexp.MustCompile(`([/\\:*?"<>|]+)`)
-	result := fooRegexp.ReplaceAllString(input, "")
-	return result
 }

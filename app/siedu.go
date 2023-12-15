@@ -58,7 +58,7 @@ func (r *SiEdu) getBookId(sUrl string) (bookId string) {
 func (r *SiEdu) download() (msg string, err error) {
 	name := util.GenNumberSorted(r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
-	r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 	apiUrl := "https://ids.si.edu/ids/manifest/" + r.dt.BookId
 	canvases, err := r.getCanvases(apiUrl, r.dt.Jar)
 	if err != nil || canvases == nil {
@@ -85,7 +85,7 @@ func (r *SiEdu) do(iiifUrls []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		inputUri := r.dt.SavePath + string(os.PathSeparator) + sortId + "_info.json"
+		inputUri := r.dt.SavePath + sortId + "_info.json"
 		bs, err := r.getBody(uri, r.dt.Jar)
 		if err != nil {
 			continue
@@ -93,7 +93,7 @@ func (r *SiEdu) do(iiifUrls []string) (msg string, err error) {
 		body := strings.Replace(string(bs), `"http://iiif.io/api/image/2/level2.json",`, "", -1)
 		body = strings.Replace(body, `"sizeByH",`, "", -1)
 		os.WriteFile(inputUri, []byte(body), os.ModePerm)
-		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

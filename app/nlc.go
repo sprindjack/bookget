@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -63,7 +62,7 @@ func (r *ChinaNlc) download() (msg string, err error) {
 	//单册PDF
 	if strings.Contains(r.dt.Url, "OutOpenBook/OpenObjectBook") {
 		//PDF
-		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 		v, _ := r.identifier(r.dt.Url)
 		filename := v.Get("bid") + ".pdf"
 		err = r.doPdfUrl(r.dt.Url, filename)
@@ -71,7 +70,7 @@ func (r *ChinaNlc) download() (msg string, err error) {
 	}
 	//单张图
 	if strings.Contains(r.dt.Url, "OutOpenBook/OpenObjectPic") {
-		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 		canvases, err := r.getCanvases(r.dt.Url, r.dt.Jar)
 		if err != nil || canvases == nil {
 			return "", err
@@ -82,7 +81,7 @@ func (r *ChinaNlc) download() (msg string, err error) {
 	}
 	//对照阅读单册
 	if strings.Contains(r.dt.Url, "OpenTwoObjectBook") {
-		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 		v, _ := r.identifier(r.dt.Url)
 		filename := v.Get("bid") + ".pdf"
 		pageUrl := fmt.Sprintf("%s://%s/OutOpenBook/OpenObjectBook?aid=%s&bid=%s", r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host,
@@ -121,8 +120,7 @@ func (r *ChinaNlc) do(imgUrls []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		//dest := config.GetDestPath(r.dt.Url, r.dt.VolumeId, filename)
-		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -167,9 +165,7 @@ func (r *ChinaNlc) downloadForPDFs() error {
 		//图片
 		if strings.Contains(vol, "OpenObjectPic") {
 			r.dataType = 1
-			r.dt.VolumeId = r.dt.UrlParsed.Host + "_" + r.dt.BookId + "/vol." + vid
-			r.dt.SavePath = config.Conf.SaveFolder + string(os.PathSeparator) + r.dt.VolumeId
-			_ = os.MkdirAll(r.dt.SavePath, os.ModePerm)
+			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 			canvases, err := r.getCanvases(vol, r.dt.Jar)
 			if err != nil || canvases == nil {
 				fmt.Println(err)
@@ -179,7 +175,7 @@ func (r *ChinaNlc) downloadForPDFs() error {
 			r.do(canvases)
 		} else {
 			//PDF
-			r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 			log.Printf("Get %d/%d volume, URL: %s\n", i+1, size, vol)
 			filename := vid + ".pdf"
 			r.doPdfUrl(vol, filename)
@@ -197,7 +193,7 @@ func (r *ChinaNlc) downloadForOCR() {
 			continue
 		}
 		vid := util.GenNumberSorted(i + 1)
-		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId+"_ocr")
+		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "ocr")
 		log.Printf("Get %d/%d volume, URL: %s\n", i+1, len(r.vectorBooks), vol)
 		filename := vid + ".pdf"
 		r.doPdfUrl(vol, filename)
@@ -239,8 +235,7 @@ func (r *ChinaNlc) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string
 }
 
 func (r *ChinaNlc) doPdfUrl(sUrl, filename string) error {
-	//dest := config.GetDestPath(r.dt.Url, r.dt.BookId, filename)
-	dest := r.dt.SavePath + string(os.PathSeparator) + filename
+	dest := r.dt.SavePath + filename
 	if FileExist(dest) {
 		return nil
 	}

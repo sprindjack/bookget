@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"net/http/cookiejar"
+	"net/url"
 	"regexp"
 	"strconv"
 	"sync"
@@ -45,14 +46,13 @@ func (w Wget) download() (msg string, err error) {
 	for _, v := range w.Urls {
 		//正则匹配
 		pageUrls, startIndex := w.getDownloadUrls(v)
+		UrlParsed, _ := url.Parse(v)
+		w.SavePath = CreateDirectory(UrlParsed.Host, v, "")
 		if pageUrls != nil {
 			w.Index = startIndex
-			w.BookId = getBookId(v)
-			config.CreateDirectory(v, w.BookId)
 			log.Printf("Get %d files.  %s\n", len(pageUrls), v)
 			w.do(pageUrls)
 		} else {
-			config.CreateDirectory(v, "")
 			wUrs = append(wUrs, v)
 		}
 	}
@@ -76,7 +76,7 @@ func (w Wget) do(wUrls []string) (msg string, err error) {
 		}
 		log.Printf("Get %d/%d  %s\n", w.Index, size, dUrl)
 		w.Index++
-		dest := config.GetDestPath(dUrl, w.BookId, fileName)
+		dest := w.SavePath + fileName
 		imgUrl := dUrl
 		wg.Add(1)
 		q.Go(func() {

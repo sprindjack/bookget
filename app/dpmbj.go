@@ -81,9 +81,6 @@ func (p *DpmBj) getCipherText(bs []byte) []byte {
 }
 
 func (p *DpmBj) download() (msg string, err error) {
-	//name := util.GenNumberSorted(p.dt.Index)
-	//log.Printf("Get %s  %s\n", name, p.dt.Url)
-
 	bs, err := getBody(p.dt.Url, p.dt.Jar)
 	if err != nil {
 		return "Error:", err
@@ -98,12 +95,11 @@ func (p *DpmBj) download() (msg string, err error) {
 		return "cipherText not found", err
 	}
 
-	p.dt.SavePath = config.CreateDirectory(p.dt.Url, "")
+	p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
 
 	dziJson, dziFormat := p.getDziJson(p.dt.UrlParsed.Host, cipherText)
 	filename := fmt.Sprintf("%s.json", p.dt.VolumeId)
-	dest := p.dt.SavePath + string(os.PathSeparator) + filename
-	//util.FileWrite([]byte(dziJson), dest)
+	dest := p.dt.SavePath + filename
 	os.WriteFile(dest, []byte(dziJson), os.ModePerm)
 	return p.do(dest, dziFormat)
 }
@@ -115,7 +111,7 @@ func (p *DpmBj) do(dest string, dziFormat DziFormat) (msg string, err error) {
 		"-H", "Referer:" + referer,
 		"-H", "User-Agent:" + config.Conf.UserAgent,
 	}
-	storePath := p.dt.SavePath + string(os.PathSeparator)
+	storePath := p.dt.SavePath
 	ext := "." + dziFormat.Format
 	outfile := storePath + p.dt.VolumeId + ext
 	if util.FileExist(outfile) {

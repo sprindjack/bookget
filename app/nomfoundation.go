@@ -48,8 +48,7 @@ func (r *Nomfoundation) getBookId(sUrl string) (bookId string) {
 func (r *Nomfoundation) download() (msg string, err error) {
 	name := util.GenNumberSorted(r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
-	r.dt.VolumeId = r.dt.BookId
-	r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.VolumeId)
+	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 	canvases, err := r.getCanvases(r.dt.Url, r.dt.Jar)
 	if err != nil || canvases == nil {
 		return "requested URL was not found.", err
@@ -73,7 +72,7 @@ func (r *Nomfoundation) do(canvases []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		dest := config.GetDestPath(r.dt.Url, r.dt.VolumeId, filename)
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

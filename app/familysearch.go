@@ -111,7 +111,7 @@ func (r *Familysearch) getBaseUrl(sUrl string) (baseUrl, sgBaseUrl string, err e
 func (r *Familysearch) download() (msg string, err error) {
 	name := util.GenNumberSorted(r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
-	r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 	var canvases []string
 	if r.urlType == 1 {
 		canvases, err = r.getImageByGroups(r.dt.BookId)
@@ -161,7 +161,7 @@ func (r *Familysearch) do(iiifUrls []string) (msg string, err error) {
 			continue
 		}
 		sortId := util.GenNumberSorted(i + 1)
-		dest := r.dt.SavePath + string(os.PathSeparator) + sortId + config.Conf.FileExt
+		dest := r.dt.SavePath + sortId + config.Conf.FileExt
 		if FileExist(dest) {
 			continue
 		}

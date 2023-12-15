@@ -89,7 +89,7 @@ func (r DziCnLib) download() (msg string, err error) {
 	if r.ServerHost == "" {
 		return "requested URL was not found.", err
 	}
-	r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 	canvases, err := r.getCanvases(r.dt.Url, r.dt.Jar)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -103,7 +103,7 @@ func (r DziCnLib) do(dziUrls []string) (msg string, err error) {
 	if dziUrls == nil {
 		return "", err
 	}
-	storePath := r.dt.SavePath + string(os.PathSeparator)
+	storePath := r.dt.SavePath
 	referer := url.QueryEscape(r.dt.Url)
 	args := []string{"--dezoomer=deepzoom",
 		"-H", "Origin:" + referer,
@@ -169,10 +169,8 @@ func (r DziCnLib) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 
 	canvases = make([]string, 0, len(result.Tiles))
 	for key, item := range result.Tiles {
-		//k := regexp.MustCompile(`(\d+)`).FindString(key)
-		//i, _ := strconv.Atoi(k)
 		sortId := fmt.Sprintf("%s.json", key)
-		dest := config.GetDestPath(r.dt.Url, r.dt.BookId, sortId)
+		dest := r.dt.SavePath + sortId
 		serverUrl := fmt.Sprintf("%s/tiles/%s/", r.ServerHost, key)
 		if r.Extention == "" {
 			r.Extention = "." + strings.ToLower(item.Extension)

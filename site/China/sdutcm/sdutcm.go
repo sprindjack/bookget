@@ -1,6 +1,7 @@
 package sdutcm
 
 import (
+	"bookget/app"
 	"bookget/config"
 	"bookget/lib/crypt"
 	"bookget/lib/gohttp"
@@ -30,7 +31,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 	if dt.BookId == "" {
 		return "", err
 	}
-	dt.SavePath = config.CreateDirectory(dt.Url, dt.BookId)
+	dt.SavePath = app.CreateDirectory(dt.UrlParsed.Host, dt.BookId, "")
 
 	name := util.GenNumberSorted(dt.Index)
 	log.Printf("Get %s  %s\n", name, dt.Url)
@@ -52,8 +53,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 		pdfUrl := "https://gjsztsg.sdutcm.edu.cn/getFtpPdfFile.jspx?fileName=" + csPath + token
 		sortId := util.GenNumberSorted(i)
 		log.Printf("Get %d/%d  %s\n", i, canvases.Size, pdfUrl)
-		filename := sortId + ".pdf"
-		dest := config.GetDestPath(dt.Url, dt.BookId, filename)
+		dest := dt.SavePath + sortId + ".pdf"
 		opts := gohttp.Options{
 			DestFile:    dest,
 			Overwrite:   false,
@@ -73,46 +73,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 		//canvases.ImgUrls = append(canvases.ImgUrls, pdfUrl)
 		util.PrintSleepTime(config.Conf.Speed)
 	}
-	//err = doDl(dt.Url, dt.BookId, canvases.ImgUrls, jar)
 	return "", err
-}
-
-func doDl(pageUrl, bookId string, imgUrls []string, jar *cookiejar.Jar) (err error) {
-	if imgUrls == nil {
-		return
-	}
-	if jar == nil {
-		jar, err = cookiejar.New(nil)
-	}
-	ext := ".pdf"
-	size := len(imgUrls)
-	ctx := context.Background()
-	for i, uri := range imgUrls {
-		if uri == "" || !config.PageRange(i, size) {
-			continue
-		}
-		sortId := util.GenNumberSorted(i + 1)
-		log.Printf("Get %s  %s\n", sortId, uri)
-		filename := sortId + ext
-		dest := config.GetDestPath(pageUrl, bookId, filename)
-		opts := gohttp.Options{
-			DestFile:    dest,
-			Overwrite:   false,
-			Concurrency: 1,
-			CookieFile:  config.Conf.CookieFile,
-			CookieJar:   jar,
-			Headers: map[string]interface{}{
-				"User-Agent": config.Conf.UserAgent,
-				"Referer":    "https://gjsztsg.sdutcm.edu.cn/thirdparty/pdfview/pdf.worker.js",
-			},
-		}
-		_, err = gohttp.FastGet(ctx, uri, opts)
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
-	}
-	return err
 }
 
 func getBookId(text string) string {

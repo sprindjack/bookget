@@ -134,8 +134,7 @@ func (p *Princeton) download() (msg string, err error) {
 			continue
 		}
 		vid := util.GenNumberSorted(i + 1)
-		p.dt.VolumeId = p.dt.BookId + "_vol." + vid
-		p.dt.SavePath = config.CreateDirectory(p.dt.Url, p.dt.VolumeId)
+		p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
 		canvases, err := p.getCanvases(vol, p.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
@@ -162,7 +161,7 @@ func (p *Princeton) do(canvases []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		dest := config.GetDestPath(p.dt.Url, p.dt.VolumeId, filename)
+		dest := p.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

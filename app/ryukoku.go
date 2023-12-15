@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"regexp"
 	"sync"
 )
@@ -55,8 +54,7 @@ func (r *Ryukoku) download() (msg string, err error) {
 			continue
 		}
 		vid := util.GenNumberSorted(i + 1)
-		r.dt.VolumeId = r.dt.BookId + "_vol." + vid
-		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.VolumeId)
+		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 		canvases, err := r.getCanvases(vol, r.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
@@ -94,7 +92,7 @@ func (r *Ryukoku) doDezoomifyRs(iiifUrls []string) bool {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -119,7 +117,7 @@ func (r *Ryukoku) doNormal(imgUrls []string) bool {
 		ext := util.FileExt(uri)
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + ext
-		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

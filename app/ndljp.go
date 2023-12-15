@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"regexp"
 	"sync"
 )
@@ -54,14 +53,14 @@ func (p *NdlJP) download() (msg string, err error) {
 		if iiifUrl == "" {
 			continue
 		}
-		vid := util.GenNumberSorted(i + 1)
-		p.dt.VolumeId = p.dt.BookId + "_vol." + vid
 		canvases, err := p.getCanvases(iiifUrl, p.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
 			continue
 		}
-		p.dt.SavePath = config.CreateDirectory(p.dt.Url, p.dt.VolumeId)
+		vid := util.GenNumberSorted(i + 1)
+		p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
+
 		log.Printf(" %d/%d volume, %d pages \n", i+1, len(respVolume), len(canvases))
 		p.do(canvases)
 	}
@@ -82,7 +81,7 @@ func (p *NdlJP) do(imgUrls []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		dest := p.dt.SavePath + string(os.PathSeparator) + filename
+		dest := p.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

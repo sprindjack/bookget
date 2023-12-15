@@ -12,7 +12,6 @@ import (
 	"log"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -74,7 +73,7 @@ func (r *KyudbSnu) download() (msg string, err error) {
 	}
 	//PDF
 	if bytes.Contains(bs, []byte("name=\"mfpdf_link\"")) {
-		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId)
+		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 		canvases, err := r.getPdfUrls(r.dt.Url)
 		if err != nil || canvases == nil {
 			return "requested URL was not found.", err
@@ -99,7 +98,7 @@ func (r *KyudbSnu) download() (msg string, err error) {
 		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
 			continue
 		}
-		r.dt.SavePath = config.CreateDirectory(r.dt.Url, r.dt.BookId+"_vol."+vol)
+		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vol)
 		canvases, err := r.getCanvases(vol, r.dt.Jar)
 		if err != nil || canvases == nil {
 			continue
@@ -129,7 +128,7 @@ func (r *KyudbSnu) do(imgUrls []string) (msg string, err error) {
 		sortId := util.GenNumberSorted(i + 1)
 		log.Printf("Get %d/%d page, URL: %s\n", i+1, len(imgUrls), uri)
 		filename := sortId + ext
-		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		dest := r.dt.SavePath + filename
 		opts := gohttp.Options{
 			DestFile:    dest,
 			Overwrite:   false,
@@ -166,8 +165,7 @@ func (r *KyudbSnu) doPdf(imgUrls []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + ".pdf"
-		//dest := config.GetDestPath(r.dt.Url, r.dt.VolumeId, filename)
-		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

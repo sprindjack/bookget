@@ -2,16 +2,13 @@ package router
 
 import (
 	"bookget/app"
-	"bookget/site/Europe/berlin"
-	"bookget/site/Europe/bluk"
-	"bookget/site/Europe/oxacuk"
-	"bookget/site/USA/stanford"
 )
 
 type OxacUk struct{}
 
 func (p OxacUk) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var oxacuk app.Oxacuk
 		oxacuk.Init(i+1, s)
 	}
 	return nil, nil
@@ -21,6 +18,7 @@ type DigitalBerlin struct{}
 
 func (p DigitalBerlin) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var berlin app.Berlin
 		berlin.Init(i+1, s)
 	}
 	return nil, nil
@@ -30,6 +28,7 @@ type BlUk struct{}
 
 func (p BlUk) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var bluk app.Bluk
 		bluk.Init(i+1, s)
 	}
 	return nil, nil
@@ -49,6 +48,7 @@ type SearchworksStanford struct{}
 
 func (p SearchworksStanford) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var stanford app.Stanford
 		stanford.Init(i+1, s)
 	}
 	return nil, nil
@@ -80,6 +80,16 @@ func (p Berkeley) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
 		var berkeley app.Berkeley
 		berkeley.Init(i+1, s)
+	}
+	return nil, nil
+}
+
+type OnbDigital struct{}
+
+func (p OnbDigital) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var onb app.OnbDigital
+		onb.Init(i+1, s)
 	}
 	return nil, nil
 }

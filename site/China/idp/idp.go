@@ -1,6 +1,7 @@
 package idp
 
 import (
+	"bookget/app"
 	"bookget/config"
 	"bookget/lib/gohttp"
 	util "bookget/lib/util"
@@ -15,7 +16,7 @@ import (
 func Init(iTask int, sUrl string) (msg string, err error) {
 	dt := new(DownloadTask)
 	dt.CookieJar, _ = cookiejar.New(nil)
-	dt.ParsedUrl, _ = url.Parse(sUrl)
+	dt.UrlParsed, _ = url.Parse(sUrl)
 	dt.Url = sUrl
 	dt.Index = iTask
 	dt.BookId = getBookId(sUrl)
@@ -38,7 +39,7 @@ func StartDownload(dt *DownloadTask) (msg string, err error) {
 	}
 	log.Printf(" %d pages.\n", canvases.Size)
 
-	config.CreateDirectory(dt.Url, dt.BookId)
+	savePath := app.CreateDirectory(dt.UrlParsed.Host, dt.BookId, "")
 	ext := ".jpg"
 	ctx := context.Background()
 	for i, dUrl := range canvases.ImgUrls {
@@ -50,8 +51,7 @@ func StartDownload(dt *DownloadTask) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		log.Printf("Get %s  %s\n", sortId, dUrl)
-		filename := sortId + ext
-		dest := config.GetDestPath(dt.Url, dt.BookId, filename)
+		dest := savePath + sortId + ext
 		cli := gohttp.NewClient(ctx, gohttp.Options{
 			DestFile:   dest,
 			CookieJar:  dt.CookieJar,
@@ -93,7 +93,7 @@ func getCanvases(sUrl string, dt *DownloadTask) (canvases Canvases) {
 	for _, v := range m {
 		id := string(v[1])
 		imgUrl := fmt.Sprintf("%s://%s/image_IDP.a4d?type=loadRotatedMainImage;recnum=%s;rotate=0;imageType=_L",
-			dt.ParsedUrl.Scheme, dt.ParsedUrl.Host, id)
+			dt.UrlParsed.Scheme, dt.UrlParsed.Host, id)
 		canvases.ImgUrls = append(canvases.ImgUrls, imgUrl)
 	}
 	canvases.Size = len(canvases.ImgUrls)

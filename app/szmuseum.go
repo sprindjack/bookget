@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"regexp"
 	"strings"
 )
@@ -64,9 +63,7 @@ func (r *Szmuseum) download() (msg string, err error) {
 			continue
 		}
 		vid := util.GenNumberSorted(i + 1)
-		r.dt.VolumeId = r.dt.UrlParsed.Host + "_" + r.dt.BookId + "/vol." + vid + "." + vol.Title
-		r.dt.SavePath = config.Conf.SaveFolder + string(os.PathSeparator) + r.dt.VolumeId
-		_ = os.MkdirAll(r.dt.SavePath, os.ModePerm)
+		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 		canvases, err := r.getCanvases(vol.Url, r.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
@@ -92,7 +89,7 @@ func (r *Szmuseum) do(imgUrls []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		dest := r.dt.SavePath + string(os.PathSeparator) + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}

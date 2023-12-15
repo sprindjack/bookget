@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"regexp"
 	"sync"
 )
@@ -49,7 +48,7 @@ func (p *HannomNlv) getBookId(sUrl string) (bookId string) {
 func (p *HannomNlv) download() (msg string, err error) {
 	name := util.GenNumberSorted(p.dt.Index)
 	log.Printf("Get %s  %s\n", name, p.dt.Url)
-	p.dt.SavePath = config.CreateDirectory(p.dt.Url, p.dt.BookId)
+	p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
 	canvases, err := p.getCanvases(p.dt.Url, p.dt.Jar)
 	if err != nil || canvases == nil {
 		fmt.Println(err)
@@ -73,7 +72,7 @@ func (p *HannomNlv) do(imgUrls []string) (msg string, err error) {
 		}
 		sortId := util.GenNumberSorted(i + 1)
 		filename := sortId + config.Conf.FileExt
-		dest := p.dt.SavePath + string(os.PathSeparator) + filename
+		dest := p.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
