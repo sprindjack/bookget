@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"strings"
 )
 
 type Njuedu struct {
@@ -223,12 +222,13 @@ func (p *Njuedu) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string
 	if resp.Tiles == nil {
 		return
 	}
+	ext := config.Conf.FileExt[1:]
 	for key, item := range resp.Tiles {
 		sortId := fmt.Sprintf("%s.json", key)
 		dest := p.dt.SavePath + sortId
 		serverUrl := fmt.Sprintf("%s/tiles/%s/", serverBase, key)
 		jsonText := ""
-		ext := strings.ToLower(item.Extension)
+		//ext := strings.ToLower(item.Extension)
 		if item.TileSize.W == 0 {
 			jsonText = fmt.Sprintf(text, serverUrl, ext, item.TileSize2.Width, item.Height, item.Width)
 		} else {
