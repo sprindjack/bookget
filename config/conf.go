@@ -7,6 +7,7 @@ import (
 	"gopkg.in/ini.v1"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 )
@@ -40,6 +41,18 @@ type Input struct {
 func Init(ctx context.Context) bool {
 
 	dir, _ := os.Getwd()
+
+	//你们为什么没有良好的电脑使用习惯？中文虽好，但不适用于计算机。
+	if os.PathSeparator == '\\' {
+		matched, _ := regexp.MatchString(`([^A-z0-9_\\/-:]+)`, dir)
+		if matched {
+			fmt.Println("本软件存放目录，不能包含空格、中文等特殊符号。推荐：D:\\bookget")
+			fmt.Println("按回车键终止程序。Press Enter to exit ...")
+			endKey := make([]byte, 1)
+			os.Stdin.Read(endKey)
+			os.Exit(0)
+		}
+	}
 	iniConf, _ := initINI()
 
 	flag.StringVar(&Conf.UrlsFile, "i", iniConf.UrlsFile, "下载的URLs，指定任意本地文件，例如：urls.txt")
@@ -131,7 +144,7 @@ func initINI() (io Input, err error) {
 		Version:       false,
 	}
 
-	if string(os.PathSeparator) == "\\" {
+	if os.PathSeparator == '\\' {
 		io.DezoomifyPath = "dezoomify-rs.exe"
 		if fi, err := os.Stat(dir + "\\dezoomify-rs.exe"); err == nil && fi.Size() > 0 {
 			io.DezoomifyPath = dir + "\\dezoomify-rs.exe"

@@ -16,7 +16,7 @@ import (
 func RunCommand(ctx context.Context, text string) error {
 	fmt.Println(text)
 	var cmd *exec.Cmd
-	if string(os.PathSeparator) == "\\" {
+	if os.PathSeparator == '\\' {
 		cmd = exec.CommandContext(ctx, "cmd", "/c", text)
 	} else {
 		cmd = exec.CommandContext(ctx, "bash", "-c", text)
@@ -77,7 +77,7 @@ func PrintSleepTime(sec uint) {
 }
 
 func StartProcess(inputUri string, outfile string, args []string) bool {
-	if string(os.PathSeparator) == "\\" {
+	if os.PathSeparator == '\\' {
 		return runOsWin(inputUri, outfile, args)
 	} else {
 		return runOsLinux(inputUri, outfile, args)
