@@ -108,16 +108,6 @@ func (p GujiSclib) getRouterInit(sUrl []string) (map[string]interface{}, error) 
 	return nil, nil
 }
 
-type GuijiJslib struct{}
-
-func (p GuijiJslib) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	for i, s := range sUrl {
-		var dziCnLib app.DziCnLib
-		dziCnLib.Init(i+1, s)
-	}
-	return nil, nil
-}
-
 type MinghuajiBjDpm struct{}
 
 func (p MinghuajiBjDpm) getRouterInit(sUrl []string) (map[string]interface{}, error) {
