@@ -44,7 +44,7 @@ func Init(ctx context.Context) bool {
 
 	//你们为什么没有良好的电脑使用习惯？中文虽好，但不适用于计算机。
 	if os.PathSeparator == '\\' {
-		matched, _ := regexp.MatchString(`([^A-z0-9_\\/-:]+)`, dir)
+		matched, _ := regexp.MatchString(`([^A-z0-9_\\/\-:.]+)`, dir)
 		if matched {
 			fmt.Println("本软件存放目录，不能包含空格、中文等特殊符号。推荐：D:\\bookget")
 			fmt.Println("按回车键终止程序。Press Enter to exit ...")
@@ -186,6 +186,9 @@ func initINI() (io Input, err error) {
 	io.DezoomifyRs = secDzi.Key("rs").String()
 	io.Format = secDzi.Key("format").MustString(format)
 
+	if !strings.Contains(io.DezoomifyRs, "-n") && !strings.Contains(io.DezoomifyRs, "--parallelism") {
+		io.DezoomifyRs += fmt.Sprintf(" -n=%d", io.Threads)
+	}
 	return io, nil
 }
 

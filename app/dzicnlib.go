@@ -181,8 +181,7 @@ func (r DziCnLib) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 		} else {
 			jsonText = fmt.Sprintf(text, serverUrl, item.Extension, item.TileSize.W, item.Height, item.Width)
 		}
-		util.FileWrite([]byte(jsonText), dest)
-
+		_ = os.WriteFile(dest, []byte(jsonText), os.ModePerm)
 		canvases = append(canvases, sortId)
 	}
 	sort.Sort(strs(canvases))

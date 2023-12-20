@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -69,7 +70,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 					continue
 				}
 				log.Printf("Get %d/%d volume, %d/%d pages.\n", k+1, len(respVolume.Volume), i, vol.Pages)
-				util.FileWrite(bs, dest)
+				_ = os.WriteFile(dest, bs, os.ModePerm)
 				index++
 			}
 		}
