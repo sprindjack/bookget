@@ -241,9 +241,14 @@ func (p *Princeton) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []strin
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
 	}
-	//分卷URL处理
-	for _, vol := range manifest.Manifests {
-		volumes = append(volumes, vol.Id)
+
+	if manifest.Manifests == nil {
+		volumes = append(volumes, manifestUrl)
+	} else {
+		//分卷URL处理
+		for _, vol := range manifest.Manifests {
+			volumes = append(volumes, vol.Id)
+		}
 	}
 	return volumes, nil
 }
