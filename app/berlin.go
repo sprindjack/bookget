@@ -82,16 +82,7 @@ func (p *Berlin) do(imgUrls []string) (msg string, err error) {
 }
 
 func (p *Berlin) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	apiUrl := fmt.Sprintf("https://content.staatsbibliothek-berlin.de/dc/%s/manifest", p.dt.BookId)
-	bs, err := getBody(apiUrl, jar)
-	if err != nil {
-		return
-	}
-	match := regexp.MustCompile(`https://(.+)/manifest.json`).FindSubmatch(bs)
-	if match == nil {
-		return
-	}
-	jsonUrl := "https://" + string(match[1]) + "/manifest.json"
+	jsonUrl := fmt.Sprintf("https://content.staatsbibliothek-berlin.de/dc/%s/manifest", p.dt.BookId)
 	volumes = append(volumes, jsonUrl)
 	return volumes, nil
 }
