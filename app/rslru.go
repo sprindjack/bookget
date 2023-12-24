@@ -91,7 +91,7 @@ func (r *RslRu) download() (msg string, err error) {
 	if err != nil {
 		return "requested URL was not found.", err
 	}
-	vid := r.response.Description.Title
+	vid := regexp.MustCompile(`([\\/:：；\s]+)`).ReplaceAllString(r.response.Description.Title, "")
 	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 	canvases, err := r.getCanvases(r.dt.Url, r.dt.Jar)
 	if err != nil || canvases == nil {
