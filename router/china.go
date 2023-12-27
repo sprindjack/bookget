@@ -2,7 +2,6 @@ package router
 
 import (
 	"bookget/app"
-	"bookget/site/China/ncpssd"
 	"bookget/site/China/ouroots"
 	"bookget/site/China/sdutcm"
 	"bookget/site/China/szlib"
@@ -141,6 +140,7 @@ type Ncpssd struct{}
 
 func (p Ncpssd) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var ncpssd app.Ncpssd
 		ncpssd.Init(i+1, s)
 	}
 	return nil, nil

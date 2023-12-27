@@ -49,6 +49,9 @@ type PartialVolumes struct {
 }
 
 func getBookId(sUrl string) (bookId string) {
+	if sUrl == "" {
+		return ""
+	}
 	mh := xhash.NewMultiHasher()
 	_, _ = io.Copy(mh, bytes.NewBuffer([]byte(sUrl)))
 	bookId, _ = mh.SumString(xhash.QuickXorHash, false)

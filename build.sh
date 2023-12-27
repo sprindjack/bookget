@@ -8,7 +8,7 @@ function buildWindows() {
     targetDir="target/bookget-${ver}.windows-amd64/"
     mkdir -p $targetDir
     CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o "${targetDir}/bookget" .
-    cp cookie.txt "${targetDir}/cookie.txt"
+#    cp cookie.txt "${targetDir}/cookie.txt"
     cp config.ini "${targetDir}/config.ini"
     cp target/dezoomify-rs/x86_64-windows/dezoomify-rs.exe "${targetDir}/dezoomify-rs"
     cd target/ || return
@@ -22,7 +22,7 @@ function buildLinux() {
     targetDir="target/bookget-${ver}.linux-amd64/"
     mkdir -p $targetDir
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o "${targetDir}/bookget" .
-    cp cookie.txt "${targetDir}/cookie.txt"
+#    cp cookie.txt "${targetDir}/cookie.txt"
     cp config.ini "${targetDir}/config.ini"
     cp target/dezoomify-rs/x86_64-linux/dezoomify-rs "${targetDir}/dezoomify-rs"
     cd target/ || return
@@ -35,7 +35,7 @@ function buildDarwin() {
     targetDir="target/bookget-${ver}.macOS/"
     mkdir -p $targetDir
     CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o "${targetDir}/bookget" .
-    cp cookie.txt "${targetDir}/cookie.txt"
+#    cp cookie.txt "${targetDir}/cookie.txt"
     cp config.ini "${targetDir}/config.ini"
     cp target/dezoomify-rs/x86_64-apple/dezoomify-rs "${targetDir}/dezoomify-rs"
     cd target/ || return
@@ -49,7 +49,7 @@ function buildDarwinArm64() {
     mkdir -p $targetDir
     CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o "${targetDir}/bookget" .
 
-    cp cookie.txt "${targetDir}/cookie.txt"
+#    cp cookie.txt "${targetDir}/cookie.txt"
     cp config.ini "${targetDir}/config.ini"
     cp target/dezoomify-rs/aarch64-apple/dezoomify-rs "${targetDir}/dezoomify-rs"
     cd target/ || return
