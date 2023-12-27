@@ -12,7 +12,9 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"regexp"
+	"strconv"
 	"sync"
 )
 
@@ -106,7 +108,7 @@ func (r *RslRu) do(canvases []string) (msg string, err error) {
 		return
 	}
 	fmt.Println()
-	referer := r.dt.Url
+	//referer := r.dt.Url
 	size := len(canvases)
 	var wg sync.WaitGroup
 	q := QueueNew(int(config.Conf.Threads))
@@ -126,19 +128,23 @@ func (r *RslRu) do(canvases []string) (msg string, err error) {
 		q.Go(func() {
 			defer wg.Done()
 			ctx := context.Background()
-			opts := gohttp.Options{
-				DestFile:    dest,
-				Overwrite:   false,
-				Concurrency: 1,
-				CookieFile:  config.Conf.CookieFile,
-				CookieJar:   r.dt.Jar,
+			cli := gohttp.NewClient(ctx, gohttp.Options{
+				CookieFile: config.Conf.CookieFile,
+				CookieJar:  nil,
 				Headers: map[string]interface{}{
 					"User-Agent": config.Conf.UserAgent,
-					"Referer":    referer,
 				},
+			})
+			resp, err := cli.Get(imgUrl)
+			if err != nil {
+				return
 			}
-			gohttp.FastGet(ctx, imgUrl, opts)
-			fmt.Println()
+			bs, _ := resp.GetBody()
+			length, _ := strconv.Atoi(resp.GetHeaderLine("Content-Length"))
+			if bs == nil || length != len(bs) {
+				return
+			}
+			os.WriteFile(dest, bs, os.ModePerm)
 		})
 	}
 	wg.Wait()

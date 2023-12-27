@@ -95,6 +95,7 @@ func (w Wget) do(wUrls []string) (msg string, err error) {
 			gohttp.FastGet(ctx, imgUrl, opts)
 		})
 		fmt.Println()
+		util.PrintSleepTime(config.Conf.Speed)
 	}
 	wg.Wait()
 	return "", err
