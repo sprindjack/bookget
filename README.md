@@ -3,7 +3,7 @@
 bookget 数字图书馆下载工具，目前支持约50+个数字图书馆。
 
 ### 使用说明
-1. 打开 https://github.com/deweizhu/bookget/releases 下载最新版。
+1. 打开 [https://github.com/deweizhu/bookget/releases](https://github.com/deweizhu/bookget/releases/latest) 下载最新版。
 1. [必读]使用手册wiki https://github.com/deweizhu/bookget/wiki
 1. 此项目代码仅供学习研究使用，欢迎有能力的朋友git clone 代码二次开发维护您自己的版本。
 
