@@ -217,7 +217,7 @@ func (p *NpmTw) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string,
 	}
 	// 按台北故宫官方提供的URL下载若干个PDF
 	for _, match := range matches {
-		v := match[1] + "action=TQ" + match[2]
+		v := match[1] + "&action=TQ" + match[1]
 		link := fmt.Sprintf("https://%s/npmtpc/npmtpall?ID=%s&SECU=%s&ACTION=UI,%s", p.dt.UrlParsed.Host, id, sec, v)
 		canvases = append(canvases, link)
 	}

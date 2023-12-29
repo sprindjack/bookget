@@ -78,16 +78,18 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["www.ncpssd.cn"] = new(Ncpssd)
 		//[中国]云南中医药大学古籍图书馆
 		Router["guji.ynutcm.edu.cn"] = new(GujiYnutcm)
-		//山东中医药大学古籍数字图书馆
+		//[中国]山东中医药大学古籍数字图书馆
 		Router["gjsztsg.sdutcm.edu.cn"] = new(Sdutcm)
-		//天津图书馆历史文献数字资源库
+		//[中国]天津图书馆历史文献数字资源库
 		Router["lswx.tjl.tj.cn:8001"] = new(Tjliblswx)
-		//云南数字方志馆
+		//[中国]云南数字方志馆
 		Router["dfz.yn.gov.cn"] = new(Yndfz)
-		//香港大学数字图书
+		//[中国]香港大学数字图书
 		Router["digitalrepository.lib.hku.hk"] = new(Hkulib)
-		//苏州博物馆古籍
+		//[中国]江苏省苏州博物馆
 		Router["www.szmuseum.com"] = new(Szmuseum)
+		//[中国]山东省诸城市图书馆
+		Router["124.134.220.209:8100"] = new(ZhuCheng)
 		//}}} -----------------------------------------------------------------
 
 		//---------------日本--------------------------------------------------

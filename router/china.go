@@ -33,10 +33,10 @@ func (p RbkdocNpmTw) getRouterInit(sUrl []string) (map[string]interface{}, error
 type CuHk struct{}
 
 func (p CuHk) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	//for i, s := range sUrl {
-	//	var cuhk app.Cuhk
-	//	cuhk.Init(i+1, s)
-	//}
+	for i, s := range sUrl {
+		var cuhk app.Cuhk
+		cuhk.Init(i+1, s)
+	}
 	return nil, nil
 }
 
@@ -220,6 +220,16 @@ func (p Njuedu) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
 		var nju app.Njuedu
 		nju.Init(i+1, s)
+	}
+	return nil, nil
+}
+
+type ZhuCheng struct{}
+
+func (p ZhuCheng) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var zc app.ZhuCheng
+		zc.Init(i+1, s)
 	}
 	return nil, nil
 }
