@@ -8,6 +8,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.2
 	github.com/valyala/fasthttp v1.44.0
+	golang.org/x/text v0.3.7
 	gopkg.in/ini.v1 v1.67.0
 )
 

@@ -14,12 +14,16 @@ import (
 	"fmt"
 	"github.com/andreburgaud/crypt2go/ecb"
 	"github.com/andreburgaud/crypt2go/padding"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 	"io"
 	"log"
 	"math/rand"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -134,10 +138,39 @@ type TygVolume struct {
 	ImageCount   interface{} `json:"imageCount"`
 }
 
+type TygCatalog struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data struct {
+		Records []struct {
+			DirectoryId string      `json:"directoryId"`
+			FascicleId  string      `json:"fascicleId"`
+			CatalogId   string      `json:"catalogId"`
+			Name        string      `json:"name"`
+			Description interface{} `json:"description"`
+			PageId      string      `json:"pageId"`
+			GradeId     string      `json:"gradeId"`
+			Region      string      `json:"region"`
+			Sort        int         `json:"sort"`
+			Creator     interface{} `json:"creator"`
+			CreateTime  string      `json:"createTime"`
+			Updator     interface{} `json:"updator"`
+			UpdateTime  *string     `json:"updateTime"`
+			IsDeleted   int         `json:"isDeleted"`
+		} `json:"records"`
+		Total       int  `json:"total"`
+		Size        int  `json:"size"`
+		Current     int  `json:"current"`
+		SearchCount bool `json:"searchCount"`
+		Pages       int  `json:"pages"`
+	} `json:"data"`
+}
+
 type TygParts map[string][]TygImageRecord
 
 type Tianyige struct {
-	dt *DownloadTask
+	dt    *DownloadTask
+	index int
 }
 
 func (p *Tianyige) Init(iTask int, sUrl string) (msg string, err error) {
@@ -182,14 +215,28 @@ func (p *Tianyige) download() (msg string, err error) {
 	for _, record := range canvases {
 		parts[record.FascicleId] = append(parts[record.FascicleId], record)
 	}
+	var bookmark string
+	sizeVol := len(respVolume)
 	for i, vol := range respVolume {
-		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+		i++
+		if config.Conf.Volume > 0 && config.Conf.Volume != i {
 			continue
 		}
 		vid := util.GenNumberSorted(vol.Sort)
 		p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
-		log.Printf(" %d/%d volume, %d pages \n", i+1, len(respVolume), len(parts[vol.FascicleId]))
+		sizePage := len(parts[vol.FascicleId])
+		log.Printf(" %d/%d volume, %d pages \n", i, sizeVol, sizePage)
+		text, err := p.getCatalogById(vol.CatalogId, vol.FascicleId, p.index)
+		if err == nil {
+			bookmark += text
+		}
 		p.do(parts[vol.FascicleId])
+	}
+	if len(bookmark) > 0 {
+		savePath := CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
+		data, _ := io.ReadAll(transform.NewReader(bytes.NewReader([]byte(bookmark)), simplifiedchinese.GBK.NewEncoder()))
+		_ = os.WriteFile(savePath+"bookmark.txt", []byte(bookmark), os.ModePerm)
+		_ = os.WriteFile(savePath+"bookmark_gbk.txt", data, os.ModePerm)
 	}
 	return msg, err
 }
@@ -221,6 +268,7 @@ func (p *Tianyige) do(records []TygImageRecord) (msg string, err error) {
 			idDict[kId] = uri
 		}
 		i++
+		p.index++
 		sortId := util.GenNumberSorted(i)
 		filename := sortId + config.Conf.FileExt
 		dest := p.dt.SavePath + filename
@@ -254,7 +302,6 @@ func (p *Tianyige) do(records []TygImageRecord) (msg string, err error) {
 }
 
 func (p *Tianyige) getVolumes(catalogId string, jar *cookiejar.Jar) (volumes []TygVolume, err error) {
-	//https://gj.tianyige.com.cn/g/sw-anb/api/getFasciclesByCataId?catalogId=c56c5afbb95f667c96c57b6d3b4c5f0c
 	apiUrl := fmt.Sprintf("https://%s/g/sw-anb/api/getFasciclesByCataId?catalogId=%s", p.dt.UrlParsed.Host, catalogId)
 	bs, err := p.getBody(apiUrl, jar)
 	if bs == nil || err != nil {
@@ -270,7 +317,6 @@ func (p *Tianyige) getVolumes(catalogId string, jar *cookiejar.Jar) (volumes []T
 }
 
 func (p *Tianyige) getCanvases(bookId string, jar *cookiejar.Jar) (canvases []TygImageRecord, err error) {
-	//https://gj.tianyige.com.cn/fileUpload/56956d82679111ec85ee7020840b69ac/ANB/ANB_IMAGE_PHOTO/ANB/ANB_IMAGE_PHOTO/20220324/febd8c1dcd134c33b5c1cad8883dd1cd1648107167499.jpg
 	//cookie 处理
 	apiUrl := fmt.Sprintf("https://%s/g/sw-anb/api/queryImageByCatalog?catalogId=%s", p.dt.UrlParsed.Host, bookId)
 	d := `{"param":{"pageNum":1,"pageSize":9999}}`
@@ -288,7 +334,6 @@ func (p *Tianyige) getCanvases(bookId string, jar *cookiejar.Jar) (canvases []Ty
 }
 
 func (p *Tianyige) getImageById(imageId string) (imgUrl, ocrUrl string, err error) {
-	//https://gj.tianyige.com.cn/fileUpload/56956d82679111ec85ee7020840b69ac/ANB/ANB_IMAGE_PHOTO/ANB/ANB_IMAGE_PHOTO/20220324/febd8c1dcd134c33b5c1cad8883dd1cd1648107167499.jpg
 	//cookie 处理
 	apiUrl := fmt.Sprintf("https://%s/g/sw-anb/api/queryOcrFileByimageId?imageId=%s", p.dt.UrlParsed.Host, imageId)
 	var bs []byte
@@ -315,6 +360,33 @@ func (p *Tianyige) getImageById(imageId string) (imgUrl, ocrUrl string, err erro
 		}
 	}
 	return
+}
+
+func (p *Tianyige) getCatalogById(catalogId, fascicleId string, indexStart int) (string, error) {
+	apiUrl := fmt.Sprintf("https://%s/g/sw-anb/api/getDirectorys?catalogId=%s&fascicleId=%s&directoryName=", p.dt.UrlParsed.Host, catalogId, fascicleId)
+	bs, err := p.getBody(apiUrl, p.dt.Jar)
+	if err != nil {
+		return "", err
+	}
+	var resp TygCatalog
+	if err = json.Unmarshal(bs, &resp); err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+	var bookmark string
+	for _, record := range resp.Data.Records {
+		m := regexp.MustCompile(`(\d+).jpg`).FindStringSubmatch(record.PageId)
+		if m != nil {
+			page, _ := strconv.Atoi(m[1])
+			page = indexStart + page
+			if os.PathSeparator == '\\' {
+				bookmark += fmt.Sprintf("%s......%d\r\n", record.Name, page)
+			} else {
+				bookmark += fmt.Sprintf("%s......%d\n", record.Name, page)
+			}
+		}
+	}
+	return bookmark, err
 }
 
 func (p *Tianyige) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
