@@ -272,7 +272,7 @@ func (p *Tianyige) do(records []TygImageRecord) (msg string, err error) {
 		sortId := util.GenNumberSorted(i)
 		filename := sortId + config.Conf.FileExt
 		dest := p.dt.SavePath + filename
-		if FileExist(dest) {
+		if config.Conf.Bookmark || FileExist(dest) {
 			continue
 		}
 		imgUrl := uri

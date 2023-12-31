@@ -33,7 +33,8 @@ type Input struct {
 	UseDziRs      bool   //启用DezoomifyRs下载IIIF
 	FileExt       string //指定下载的扩展名
 	Threads       uint
-	Retry         int //重试次数
+	Retry         int  //重试次数
+	Bookmark      bool //只下載書簽目錄（浙江寧波天一閣）
 	Help          bool
 	Version       bool
 }
@@ -62,6 +63,7 @@ func Init(ctx context.Context) bool {
 	flag.StringVar(&Conf.Format, "fmt", iniConf.Format, "IIIF 图像请求URI: full/full/0/default.jpg")
 	flag.StringVar(&Conf.UserAgent, "ua", iniConf.UserAgent, "user-agent")
 	flag.BoolVar(&Conf.MergePDFs, "mp", iniConf.MergePDFs, "合并PDF文件下载，可选值[0|1]。0=否，1=是。仅对 rbk-doc.npm.edu.tw 有效。")
+	flag.BoolVar(&Conf.Bookmark, "bookmark", iniConf.Bookmark, "只下载书签目录，可选值[0|1]。0=否，1=是。仅对 gj.tianyige.com.cn 有效。")
 	flag.BoolVar(&Conf.UseDziRs, "dzi", iniConf.UseDziRs, "使用dezoomify-rs下载，仅对支持iiif的网站生效。")
 	flag.StringVar(&Conf.CookieFile, "c", iniConf.CookieFile, "指定cookie.txt文件路径")
 	flag.StringVar(&Conf.FileExt, "ext", iniConf.FileExt, "指定文件扩展名[.jpg|.tif|.png]等")
@@ -140,6 +142,7 @@ func initINI() (io Input, err error) {
 		FileExt:       ".jpg",
 		Threads:       c,
 		Retry:         3,
+		Bookmark:      false,
 		Help:          false,
 		Version:       false,
 	}
@@ -179,6 +182,7 @@ func initINI() (io Input, err error) {
 	io.Seq = secCus.Key("seq").String()
 	io.Volume = secCus.Key("vol").MustInt(0)
 	io.MergePDFs = secCus.Key("mp").MustBool(true)
+	io.Bookmark = secCus.Key("bookmark").MustBool(false)
 	io.UserAgent = secCus.Key("ua").MustString(ua)
 
 	secDzi := cfg.Section("dzi")

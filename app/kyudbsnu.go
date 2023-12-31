@@ -274,7 +274,7 @@ func (r *KyudbSnu) getCanvases(vol string, jar *cookiejar.Jar) (canvases []strin
 		pageId = string(m[1])
 	}
 	imgFileNm := filepath.Base(pageId)
-	matches := regexp.MustCompile(`onclick="fn_goPageJump\('([A-z0-9]+)'\);">([A-z0-9]+)</a>`).FindAllSubmatch(bs, -1)
+	matches := regexp.MustCompile(`onclick="fn_goPageJumpWithMokIdxClear\('([A-z0-9]+)'\);">([A-z0-9]+)</a>`).FindAllSubmatch(bs, -1)
 	_fromPage := vol + "_" + fromPage
 	for _, match := range matches {
 		_page := vol + "_" + string(match[1])
