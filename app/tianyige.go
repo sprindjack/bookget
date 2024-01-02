@@ -317,24 +317,28 @@ func (p *Tianyige) getVolumes(catalogId string, jar *cookiejar.Jar) (volumes []T
 }
 
 func (p *Tianyige) getCanvases(bookId string, jar *cookiejar.Jar) (canvases []TygImageRecord, err error) {
-	//cookie 处理
-	apiUrl := fmt.Sprintf("https://%s/g/sw-anb/api/queryImageByCatalog?catalogId=%s", p.dt.UrlParsed.Host, bookId)
-	d := `{"param":{"pageNum":1,"pageSize":9999}}`
-	bs, err := p.postBody(apiUrl, []byte(d), jar)
-	if bs == nil || err != nil {
-		return nil, err
+	for i := 0; i < 100; i++ {
+		apiUrl := fmt.Sprintf("https://%s/g/sw-anb/api/queryImageByCatalog?catalogId=%s", p.dt.UrlParsed.Host, bookId)
+		d := fmt.Sprintf(`{"param":{"pageNum":%d,"pageSize":100}}`, i+1)
+		bs, err := p.postBody(apiUrl, []byte(d), jar)
+		if bs == nil || err != nil {
+			break
+		}
+		var resObj TygResponsePage
+		if err = json.Unmarshal(bs, &resObj); resObj.Code != 200 {
+			break
+		}
+		if resObj.Data.Total == len(canvases) {
+			break
+		}
+		records := make([]TygImageRecord, len(resObj.Data.Records))
+		copy(records, resObj.Data.Records)
+		canvases = append(canvases, records...)
 	}
-	var resObj TygResponsePage
-	if err = json.Unmarshal(bs, &resObj); resObj.Code != 200 {
-		return
-	}
-	canvases = make([]TygImageRecord, len(resObj.Data.Records))
-	copy(canvases, resObj.Data.Records)
-	return canvases, nil
+	return canvases, err
 }
 
 func (p *Tianyige) getImageById(imageId string) (imgUrl, ocrUrl string, err error) {
-	//cookie 处理
 	apiUrl := fmt.Sprintf("https://%s/g/sw-anb/api/queryOcrFileByimageId?imageId=%s", p.dt.UrlParsed.Host, imageId)
 	var bs []byte
 	for i := 0; i < 3; i++ {
@@ -407,8 +411,8 @@ func (p *Tianyige) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 		return nil, err
 	}
 	bs, _ := resp.GetBody()
-	if bs == nil || resp.GetStatusCode() == 401 {
-		msg := fmt.Sprintf("Please try again later.[401 %s]\n", resp.GetReasonPhrase())
+	if bs == nil || resp.GetStatusCode() != 200 {
+		msg := fmt.Sprintf("Please try again later.[%d %s]\n", resp.GetStatusCode(), resp.GetReasonPhrase())
 		fmt.Println(msg)
 		return nil, errors.New(msg)
 	}
@@ -434,8 +438,8 @@ func (p *Tianyige) postBody(sUrl string, d []byte, jar *cookiejar.Jar) ([]byte, 
 		return nil, err
 	}
 	bs, _ := resp.GetBody()
-	if bs == nil || resp.GetStatusCode() == 401 {
-		msg := fmt.Sprintf("Please try again later.[401 %s]\n", resp.GetReasonPhrase())
+	if bs == nil || resp.GetStatusCode() != 200 {
+		msg := fmt.Sprintf("Please try again later.[%d %s]\n", resp.GetStatusCode(), resp.GetReasonPhrase())
 		fmt.Println(msg)
 		return nil, errors.New(msg)
 	}
