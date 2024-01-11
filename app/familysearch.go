@@ -145,8 +145,9 @@ func (r *Familysearch) do(iiifUrls []string) (msg string, err error) {
 		return
 	}
 	referer := url.QueryEscape(r.dt.Url)
-	bs, _ := os.ReadFile(config.Conf.CookieFile)
-	cookies := string(bs)
+
+	cookies := gohttp.ReadCookieFile(config.Conf.CookieFile)
+
 	sid := r.getSessionId()
 	args := []string{"--dezoomer=deepzoom",
 		"-H", "authority:www.familysearch.org",
