@@ -17,7 +17,6 @@ var wg sync.WaitGroup
 
 func main() {
 	ctx := context.Background()
-
 	//配置初始化
 	if !config.Init(ctx) {
 		os.Exit(0)

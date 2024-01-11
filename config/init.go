@@ -1,13 +1,14 @@
 package config
 
 import (
+	"os"
 	"strconv"
 	"strings"
 )
 
 var Conf Input
 
-const version = "24.0102"
+const version = "24.0111"
 
 // initSeq    false = 最小值 <= 当前页码 <=  最大值
 func initSeq() {
@@ -20,4 +21,15 @@ func initSeq() {
 	Conf.SeqStart = min
 	Conf.SeqEnd = max
 	return
+}
+
+func UserHomeDir() string {
+	if os.PathSeparator == '\\' {
+		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		if home == "" {
+			home = os.Getenv("USERPROFILE")
+		}
+		return home
+	}
+	return os.Getenv("HOME")
 }

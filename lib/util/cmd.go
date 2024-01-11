@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -135,5 +136,25 @@ func runOsWin(inputUri string, outfile string, args []string) bool {
 		return false
 	}
 	fmt.Println()
+	return true
+}
+
+func OpenGUI(args []string) bool {
+	procAttr := &os.ProcAttr{
+		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
+	}
+	fPath, _ := os.Executable()
+	binDir := filepath.Dir(fPath)
+
+	argv := []string{"/c", "-i"}
+	if args != nil {
+		argv = append(argv, args...)
+	}
+	process, err := os.StartProcess(binDir+"\\bookget-gui.exe", argv, procAttr)
+	if err != nil {
+		fmt.Println("start process error:", err)
+		return false
+	}
+	_ = process.Release()
 	return true
 }

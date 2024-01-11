@@ -215,7 +215,7 @@ func (p *Tianyige) download() (msg string, err error) {
 	for _, record := range canvases {
 		parts[record.FascicleId] = append(parts[record.FascicleId], record)
 	}
-	var bookmark string
+	var bookmark = "#版本=1.0\r\n"
 	sizeVol := len(respVolume)
 	for i, vol := range respVolume {
 		i++
@@ -232,12 +232,11 @@ func (p *Tianyige) download() (msg string, err error) {
 		}
 		p.do(parts[vol.FascicleId])
 	}
-	if len(bookmark) > 0 {
-		savePath := CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
-		data, _ := io.ReadAll(transform.NewReader(bytes.NewReader([]byte(bookmark)), simplifiedchinese.GBK.NewEncoder()))
-		_ = os.WriteFile(savePath+"bookmark.txt", []byte(bookmark), os.ModePerm)
-		_ = os.WriteFile(savePath+"bookmark_gbk.txt", data, os.ModePerm)
-	}
+
+	savePath := CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
+	data, _ := io.ReadAll(transform.NewReader(bytes.NewReader([]byte(bookmark)), simplifiedchinese.GBK.NewEncoder()))
+	_ = os.WriteFile(savePath+"bookmark.txt", []byte(bookmark), os.ModePerm)
+	_ = os.WriteFile(savePath+"bookmark_gbk.txt", data, os.ModePerm)
 	return msg, err
 }
 
@@ -317,9 +316,9 @@ func (p *Tianyige) getVolumes(catalogId string, jar *cookiejar.Jar) (volumes []T
 }
 
 func (p *Tianyige) getCanvases(bookId string, jar *cookiejar.Jar) (canvases []TygImageRecord, err error) {
-	for i := 0; i < 100; i++ {
+	for i := 1; i < 100; i++ {
 		apiUrl := fmt.Sprintf("https://%s/g/sw-anb/api/queryImageByCatalog?catalogId=%s", p.dt.UrlParsed.Host, bookId)
-		d := fmt.Sprintf(`{"param":{"pageNum":%d,"pageSize":100}}`, i+1)
+		d := fmt.Sprintf(`{"param":{"pageNum":%d,"pageSize":999}}`, i)
 		bs, err := p.postBody(apiUrl, []byte(d), jar)
 		if bs == nil || err != nil {
 			break

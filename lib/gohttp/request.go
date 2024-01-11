@@ -13,6 +13,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -258,32 +259,29 @@ func (r *Request) parseCookieFile() {
 		return
 	}
 	defer fp.Close()
+
 	bsHeader, err := io.ReadAll(fp)
 	if err != nil {
 		return
 	}
-	c := strings.ReplaceAll(string(bsHeader), "\r\n", "\n")
-	r.req.Header.Add("Cookie", c)
-	//mHeader := strings.Split(sHeader, "\n")
-	//for _, line := range mHeader {
-	//	s := strings.Trim(line, "\r")
-	//	i := strings.Index(s, ":")
-	//	if i == -1 {
-	//		continue
-	//	}
-	//	k := s[:i]
-	//	v := strings.TrimSpace(s[i+1:])
-	//	if v == "" {
-	//		continue
-	//	}
-	//	if "cookie" == strings.ToLower(k) {
-	//		r.req.Header.Add("Cookie", v)
-	//	} else if "user-agent" == strings.ToLower(k) {
-	//		r.req.Header.Set("User-Agent", v)
-	//	} else {
-	//		r.req.Header.Set(k, v)
-	//	}
-	//}
+	mHeader := strings.Split(string(bsHeader), "\n")
+	for _, line := range mHeader {
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		text := regexp.MustCompile(`\\"`).ReplaceAllString(line, "\"")
+		row := strings.Split(text, "\t")
+		if len(row) < 8 {
+			continue
+		}
+		k := strings.ReplaceAll(row[5], "\"", "")
+		v := strings.ReplaceAll(row[6], "\"", "")
+		//expires := strings.ReplaceAll(row[4], "#HttpOnly_", "")
+		r.req.AddCookie(&http.Cookie{
+			Name:  k,
+			Value: v,
+		})
+	}
 }
 
 func (r *Request) parseHeaders() {

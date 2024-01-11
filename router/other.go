@@ -59,8 +59,8 @@ type DlibGoKr struct{}
 func (p DlibGoKr) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
 		n := i + 1
-		var libgokr app.DlibGoKr
-		libgokr.Init(n, s)
+		var lod app.LodNLGoKr
+		lod.Init(n, s)
 	}
 	return nil, nil
 }
