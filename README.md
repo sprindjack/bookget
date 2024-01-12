@@ -16,8 +16,7 @@ cd bookget
 go build .
 ```
 
-- 源码构建的 MacOS/Linux 版，与releases发布版一致。
-- 源码构建的 Windows 版缺少webview支持，部分网站无法下载。例如：韩国国家图书馆、香港中文大学图书馆。
+- For Win可用环境：windows 10 x64 / windows 11 x64 （自2024/01/12日起，引入bookget-gui只适用于Win10/11 x64系统）。
 
 ### 捐赠方式
 - 捐赠链接：https://github.com/deweizhu/bookget/wiki/SPONSOR
