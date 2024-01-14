@@ -28,16 +28,18 @@ type ResponseManifestv3 struct {
 	Label struct {
 		None []string `json:"none"`
 	} `json:"label"`
-	Height int `json:"height"`
-	Width  int `json:"width"`
-	Items  []struct {
+	Height   int `json:"height"`
+	Width    int `json:"width"`
+	Canvases []struct {
 		Id     string `json:"id"`
 		Type   string `json:"type"`
 		Height int    `json:"height"`
 		Width  int    `json:"width"`
 		Items  []struct {
+			Id    string `json:"id"`
 			Type  string `json:"type"`
 			Items []struct {
+				Id         string `json:"id"`
 				Type       string `json:"type"`
 				Motivation string `json:"motivation"`
 				Body       struct {
@@ -45,10 +47,16 @@ type ResponseManifestv3 struct {
 					Type    string `json:"type"`
 					Format  string `json:"format"`
 					Service []struct {
-						Id      string `json:"id"`
-						Type    string `json:"type"`
+						Id   string `json:"id"`
+						Type string `json:"type"`
+						//![ See https://da.library.pref.osaka.jp/api/items/03-0000183/manifest.json
+						Id_   string `json:"@id"`
+						Type_ string `json:"@type"`
+						//]!
 						Profile string `json:"profile"`
 					} `json:"service"`
+					Height int `json:"height"`
+					Width  int `json:"width"`
 				} `json:"body"`
 				Target string `json:"target"`
 			} `json:"items"`
@@ -126,23 +134,26 @@ func (p *IIIFv3) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
 	}
-	if len(manifest.Items) == 0 {
+	if len(manifest.Canvases) == 0 {
 		return
 	}
-	size := len(manifest.Items)
+	size := len(manifest.Canvases)
 	canvases = make([]string, 0, size)
 	config.Conf.Format = strings.ReplaceAll(config.Conf.Format, "full/full", "full/max")
-	for _, canvase := range manifest.Items {
-		for _, image := range canvase.Items[0].Items {
-			if config.Conf.UseDziRs {
-				//dezoomify-rs URL
-				iiiInfo := fmt.Sprintf("%s/info.json", image.Body.Service[0].Id)
-				canvases = append(canvases, iiiInfo)
-			} else {
-				//JPEG URL
-				imgUrl := image.Body.Service[0].Id + "/" + config.Conf.Format
-				canvases = append(canvases, imgUrl)
-			}
+	for _, canvase := range manifest.Canvases {
+		image := canvase.Items[0].Items[0]
+		id := image.Body.Service[0].Id
+		if id == "" && image.Body.Service[0].Id_ != "" {
+			id = image.Body.Service[0].Id_
+		}
+		if config.Conf.UseDziRs {
+			//dezoomify-rs URL
+			iiiInfo := fmt.Sprintf("%s/info.json", id)
+			canvases = append(canvases, iiiInfo)
+		} else {
+			//JPEG URL
+			imgUrl := id + "/" + config.Conf.Format
+			canvases = append(canvases, imgUrl)
 		}
 	}
 	return canvases, nil

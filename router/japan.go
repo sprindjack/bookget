@@ -94,16 +94,6 @@ func (p Kyotou) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	return nil, nil
 }
 
-type ElibGprime struct{}
-
-func (p ElibGprime) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	for i, s := range sUrl {
-		var gprime app.Gprime
-		gprime.Init(i+1, s)
-	}
-	return nil, nil
-}
-
 type KhirinRekihaku struct{}
 
 func (p KhirinRekihaku) getRouterInit(sUrl []string) (map[string]interface{}, error) {

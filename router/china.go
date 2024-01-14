@@ -233,3 +233,9 @@ func (p ZhuCheng) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	}
 	return nil, nil
 }
+
+type CafaEdu struct{}
+
+func (p CafaEdu) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	panic("implement me")
+}

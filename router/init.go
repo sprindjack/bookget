@@ -90,6 +90,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["www.szmuseum.com"] = new(Szmuseum)
 		//[中国]山东省诸城市图书馆
 		Router["124.134.220.209:8100"] = new(ZhuCheng)
+		Router["dlibgate.cafa.edu.cn"] = new(CafaEdu)
 		//}}} -----------------------------------------------------------------
 
 		//---------------日本--------------------------------------------------
@@ -121,8 +122,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[日本]庆应义塾大学图书馆
 		Router["dcollections.lib.keio.ac.jp"] = new(NormalIIIF)
 
-		//[日本]大阪府立圖書館
-		Router["e-library2.gprime.jp"] = new(ElibGprime)
+		//[日本]大阪府立圖書館 IIIF自動檢測
+
 		//[日本]国立历史民俗博物馆
 		Router["khirin-a.rekihaku.ac.jp"] = new(KhirinRekihaku)
 		//[日本]市立米泽图书馆
