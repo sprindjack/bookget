@@ -16,7 +16,7 @@ cd bookget
 go build .
 ```
 
-- For Win可用环境：[windows 10 x64](https://www.microsoft.com/zh-cn/software-download/windows10) / [windows 11](https://www.microsoft.com/zh-cn/software-download/windows11) （自2024/01/12日起，引入bookget-gui只适用于Win10/11 x64系统）。
+- For Win可用环境：windows 10 x64 / windows 11 （自2024/01/12日起，引入bookget-gui只适用于Win10/11 x64系统）。
 
 
 ### 问题讨论
