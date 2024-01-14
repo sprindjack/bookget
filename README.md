@@ -20,7 +20,7 @@ go build .
 
 
 ### 问题讨论
-- Bug报告、问题讨论: https://github.com/deweizhu/bookget/issues
+- Bug报告: https://github.com/deweizhu/bookget/issues
 - [书格](https://new.shuge.org/) 交流区(https://www.shuge.org/meet/at/80240/)
 
    
