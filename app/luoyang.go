@@ -53,7 +53,7 @@ func (p *Luoyang) download() (msg string, err error) {
 		log.Printf(" %d/%d volume, %s \n", i+1, len(respVolume), vol)
 		fName := util.FileName(vol)
 		sortId := util.GenNumberSorted(i + 1)
-		dest := p.dt.SavePath + sortId + fName
+		dest := p.dt.SavePath + sortId + "." + fName
 		p.do(dest, vol)
 		util.PrintSleepTime(config.Conf.Speed)
 	}
@@ -72,8 +72,8 @@ func (p *Luoyang) do(dest, pdfUrl string) (msg string, err error) {
 			"User-Agent": config.Conf.UserAgent,
 		},
 	}
-	resp, err := gohttp.FastGet(ctx, pdfUrl, opts)
-	if err != nil || resp.GetStatusCode() != 200 {
+	_, err = gohttp.FastGet(ctx, pdfUrl, opts)
+	if err != nil {
 		fmt.Println(err)
 	}
 	return "", err
