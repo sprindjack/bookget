@@ -140,10 +140,8 @@ func CreateDirectory(domain, bookId, volumeId string) string {
 }
 
 func OpenWebBrowser(sUrl string, args []string) {
-	_ = os.Remove(config.Conf.CookieFile)
 	var wg sync.WaitGroup
-	wg.Add(1)
-
+	wg.Add(2)
 	go func() {
 		defer wg.Done()
 		argv := []string{sUrl}
@@ -151,13 +149,38 @@ func OpenWebBrowser(sUrl string, args []string) {
 			argv = append(argv, args...)
 		}
 		if ret := util.OpenGUI(argv); ret == true {
-			for i := 0; i < 600; i++ {
-				if FileExist(config.Conf.CookieFile) {
-					break
-				}
-				fmt.Printf("请在打开的浏览器中，完成登录用户，并且“刷新”网页.\r")
-				time.Sleep(time.Second * 3)
+			return
+		}
+	}()
+
+	//WaitNewCookie
+	_ = os.Remove(config.Conf.CookieFile)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 3600; i++ {
+			if FileExist(config.Conf.CookieFile) {
+				break
 			}
+			fmt.Printf("请使用 bookget-gui 浏览器，打开图书网址，完成「真人验证 / 登录用户」，然后 「刷新」 网页.\r")
+			time.Sleep(time.Second * 3)
+		}
+	}()
+
+	wg.Wait()
+}
+
+func WaitNewCookie() {
+	_ = os.Remove(config.Conf.CookieFile)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 3600; i++ {
+			if FileExist(config.Conf.CookieFile) {
+				break
+			}
+			fmt.Printf("请使用 bookget-gui 浏览器，打开图书网址，完成「真人验证 / 登录用户」，然后 「刷新」 网页.\r")
+			time.Sleep(time.Second * 3)
 		}
 	}()
 	wg.Wait()

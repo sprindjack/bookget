@@ -43,7 +43,7 @@ func (r *Cuhk) Init(iTask int, sUrl string) (msg string, err error) {
 		return "requested URL was not found.", err
 	}
 	r.dt.Jar, _ = cookiejar.New(nil)
-	OpenWebBrowser(sUrl, nil)
+	OpenWebBrowser(sUrl, []string{})
 	return r.download()
 }
 
@@ -109,7 +109,7 @@ func (r *Cuhk) do(imgUrls []string) (msg string, err error) {
 			if err == nil && resp.GetStatusCode() == 200 {
 				break
 			}
-			OpenWebBrowser(r.dt.Url, nil)
+			WaitNewCookie()
 		}
 		util.PrintSleepTime(config.Conf.Speed)
 		fmt.Println()
