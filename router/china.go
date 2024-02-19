@@ -237,5 +237,9 @@ func (p ZhuCheng) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 type CafaEdu struct{}
 
 func (p CafaEdu) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	panic("implement me")
+	for i, s := range sUrl {
+		var cafa app.CafaEdu
+		cafa.Init(i+1, s)
+	}
+	return nil, nil
 }

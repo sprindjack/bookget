@@ -122,7 +122,14 @@ func (r *Request) Request(method, uri string, opts ...Options) (*Request, error)
 }
 
 func (r *Request) do() (*Response, error) {
-	_resp, err := r.cli.Do(r.req)
+	var _resp = new(http.Response)
+	var err error
+	for i := 0; i < r.opts.Retry; i++ {
+		_resp, err = r.cli.Do(r.req)
+		if err == nil && _resp != nil {
+			break
+		}
+	}
 	if _resp == nil || _resp.Body == nil {
 		return nil, err
 	}
@@ -173,11 +180,15 @@ func (r *Request) do() (*Response, error) {
 }
 
 func (r *Request) parseOptions() {
-	// default timeout 30s
-	//if r.opts.Timeout == 0 {
-	//	r.opts.Timeout = 30
-	//}
+	//default timeout 30s
+	if r.opts.Timeout == 0 {
+		r.opts.Timeout = 30
+	}
 	r.opts.timeout = time.Duration(r.opts.Timeout*1000) * time.Millisecond
+
+	if r.opts.Retry == 0 {
+		r.opts.Retry = 3
+	}
 }
 
 func (r *Request) parseClient() {

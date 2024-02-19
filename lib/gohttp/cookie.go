@@ -1,7 +1,6 @@
 package gohttp
 
 import (
-	"bookget/config"
 	"os"
 	"regexp"
 	"strings"
@@ -11,7 +10,7 @@ func ReadCookieFile(cfile string) (cookies string) {
 	if cfile == "" {
 		return
 	}
-	bs, err := os.ReadFile(config.Conf.CookieFile)
+	bs, err := os.ReadFile(cfile)
 	if err != nil {
 		return ""
 	}

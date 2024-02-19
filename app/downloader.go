@@ -51,6 +51,12 @@ type PartialVolumes struct {
 	volumes   []string
 }
 
+type PartialCanvases struct {
+	directory string
+	Title     string
+	Canvases  []string
+}
+
 func getBookId(sUrl string) (bookId string) {
 	if sUrl == "" {
 		return ""

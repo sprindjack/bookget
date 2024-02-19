@@ -12,6 +12,7 @@ type Options struct {
 	BaseURI     string
 	Timeout     float32
 	timeout     time.Duration
+	Retry       int
 	Query       interface{}
 	Headers     map[string]interface{}
 	Cookies     interface{}

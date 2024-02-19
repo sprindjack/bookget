@@ -184,6 +184,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["kyudb.snu.ac.kr"] = new(KyudbSnu)
 		Router["sillok.history.go.kr"] = new(Sillokgokr)
 		Router["lod.nl.go.kr"] = new(DlibGoKr)
+		//高丽大学
+		Router["kostma.korea.ac.kr"] = new(Korea)
 
 		//俄罗斯图书馆
 		Router["viewer.rsl.ru"] = new(RslRu)

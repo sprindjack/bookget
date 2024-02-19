@@ -65,6 +65,17 @@ func (p DlibGoKr) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	return nil, nil
 }
 
+type Korea struct{}
+
+func (p Korea) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		n := i + 1
+		var korea app.Korea
+		korea.Init(n, s)
+	}
+	return nil, nil
+}
+
 type RslRu struct{}
 
 func (p RslRu) getRouterInit(sUrl []string) (map[string]interface{}, error) {
