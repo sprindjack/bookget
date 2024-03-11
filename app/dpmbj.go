@@ -16,16 +16,16 @@ import (
 
 const (
 	//故宫名画 minghuaji.dpm.org.cn
-	//来源 https://minghuaji.dpm.org.cn/js/gve.js5
+	//来源 https://minghuaji.dpm.org.cn/js/gve.js
 	// array[3] 是Key, array[5] 是IV
-	MINGHUAJI_KEY = "TRADlRXcAl3uzfuK"
-	MINGHUAJI_IV  = "tDrpStrJPT3h4xrM"
+	MINGHUAJI_KEY = "ucv4uHn5bynSi42c"
+	MINGHUAJI_IV  = "CGnpTaoTS5sIG5SK"
 
 	//数字文物 digicol.dpm.org.cn
 	//来源 https://digicol.dpm.org.cn/js/gve.js
 	// array[3] 是Key, array[5] 是IV
-	DIGICOL_KEY = "VfYr2S2PrT8N6unK"
-	DIGICOL_IV  = "0Bz1Rm1bCkLG5QKz"
+	DIGICOL_KEY = "XxHgrFq2IzqOgORm"
+	DIGICOL_IV  = "3HhRveOYbpEBrwqF"
 )
 
 type DpmBj struct {

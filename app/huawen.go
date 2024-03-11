@@ -70,7 +70,7 @@ func (r *Huawen) do(pdfUrl string) (msg string, err error) {
 	opts := gohttp.Options{
 		DestFile:    dest,
 		Overwrite:   false,
-		Concurrency: config.Conf.Threads,
+		Concurrency: 1,
 		CookieFile:  config.Conf.CookieFile,
 		CookieJar:   r.dt.Jar,
 		Headers: map[string]interface{}{
