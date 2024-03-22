@@ -30,4 +30,5 @@ go build .
 [^1]:[https://gpi.culture.tw/books/1011300273](https://gpi.culture.tw/books/1011300273)
 
 ### 第三方社區/網站
-[书格 www.shuge.org](https://www.shuge.org/)
+- 书格 https://www.shuge.org
+- Arch Linux AUR https://aur.archlinux.org/packages/bookget-git
