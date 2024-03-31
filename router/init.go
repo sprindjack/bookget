@@ -60,10 +60,6 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["gzdd.gzlib.org.cn"] = new(GzddGzlib)
 		//[中国]江苏高校珍贵古籍数字图书馆
 		Router["jsgxgj.nju.edu.cn"] = new(Njuedu)
-		//北京故宫博物院-故宫名画记
-		Router["minghuaji.dpm.org.cn"] = new(MinghuajiBjDpm)
-		Router["m-minghuaji.dpm.org.cn"] = new(MinghuajiBjDpm)
-		Router["digicol.dpm.org.cn"] = new(MinghuajiBjDpm)
 		//[中国]中华寻根网-国图
 		Router["ouroots.nlc.cn"] = new(OurootsNlc)
 		//[中国]国家哲学社会科学文献中心
