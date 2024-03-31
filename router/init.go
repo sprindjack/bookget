@@ -58,14 +58,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[中国]广州大典
 		Router["gzdd.gzlib.gov.cn"] = new(GzddGzlib)
 		Router["gzdd.gzlib.org.cn"] = new(GzddGzlib)
-		//[中国]四川省图书馆-古籍
-		Router["guji.sclib.org"] = new(GujiSclib)
-		//[中国]云南古籍数字图书馆
-		Router["msq.ynlib.cn"] = new(GujiSclib)
-		//[中国]天一阁博物院古籍数字化平台
-		Router["gj.tianyige.com.cn"] = new(TianYiGeLib)
-		//[中国]江苏珍贵古籍数字图书馆
-		Router["218.2.105.121"] = new(GuijiJslib)
+		//[中国]江苏高校珍贵古籍数字图书馆
 		Router["jsgxgj.nju.edu.cn"] = new(Njuedu)
 		//北京故宫博物院-故宫名画记
 		Router["minghuaji.dpm.org.cn"] = new(MinghuajiBjDpm)
@@ -90,6 +83,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["www.szmuseum.com"] = new(Szmuseum)
 		//[中国]山东省诸城市图书馆
 		Router["124.134.220.209:8100"] = new(ZhuCheng)
+		//[中国]中央美院图书馆
 		Router["dlibgate.cafa.edu.cn"] = new(CafaEdu)
 		//}}} -----------------------------------------------------------------
 
