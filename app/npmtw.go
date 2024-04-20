@@ -68,7 +68,7 @@ func (p *NpmTw) download() (msg string, err error) {
 	var wg sync.WaitGroup
 	q := QueueNew(int(config.Conf.Threads))
 	for i, vol := range respVolume {
-		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+		if !config.VolumeRange(i) {
 			continue
 		}
 		vid := util.GenNumberSorted(i + 1)

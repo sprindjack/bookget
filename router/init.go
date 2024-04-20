@@ -26,13 +26,11 @@ var Router = make(map[string]RouterInit)
 // siteID: 站点ID
 // sUrl: 网址
 func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error) {
-	if config.Conf.AutoDetect > 0 {
-		if config.Conf.AutoDetect == 1 {
-			siteID = "bookget"
-		}
-		if config.Conf.AutoDetect == 2 {
-			siteID = "iiif.io"
-		}
+	if config.Conf.AutoDetect == 1 {
+		siteID = "bookget"
+	}
+	if config.Conf.AutoDetect == 2 || strings.Contains(sUrl[0], ".json") {
+		siteID = "iiif.io"
 	}
 	doInit.Do(func() {
 		//{{{ ---------------中国--------------------------------------------------
@@ -58,6 +56,9 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[中国]广州大典
 		Router["gzdd.gzlib.gov.cn"] = new(GzddGzlib)
 		Router["gzdd.gzlib.org.cn"] = new(GzddGzlib)
+
+		//[中国]天一阁博物院古籍数字化平台
+		Router["gj.tianyige.com.cn"] = new(TianYiGeLib)
 		//[中国]江苏高校珍贵古籍数字图书馆
 		Router["jsgxgj.nju.edu.cn"] = new(Njuedu)
 		//[中国]中华寻根网-国图
@@ -79,7 +80,6 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["www.szmuseum.com"] = new(Szmuseum)
 		//[中国]山东省诸城市图书馆
 		Router["124.134.220.209:8100"] = new(ZhuCheng)
-		//[中国]中央美院图书馆
 		Router["dlibgate.cafa.edu.cn"] = new(CafaEdu)
 		//}}} -----------------------------------------------------------------
 

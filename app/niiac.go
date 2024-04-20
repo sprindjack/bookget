@@ -51,7 +51,7 @@ func (p *Niiac) download() (msg string, err error) {
 	}
 	sizeVol := len(respVolume)
 	for i, vol := range respVolume {
-		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+		if !config.VolumeRange(i) {
 			continue
 		}
 		if sizeVol == 1 {

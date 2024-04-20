@@ -13,7 +13,8 @@ import (
 )
 
 type Nationaljp struct {
-	dt *DownloadTask
+	dt    *DownloadTask
+	extId string
 }
 
 func (p *Nationaljp) Init(iTask int, sUrl string) (msg string, err error) {
@@ -26,6 +27,7 @@ func (p *Nationaljp) Init(iTask int, sUrl string) (msg string, err error) {
 		return "requested URL was not found.", err
 	}
 	p.dt.Jar, _ = cookiejar.New(nil)
+	p.extId = "jp2"
 	return p.download()
 }
 
@@ -48,41 +50,24 @@ func (p *Nationaljp) download() (msg string, err error) {
 	}
 	p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
 	for i, vol := range respVolume {
-		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+		if !config.VolumeRange(i) {
 			continue
 		}
 		vid := util.GenNumberSorted(i + 1)
-		ext := ".zip"
-		extId := "pdf"
-		switch config.Conf.FileExt {
-		case ".jpg":
-			extId = "jpeg"
-		case ".jp2":
-			extId = "jp2"
-		}
-		fileName := vid + ext
+		fileName := vid + ".zip"
 		dest := p.dt.SavePath + fileName
 		if FileExist(dest) {
 			continue
 		}
-		log.Printf(" %d/%d volume, %s\n", i+1, len(respVolume), extId)
-		p.do(vol, dest)
+		log.Printf(" %d/%d volume, %s\n", i+1, len(respVolume), p.extId)
+		p.do(i+1, vol, dest)
 	}
 	return msg, err
 }
 
-func (p *Nationaljp) do(id, dest string) (msg string, err error) {
-	// pdf|jp2|jpeg
+func (p *Nationaljp) do(index int, id, dest string) (msg string, err error) {
 	apiUrl := "https://" + p.dt.UrlParsed.Host + "/acv/auto_conversion/download"
-	extId := "pdf"
-	switch config.Conf.FileExt {
-	case ".jpg":
-		extId = "jpeg"
-	case ".jp2":
-		extId = "jp2"
-	}
-
-	data := fmt.Sprintf("DL_TYPE=%s&id_1=%s&page_1=", extId, id)
+	data := fmt.Sprintf("DL_TYPE=%s&id_%d=%s", p.extId, index, id)
 	ctx := context.Background()
 	opts := gohttp.Options{
 		DestFile:    dest,

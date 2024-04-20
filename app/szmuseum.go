@@ -59,7 +59,7 @@ func (r *Szmuseum) download() (msg string, err error) {
 		return "getVolumes", err
 	}
 	for i, vol := range respVolume {
-		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+		if !config.VolumeRange(i) {
 			continue
 		}
 		vid := util.GenNumberSorted(i + 1)

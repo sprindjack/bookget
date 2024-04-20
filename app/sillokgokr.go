@@ -114,7 +114,7 @@ func (r *SillokGoKr) download() (msg string, err error) {
 		}
 		log.Printf("book %d/%d, %d volume \n", k+1, len(respBook), len(volumes))
 		for i, v := range volumes {
-			if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+			if !config.VolumeRange(i) {
 				continue
 			}
 			r.bookMark = ""

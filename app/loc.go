@@ -62,18 +62,18 @@ func (r *Loc) getBookId(sUrl string) (bookId string) {
 
 func (r *Loc) download() (msg string, err error) {
 	//for China
-	if r.isChinaIP() {
-		name := util.GenNumberSorted(r.dt.Index)
-		log.Printf("Get %s  %s\n", name, r.dt.Url)
-		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
-		canvases, err := r.getCanvasesJPG2000(r.dt.Url)
-		if err != nil || canvases == nil {
-			return "requested URL was not found.", err
-		}
-		log.Printf(" %d pages \n", len(canvases))
-		config.Conf.FileExt = ".jp2" //强制jpg2000
-		return r.do(canvases)
-	}
+	//if r.isChinaIP() {
+	//	name := util.GenNumberSorted(r.dt.Index)
+	//	log.Printf("Get %s  %s\n", name, r.dt.Url)
+	//	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
+	//	canvases, err := r.getCanvasesJPG2000(r.dt.Url)
+	//	if err != nil || canvases == nil {
+	//		return "requested URL was not found.", err
+	//	}
+	//	log.Printf(" %d pages \n", len(canvases))
+	//	config.Conf.FileExt = ".jp2" //强制jpg2000
+	//	return r.do(canvases)
+	//}
 
 	//for other
 	apiUrl := fmt.Sprintf("https://www.loc.gov/item/%s/?fo=json", r.dt.BookId)
@@ -90,7 +90,7 @@ func (r *Loc) download() (msg string, err error) {
 		return "getVolumes", err
 	}
 	for i, vol := range respVolume {
-		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+		if !config.VolumeRange(i) {
 			continue
 		}
 		vid := util.GenNumberSorted(i + 1)

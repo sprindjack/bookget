@@ -57,7 +57,7 @@ func (p *OnbDigital) download() (msg string, err error) {
 	}
 	p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
 	for i, vol := range respVolume {
-		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+		if !config.VolumeRange(i) {
 			continue
 		}
 		canvases, err := p.getCanvases(vol, p.dt.Jar)

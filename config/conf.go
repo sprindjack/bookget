@@ -17,9 +17,12 @@ type Input struct {
 	UrlsFile   string //输入urls.txt
 	CookieFile string //输入cookie.txt
 	Seq        string //页面范围 4:434
-	SeqStart   int    //页面范围 4:434
-	SeqEnd     int    //页面范围 4:434
-	Volume     int    //多册，只下第N册
+	SeqStart   int
+	SeqEnd     int
+	Volume     string //册范围 4:434
+	VolStart   int
+	VolEnd     int
+
 	Speed      uint   //限速
 	SaveFolder string //下载文件存放目录，默认为当前文件夹下 Downloads 目录下
 	//;生成 dezoomify-rs 可用的文件(默认生成文件名 dezoomify-rs.urls.txt）
@@ -59,7 +62,7 @@ func Init(ctx context.Context) bool {
 	flag.StringVar(&Conf.UrlsFile, "i", iniConf.UrlsFile, "下载的URLs，指定任意本地文件，例如：urls.txt")
 	flag.StringVar(&Conf.SaveFolder, "o", iniConf.SaveFolder, "下载保存到目录")
 	flag.StringVar(&Conf.Seq, "seq", iniConf.Seq, "页面范围，如4:434")
-	flag.IntVar(&Conf.Volume, "vol", iniConf.Volume, "多册图书，只下第N册")
+	flag.StringVar(&Conf.Volume, "vol", iniConf.Volume, "多册图书，如10:20册，只下载10至20册")
 	flag.StringVar(&Conf.Format, "fmt", iniConf.Format, "IIIF 图像请求URI: full/full/0/default.jpg")
 	flag.StringVar(&Conf.UserAgent, "ua", iniConf.UserAgent, "user-agent")
 	flag.BoolVar(&Conf.MergePDFs, "mp", iniConf.MergePDFs, "合并PDF文件下载，可选值[0|1]。0=否，1=是。仅对 rbk-doc.npm.edu.tw 有效。")
@@ -99,7 +102,8 @@ func Init(ctx context.Context) bool {
 	if Conf.Speed > 60 {
 		Conf.Speed = 60
 	}
-	initSeq()
+	initSeqRange()
+	initVolumeRange()
 	//保存目录处理
 	_ = os.Mkdir(Conf.SaveFolder, os.ModePerm)
 	return true
@@ -129,7 +133,9 @@ func initINI() (io Input, err error) {
 		Seq:           "",
 		SeqStart:      0,
 		SeqEnd:        0,
-		Volume:        0,
+		Volume:        "",
+		VolStart:      0,
+		VolEnd:        0,
 		Speed:         0,
 		SaveFolder:    dir,
 		Format:        format,
@@ -180,7 +186,7 @@ func initINI() (io Input, err error) {
 
 	secCus := cfg.Section("custom")
 	io.Seq = secCus.Key("seq").String()
-	io.Volume = secCus.Key("vol").MustInt(0)
+	io.Volume = secCus.Key("vol").String()
 	io.MergePDFs = secCus.Key("mp").MustBool(true)
 	io.Bookmark = secCus.Key("bookmark").MustBool(false)
 	io.UserAgent = secCus.Key("ua").MustString(ua)

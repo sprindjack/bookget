@@ -47,13 +47,12 @@ func (r Tjlswx) download() (msg string, err error) {
 		fmt.Println(err)
 		return "getVolumes", err
 	}
-	host := strings.Replace(r.dt.UrlParsed.Host, ":", "_", 1)
 	for i, vol := range respVolume {
-		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+		if !config.VolumeRange(i) {
 			continue
 		}
 		vid := util.GenNumberSorted(i + 1)
-		r.dt.SavePath = CreateDirectory(host, r.dt.BookId, vid)
+		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 		canvases, err := r.getCanvases(vol, r.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)

@@ -48,7 +48,7 @@ func Download(dt *DownloadTask) (msg string, err error) {
 	log.Printf(" %d volumes(parts).\n", len(bookUrls))
 	serverUrl := fmt.Sprintf("%s://%s", dt.UrlParsed.Scheme, dt.UrlParsed.Host)
 	for k, page := range bookUrls {
-		if config.Conf.Volume > 0 && config.Conf.Volume != k+1 {
+		if !config.VolumeRange(k) {
 			continue
 		}
 		vid := util.GenNumberSorted(k + 1)

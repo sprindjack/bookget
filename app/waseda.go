@@ -38,7 +38,7 @@ func (r Waseda) download() (msg string, err error) {
 	}
 	if config.Conf.FileExt == ".pdf" {
 		for i, vol := range respVolume {
-			if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+			if !config.VolumeRange(i) {
 				continue
 			}
 			sortId := util.GenNumberSorted(i + 1)
@@ -50,7 +50,7 @@ func (r Waseda) download() (msg string, err error) {
 		}
 	} else {
 		for i, vol := range respVolume {
-			if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+			if !config.VolumeRange(i) {
 				continue
 			}
 			if len(respVolume) == 1 {

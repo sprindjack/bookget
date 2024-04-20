@@ -8,18 +8,34 @@ import (
 
 var Conf Input
 
-const version = "24.0331"
+const version = "24.0420"
 
 // initSeq    false = 最小值 <= 当前页码 <=  最大值
-func initSeq() {
+func initSeqRange() {
 	if Conf.Seq == "" || !strings.Contains(Conf.Seq, ":") {
 		return
 	}
 	m := strings.Split(Conf.Seq, ":")
-	min, _ := strconv.Atoi(m[0])
-	max, _ := strconv.Atoi(m[1])
-	Conf.SeqStart = min
-	Conf.SeqEnd = max
+	if len(m) == 1 {
+		Conf.SeqStart, _ = strconv.Atoi(m[0])
+		Conf.SeqEnd = Conf.SeqStart
+	} else {
+		Conf.SeqStart, _ = strconv.Atoi(m[0])
+		Conf.SeqEnd, _ = strconv.Atoi(m[1])
+	}
+	return
+}
+
+// initVolumeRange    false = 最小值 <= 当前页码 <=  最大值
+func initVolumeRange() {
+	m := strings.Split(Conf.Volume, ":")
+	if len(m) == 1 {
+		Conf.VolStart, _ = strconv.Atoi(m[0])
+		Conf.VolEnd = Conf.VolStart
+	} else {
+		Conf.VolStart, _ = strconv.Atoi(m[0])
+		Conf.VolEnd, _ = strconv.Atoi(m[1])
+	}
 	return
 }
 

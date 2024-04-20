@@ -43,21 +43,21 @@ func (r *Cuhk) Init(iTask int, sUrl string) (msg string, err error) {
 		return "requested URL was not found.", err
 	}
 	r.dt.Jar, _ = cookiejar.New(nil)
-	OpenWebBrowser(sUrl, []string{})
+	//OpenWebBrowser(sUrl, []string{})
+	WaitNewCookie()
 	return r.download()
 }
 
 func (r *Cuhk) download() (msg string, err error) {
 	name := util.GenNumberSorted(r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
-
 	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
 	if err != nil {
 		fmt.Println(err)
 		return "getVolumes", err
 	}
 	for i, vol := range respVolume {
-		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+		if !config.VolumeRange(i) {
 			continue
 		}
 		vid := util.GenNumberSorted(i + 1)
@@ -77,6 +77,44 @@ func (r *Cuhk) do(imgUrls []string) (msg string, err error) {
 	if imgUrls == nil {
 		return
 	}
+	if config.Conf.UseDziRs {
+		r.doDezoomifyRs(imgUrls)
+	} else {
+		r.doNormal(imgUrls)
+	}
+	return "", err
+}
+
+func (r *Cuhk) doDezoomifyRs(iiifUrls []string) bool {
+	if iiifUrls == nil {
+		return false
+	}
+	referer := url.QueryEscape(r.dt.Url)
+	size := len(iiifUrls)
+	for i, uri := range iiifUrls {
+		if uri == "" || !config.PageRange(i, size) {
+			continue
+		}
+		sortId := util.GenNumberSorted(i + 1)
+		filename := sortId + config.Conf.FileExt
+		dest := r.dt.SavePath + filename
+		if FileExist(dest) {
+			continue
+		}
+		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
+		cookies := gohttp.ReadCookieFile(config.Conf.CookieFile)
+		args := []string{"--dezoomer=deepzoom",
+			"-H", "Origin:" + referer,
+			"-H", "Referer:" + referer,
+			"-H", "User-Agent:" + config.Conf.UserAgent,
+			"-H", "cookie:" + cookies,
+		}
+		util.StartProcess(uri, dest, args)
+	}
+	return true
+}
+
+func (r *Cuhk) doNormal(imgUrls []string) {
 	fmt.Println()
 	referer := r.dt.Url
 	size := len(imgUrls)
@@ -109,22 +147,18 @@ func (r *Cuhk) do(imgUrls []string) (msg string, err error) {
 			if err == nil && resp.GetStatusCode() == 200 {
 				break
 			}
-			WaitNewCookie()
+			WaitNewCookieWithMsg(uri)
 		}
 		util.PrintSleepTime(config.Conf.Speed)
 		fmt.Println()
 	}
 	fmt.Println()
-	return "", err
+
 }
 
 func (r *Cuhk) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	bs, err := r.getBody(sUrl, jar)
-	if err != nil {
-		return
-	}
-	text := string(bs)
-	subText := util.SubText(text, "id=\"block-islandora-compound-object-compound-navigation-select-list\"", "id=\"book-viewer\">")
+	bs, err := r.getBodyWithLoop(sUrl, jar)
+	subText := util.SubText(string(bs), "id=\"block-islandora-compound-object-compound-navigation-select-list\"", "id=\"book-viewer\">")
 	matches := regexp.MustCompile(`value=['"]([A-z\d:_-]+)['"]`).FindAllStringSubmatch(subText, -1)
 	if matches == nil {
 		volumes = append(volumes, sUrl)
@@ -143,10 +177,7 @@ func (r *Cuhk) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, er
 }
 
 func (r *Cuhk) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	bs, err := r.getBody(sUrl, jar)
-	if err != nil {
-		return
-	}
+	bs, err := r.getBodyWithLoop(sUrl, jar)
 	var resp ResponsePage
 	matches := regexp.MustCompile(`"pages":([^]]+)]`).FindSubmatch(bs)
 	if matches == nil {
@@ -158,14 +189,31 @@ func (r *Cuhk) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, 
 	}
 	for _, page := range resp.ImagePage {
 		var imgUrl string
-		if config.Conf.FileExt == ".jpg" {
-			imgUrl = fmt.Sprintf("https://%s/iiif/2/%s/%s", r.dt.UrlParsed.Host, page.Identifier, config.Conf.Format)
+		if config.Conf.UseDziRs {
+			//dezoomify-rs URL
+			imgUrl = fmt.Sprintf("https://%s/iiif/2/%s/info.json", r.dt.UrlParsed.Host, page.Identifier)
 		} else {
-			imgUrl = fmt.Sprintf("https://%s/islandora/object/%s/datastream/JP2", r.dt.UrlParsed.Host, page.Pid)
+			if config.Conf.FileExt == ".jpg" {
+				imgUrl = fmt.Sprintf("https://%s/iiif/2/%s/%s", r.dt.UrlParsed.Host, page.Identifier, config.Conf.Format)
+			} else {
+				imgUrl = fmt.Sprintf("https://%s/islandora/object/%s/datastream/JP2", r.dt.UrlParsed.Host, page.Pid)
+			}
 		}
 		canvases = append(canvases, imgUrl)
 	}
 	return canvases, err
+}
+
+func (r *Cuhk) getBodyWithLoop(sUrl string, jar *cookiejar.Jar) (bs []byte, err error) {
+	for i := 0; i < 1000; i++ {
+		bs, err = r.getBody(sUrl, jar)
+		if err != nil {
+			WaitNewCookie()
+			continue
+		}
+		break
+	}
+	return bs, nil
 }
 
 func (r *Cuhk) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
@@ -191,10 +239,7 @@ func (r *Cuhk) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 }
 
 func (r *Cuhk) getCanvasesJPEG2000(sUrl string, jar *cookiejar.Jar) (imagePage []ImagePage) {
-	bs, err := r.getBody(sUrl, jar)
-	if err != nil {
-		return
-	}
+	bs, err := r.getBodyWithLoop(sUrl, jar)
 	var resp ResponsePage
 	matches := regexp.MustCompile(`"pages":([^]]+)]`).FindSubmatch(bs)
 	if matches != nil {

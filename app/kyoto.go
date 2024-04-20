@@ -51,7 +51,7 @@ func (p *Kyoto) download() (msg string, err error) {
 	}
 	sizeVol := len(respVolume)
 	for i, vol := range respVolume {
-		if config.Conf.Volume > 0 && config.Conf.Volume != i+1 {
+		if !config.VolumeRange(i) {
 			continue
 		}
 		if sizeVol == 1 {
@@ -86,7 +86,7 @@ func (p *Kyoto) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, e
 	if err != nil {
 		return
 	}
-	match := regexp.MustCompile(`https://(.+)/manifest.json`).FindSubmatch(bs)
+	match := regexp.MustCompile(`https://(.+?)/manifest.json`).FindSubmatch(bs)
 	if match == nil {
 		return
 	}

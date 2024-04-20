@@ -119,9 +119,6 @@ func ExecuteCommand(ctx context.Context, i int, sUrl string) {
 		return
 	}
 	siteId := u.Host
-	if config.Conf.AutoDetect == 1 {
-		siteId = "bookget"
-	}
 	msg, err := router.FactoryRouter(siteId, []string{sUrl})
 	if err != nil {
 		fmt.Println(err)
