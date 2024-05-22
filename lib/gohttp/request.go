@@ -180,10 +180,6 @@ func (r *Request) do() (*Response, error) {
 }
 
 func (r *Request) parseOptions() {
-	//default timeout 30s
-	if r.opts.Timeout == 0 {
-		r.opts.Timeout = 30
-	}
 	r.opts.timeout = time.Duration(r.opts.Timeout*1000) * time.Millisecond
 
 	if r.opts.Retry == 0 {

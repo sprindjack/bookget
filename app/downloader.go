@@ -211,3 +211,25 @@ func WaitNewCookieWithMsg(uri string) {
 	}()
 	wg.Wait()
 }
+
+func IsChinaIP(jar *cookiejar.Jar) bool {
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
+		CookieFile: config.Conf.CookieFile,
+		CookieJar:  jar,
+		Headers: map[string]interface{}{
+			"User-Agent": config.Conf.UserAgent,
+			"Referer":    "http://ip-api.com/",
+		},
+	})
+	resp, err := cli.Get("http://ip-api.com/json/?lang=zh-CN")
+	if err != nil {
+		return false
+	}
+	bs, _ := resp.GetBody()
+	text := string(bs)
+	if strings.Contains(text, "\"countryCode\":\"CN\"") {
+		return true
+	}
+	return false
+}

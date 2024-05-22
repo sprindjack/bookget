@@ -20,6 +20,7 @@ import (
 type Loc struct {
 	dt         *DownloadTask
 	xmlContent []byte
+	tmpFile    string
 }
 type LocManifestsJson struct {
 	Resources []struct {
@@ -61,21 +62,6 @@ func (r *Loc) getBookId(sUrl string) (bookId string) {
 }
 
 func (r *Loc) download() (msg string, err error) {
-	//for China
-	//if r.isChinaIP() {
-	//	name := util.GenNumberSorted(r.dt.Index)
-	//	log.Printf("Get %s  %s\n", name, r.dt.Url)
-	//	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
-	//	canvases, err := r.getCanvasesJPG2000(r.dt.Url)
-	//	if err != nil || canvases == nil {
-	//		return "requested URL was not found.", err
-	//	}
-	//	log.Printf(" %d pages \n", len(canvases))
-	//	config.Conf.FileExt = ".jp2" //强制jpg2000
-	//	return r.do(canvases)
-	//}
-
-	//for other
 	apiUrl := fmt.Sprintf("https://www.loc.gov/item/%s/?fo=json", r.dt.BookId)
 	r.xmlContent, err = r.getBody(apiUrl, r.dt.Jar)
 	if err != nil || r.xmlContent == nil {
@@ -127,7 +113,7 @@ func (r *Loc) do(imgUrls []string) (msg string, err error) {
 			continue
 		}
 		imgUrl := uri
-		log.Printf("Get %d/%d, URL: %s\n", i+1, size, imgUrl)
+		log.Printf("Get %d/%d, %s\n", i+1, size, imgUrl)
 		wg.Add(1)
 		q.Go(func() {
 			defer wg.Done()
@@ -234,54 +220,4 @@ func (r *Loc) getImagePage(fileUrls []LocImageFile) (downloadUrl string, ok bool
 		}
 	}
 	return
-}
-
-func (r *Loc) isChinaIP() bool {
-	ctx := context.Background()
-	cli := gohttp.NewClient(ctx, gohttp.Options{
-		CookieFile: config.Conf.CookieFile,
-		CookieJar:  r.dt.Jar,
-		Headers: map[string]interface{}{
-			"User-Agent": config.Conf.UserAgent,
-			"Referer":    "http://ip-api.com/",
-		},
-	})
-	resp, err := cli.Get("http://ip-api.com/json/?lang=zh-CN")
-	if err != nil {
-		return false
-	}
-	bs, _ := resp.GetBody()
-	text := string(bs)
-	if strings.Contains(text, "\"country\":\"中国\"") {
-		return true
-	}
-	return false
-}
-
-func (r *Loc) getCanvasesJPG2000(sUrl string) (canvases []string, err error) {
-	d := []byte("pid=" + sUrl + "&filetype=jp2&cdn=ncdn&submit=%E8%8E%B7%E5%8F%96")
-	ctx := context.Background()
-	cli := gohttp.NewClient(ctx, gohttp.Options{
-		CookieFile: config.Conf.CookieFile,
-		CookieJar:  r.dt.Jar,
-		Headers: map[string]interface{}{
-			"User-Agent":   config.Conf.UserAgent,
-			"Content-Type": "application/x-www-form-urlencoded",
-			"Referer":      "https://ok.daoing.com/mggh/index.php?from=bookget",
-		},
-		Body: d,
-	})
-	resp, err := cli.Post("https://ok.daoing.com/mggh/index.php")
-	if err != nil {
-		return nil, err
-	}
-	bs, _ := resp.GetBody()
-	matches := regexp.MustCompile(`http://140.147.239.202/([A-z0-9_/.-])+`).FindAllStringSubmatch(string(bs), -1)
-	if matches == nil {
-		return
-	}
-	for _, match := range matches {
-		canvases = append(canvases, match[0])
-	}
-	return canvases, nil
 }

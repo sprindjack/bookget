@@ -23,6 +23,17 @@ func (p NormalHttp) getRouterInit(sUrl []string) (map[string]interface{}, error)
 	return nil, nil
 }
 
+type DziCnLib struct{}
+
+func (p DziCnLib) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		n := i + 1
+		var dziapp app.DziCnLib
+		dziapp.Init(n, s)
+	}
+	return nil, nil
+}
+
 type IDP struct{}
 
 func (p IDP) getRouterInit(sUrl []string) (map[string]interface{}, error) {

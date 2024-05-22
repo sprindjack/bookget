@@ -8,7 +8,7 @@ import (
 
 var Conf Input
 
-const version = "24.0420"
+const version = "24.0507"
 
 // initSeq    false = 最小值 <= 当前页码 <=  最大值
 func initSeqRange() {
@@ -48,4 +48,11 @@ func UserHomeDir() string {
 		return home
 	}
 	return os.Getenv("HOME")
+}
+
+func UserTmpDir() string {
+	if os.PathSeparator == '\\' {
+		return UserHomeDir() + "\\AppData\\Roaming\\BookGet\\bookget\\User Data\\"
+	}
+	return UserHomeDir() + "/bookget/"
 }

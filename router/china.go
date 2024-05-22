@@ -3,7 +3,6 @@ package router
 import (
 	"bookget/app"
 	"bookget/site/China/ouroots"
-	"bookget/site/China/sdutcm"
 	"bookget/site/China/szlib"
 	"bookget/site/China/usthk"
 	"bookget/site/China/wzlib"
@@ -129,6 +128,7 @@ type Sdutcm struct{}
 
 func (p Sdutcm) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var sdutcm app.Sdutcm
 		sdutcm.Init(i+1, s)
 	}
 	return nil, nil

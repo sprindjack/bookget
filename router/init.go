@@ -28,9 +28,11 @@ var Router = make(map[string]RouterInit)
 func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error) {
 	if config.Conf.AutoDetect == 1 {
 		siteID = "bookget"
-	}
-	if config.Conf.AutoDetect == 2 || strings.Contains(sUrl[0], ".json") {
+	} else if config.Conf.AutoDetect == 2 || strings.Contains(sUrl[0], ".json") {
 		siteID = "iiif.io"
+	}
+	if strings.Contains(sUrl[0], "tiles/infos.json") {
+		siteID = "dzicnlib"
 	}
 	doInit.Do(func() {
 		//{{{ ---------------中国--------------------------------------------------
@@ -61,6 +63,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["gj.tianyige.com.cn"] = new(TianYiGeLib)
 		//[中国]江苏高校珍贵古籍数字图书馆
 		Router["jsgxgj.nju.edu.cn"] = new(Njuedu)
+
 		//[中国]中华寻根网-国图
 		Router["ouroots.nlc.cn"] = new(OurootsNlc)
 		//[中国]国家哲学社会科学文献中心
@@ -81,6 +84,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[中国]山东省诸城市图书馆
 		Router["124.134.220.209:8100"] = new(ZhuCheng)
 		Router["dlibgate.cafa.edu.cn"] = new(CafaEdu)
+
 		//}}} -----------------------------------------------------------------
 
 		//---------------日本--------------------------------------------------
@@ -187,6 +191,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//}}} -----------------------------------------------------------------
 		Router["iiif.io"] = new(NormalIIIF)
 		Router["bookget"] = new(NormalHttp)
+		Router["dzicnlib"] = new(DziCnLib)
 	})
 
 	if _, ok := Router[siteID]; !ok {

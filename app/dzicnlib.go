@@ -12,16 +12,19 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
-	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 )
 
+//例如：
+// 湖北古籍方志 http://gjpt.library.hb.cn:8991/f-medias/1840/tiles/infos.json
+// 四川古籍 https://guji.sclib.org/medias/1122/tiles/infos.json
+// 云南古籍 http://msq.ynlib.cn/medias2022/1001/tiles/infos.json
+
 type DziCnLib struct {
-	dt         *DownloadTask
-	ServerHost string
-	Extention  string
+	dt        *DownloadTask
+	ServerUrl string
+	Extention string
 }
 
 type ResponseServerBase struct {
@@ -61,7 +64,7 @@ func (r DziCnLib) Init(iTask int, sUrl string) (msg string, err error) {
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
 	r.dt.Index = iTask
-	r.dt.BookId = r.getBookId(r.dt.Url)
+	r.dt.BookId = getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
 	}
@@ -69,24 +72,12 @@ func (r DziCnLib) Init(iTask int, sUrl string) (msg string, err error) {
 	return r.download()
 }
 
-func (r DziCnLib) getBookId(sUrl string) (bookId string) {
-	m := regexp.MustCompile(`(?i)bookid=([A-z0-9_-]+)`).FindStringSubmatch(sUrl)
-	if m != nil {
-		return m[1]
-	}
-	m = regexp.MustCompile(`(?i)id=([A-z0-9_-]+)`).FindStringSubmatch(sUrl)
-	if m != nil {
-		bookId = m[1]
-	}
-	return bookId
-}
-
 func (r DziCnLib) download() (msg string, err error) {
 	name := util.GenNumberSorted(r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
-	r.ServerHost = r.getServerUri(r.dt.BookId, r.dt.UrlParsed)
-	if r.ServerHost == "" {
+	r.ServerUrl = r.getServerUri()
+	if r.ServerUrl == "" {
 		return "requested URL was not found.", err
 	}
 	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
@@ -133,8 +124,8 @@ func (r DziCnLib) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string,
 	panic("implement me")
 }
 
-func (r DziCnLib) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	apiUrl := fmt.Sprintf("%s/tiles/infos.json", r.ServerHost)
+func (r DziCnLib) getCanvases(apiUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+	//apiUrl := fmt.Sprintf("%s/tiles/infos.json", r.ServerHost)
 	bs, err := r.getBody(apiUrl, jar)
 	if err != nil {
 		return
@@ -171,7 +162,7 @@ func (r DziCnLib) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 	for key, item := range result.Tiles {
 		sortId := fmt.Sprintf("%s.json", key)
 		dest := r.dt.SavePath + sortId
-		serverUrl := fmt.Sprintf("%s/tiles/%s/", r.ServerHost, key)
+		serverUrl := fmt.Sprintf("%s/tiles/%s/", r.ServerUrl, key)
 		if r.Extention == "" {
 			r.Extention = "." + strings.ToLower(item.Extension)
 		}
@@ -188,22 +179,29 @@ func (r DziCnLib) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 	return canvases, nil
 }
 
-func (r DziCnLib) getServerUri(bookId string, u *url.URL) string {
-	m := regexp.MustCompile(`(?i)typeId=([A-z0-9_-]+)`).FindStringSubmatch(u.RawQuery)
-	typeId := 80
-	if m != nil {
-		typeId, _ = strconv.Atoi(m[1])
-	}
-	apiUrl := fmt.Sprintf("%s://%s/portal/book/view?bookId=%s&typeId=%d", u.Scheme, u.Host, bookId, typeId)
-	bs, err := r.getBody(apiUrl, r.dt.Jar)
-	if err != nil {
-		return ""
-	}
-	var respServerBase ResponseServerBase
-	if err = json.Unmarshal(bs, &respServerBase); err != nil {
-		return ""
-	}
-	return fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, respServerBase.Data.ServerBase)
+func (r DziCnLib) getServerUri() string {
+	return strings.Split(r.dt.Url, "/tiles/")[0]
+	//m := regexp.MustCompile(`(?i)typeId=([A-z0-9_-]+)`).FindStringSubmatch(r.dt.UrlParsed.RawQuery)
+	//typeId := 80
+	//if m != nil {
+	//	typeId, _ = strconv.Atoi(m[1])
+	//}
+	//match := regexp.MustCompile(`/([A-z0-9]+)/tiles/infos.json`).FindStringSubmatch(r.dt.Url)
+	//if match == nil {
+	//	return ""
+	//}
+	//bookId := match[1]
+	//apiUrl := fmt.Sprintf("%s://%s/portal/book/view?bookId=%s&typeId=%d", r.dt.UrlParsed.Scheme,
+	//	r.dt.UrlParsed.Host, bookId, typeId)
+	//bs, err := r.getBody(apiUrl, r.dt.Jar)
+	//if err != nil {
+	//	return ""
+	//}
+	//var respServerBase ResponseServerBase
+	//if err = json.Unmarshal(bs, &respServerBase); err != nil {
+	//	return ""
+	//}
+	//return fmt.Sprintf("%s://%s%s", r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host, respServerBase.Data.ServerBase)
 }
 
 func (r DziCnLib) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {

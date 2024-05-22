@@ -117,13 +117,13 @@ func (w Wget) getDownloadUrls(sUrl string) (downloadUrls []string, startIndex in
 		return nil, 0
 	}
 	i, _ := strconv.ParseInt(matches[1], 10, 64)
-	max, _ := strconv.ParseInt(matches[2], 10, 64)
+	size, _ := strconv.ParseInt(matches[2], 10, 64)
 	iMinLen := len(matches[1])
 	startIndex = int(i)
 
 	tmpUrl := regexp.MustCompile(`\((\d+)-(\d+)\)`).ReplaceAllString(sUrl, "%s")
-	downloadUrls = make([]string, 0, max)
-	for ; i <= max; i++ {
+	downloadUrls = make([]string, 0, size)
+	for ; i <= size; i++ {
 		iLen := len(strconv.FormatInt(i, 10))
 		if iLen < iMinLen {
 			iLen = iMinLen
