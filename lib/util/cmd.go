@@ -71,7 +71,7 @@ func PrintSleepTime(sec uint) {
 		if t < 10 {
 			seconds = fmt.Sprintf("0%d", t)
 		}
-		fmt.Printf("\rplease wait.... [00:%s of appr. Max %d sec]", seconds, config.Conf.Speed)
+		fmt.Printf("\rplease wait.... [00:%s of appr. Max %d sec]", seconds, sec)
 		time.Sleep(time.Second)
 	}
 	fmt.Println()

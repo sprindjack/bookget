@@ -63,7 +63,10 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["gj.tianyige.com.cn"] = new(TianYiGeLib)
 		//[中国]江苏高校珍贵古籍数字图书馆
 		Router["jsgxgj.nju.edu.cn"] = new(Njuedu)
-
+		//北京故宫博物院-故宫名画记
+		//Router["minghuaji.dpm.org.cn"] = new(MinghuajiBjDpm)
+		//Router["m-minghuaji.dpm.org.cn"] = new(MinghuajiBjDpm)
+		//Router["digicol.dpm.org.cn"] = new(MinghuajiBjDpm)
 		//[中国]中华寻根网-国图
 		Router["ouroots.nlc.cn"] = new(OurootsNlc)
 		//[中国]国家哲学社会科学文献中心
@@ -84,7 +87,10 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[中国]山东省诸城市图书馆
 		Router["124.134.220.209:8100"] = new(ZhuCheng)
 		Router["dlibgate.cafa.edu.cn"] = new(CafaEdu)
+		Router["dlib.cafa.edu.cn"] = new(CafaEdu)
 
+		//抗日战争与中日关系文献数据平台
+		Router["www.modernhistory.org.cn"] = new(War1931)
 		//}}} -----------------------------------------------------------------
 
 		//---------------日本--------------------------------------------------

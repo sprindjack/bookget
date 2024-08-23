@@ -48,7 +48,8 @@ type CafaEduItem struct {
 }
 
 type CafaEdu struct {
-	dt *DownloadTask
+	dt        *DownloadTask
+	ServerUrl string
 }
 
 func (p *CafaEdu) Init(iTask int, sUrl string) (msg string, err error) {
@@ -61,6 +62,7 @@ func (p *CafaEdu) Init(iTask int, sUrl string) (msg string, err error) {
 		return "requested URL was not found.", err
 	}
 	p.dt.Jar, _ = cookiejar.New(nil)
+	p.ServerUrl = "dlibgate.cafa.edu.cn"
 	return p.download()
 }
 
@@ -118,7 +120,7 @@ func (p *CafaEdu) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string,
 	if err != nil {
 		return nil, err
 	}
-	jsonUrl := fmt.Sprintf("https://%s/api/viewer/lgiiif?url=/srv/www/limbgallery/medias/%s/&max=%d", p.dt.UrlParsed.Host, iiifId, 10000)
+	jsonUrl := fmt.Sprintf("https://%s/api/viewer/lgiiif?url=/srv/www/limbgallery/medias/%s/&max=%d", p.ServerUrl, iiifId, 10000)
 	volumes = append(volumes, jsonUrl)
 	return volumes, err
 }
@@ -142,7 +144,7 @@ func (p *CafaEdu) getCanvases(apiUrl string, jar *cookiejar.Jar) (canvases []str
 		} else {
 			//JPEG URL
 			//https://dlibgate.cafa.edu.cn/i/?IIIF=/1b/86/7e/68/1b867e68-807a-44e1-b16b-a86775dc0b16/iiif/GJ05685_000001.tif/full/full/0/default.jpg
-			imgUrl := "https://" + p.dt.UrlParsed.Host + canvase.Id + "/" + config.Conf.Format
+			imgUrl := "https://" + p.ServerUrl + canvase.Id + "/" + config.Conf.Format
 			canvases = append(canvases, imgUrl)
 		}
 	}

@@ -189,8 +189,8 @@ func (r *Request) parseOptions() {
 
 func (r *Request) parseClient() {
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		//DisableKeepAlives: true,
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+		DisableKeepAlives: true,
 	}
 
 	if r.opts.Proxy != "" {

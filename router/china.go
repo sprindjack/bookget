@@ -96,6 +96,16 @@ func (p TianYiGeLib) getRouterInit(sUrl []string) (map[string]interface{}, error
 	return nil, nil
 }
 
+type MinghuajiBjDpm struct{}
+
+func (p MinghuajiBjDpm) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var dpmbj app.DpmBj
+		dpmbj.Init(i+1, s)
+	}
+	return nil, nil
+}
+
 type OurootsNlc struct{}
 
 func (p OurootsNlc) getRouterInit(sUrl []string) (map[string]interface{}, error) {
@@ -210,6 +220,16 @@ func (p CafaEdu) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
 		var cafa app.CafaEdu
 		cafa.Init(i+1, s)
+	}
+	return nil, nil
+}
+
+type War1931 struct{}
+
+func (p War1931) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+	for i, s := range sUrl {
+		var war app.War1931
+		war.Init(i+1, s)
 	}
 	return nil, nil
 }

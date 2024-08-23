@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-	"sync"
 )
 
 type Harvard struct {
@@ -22,7 +21,7 @@ type Harvard struct {
 
 func (p *Harvard) Init(iTask int, sUrl string) (msg string, err error) {
 	if strings.Contains(sUrl, "curiosity.lib.harvard.edu") {
-		bs, err := p.getBody(sUrl, nil)
+		bs, err := p.getBodyLoop(sUrl, nil)
 		if err != nil {
 			return "", err
 		}
@@ -41,6 +40,7 @@ func (p *Harvard) Init(iTask int, sUrl string) (msg string, err error) {
 		return "requested URL was not found.", err
 	}
 	p.dt.Jar, _ = cookiejar.New(nil)
+	WaitNewCookie()
 	return p.download()
 }
 
@@ -104,7 +104,7 @@ func (p *Harvard) do(imgUrls []string) (msg string, err error) {
 
 func (p *Harvard) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
 	if strings.Contains(sUrl, "listview.lib.harvard.edu") {
-		bs, err := p.getBody(sUrl, nil)
+		bs, err := p.getBodyLoop(sUrl, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -126,7 +126,7 @@ func (p *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 	var manifestUri = sUrl
 	if strings.Contains(sUrl, "iiif.lib.harvard.edu/manifests/view/") ||
 		strings.Contains(sUrl, "nrs.harvard.edu") {
-		bs, err := p.getBody(sUrl, jar)
+		bs, err := p.getBodyLoop(sUrl, jar)
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +138,7 @@ func (p *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 			return nil, errors.New("requested URL was not found.")
 		}
 	}
-	bs, err := p.getBody(manifestUri, jar)
+	bs, err := p.getBodyLoop(manifestUri, jar)
 	if err != nil {
 		return
 	}
@@ -191,6 +191,18 @@ func (p *Harvard) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	return bs, nil
 }
 
+func (p *Harvard) getBodyLoop(sUrl string, jar *cookiejar.Jar) (bs []byte, err error) {
+	for i := 0; i < 1000; i++ {
+		bs, err = p.getBody(sUrl, jar)
+		if err != nil {
+			WaitNewCookie()
+			continue
+		}
+		break
+	}
+	return bs, nil
+}
+
 func (p *Harvard) postBody(sUrl string, d []byte) ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
@@ -201,11 +213,6 @@ func (p *Harvard) doDezoomifyRs(iiifUrls []string) bool {
 		return false
 	}
 	referer := url.QueryEscape(p.dt.Url)
-	args := []string{
-		"-H", "Origin:" + referer,
-		"-H", "Referer:" + referer,
-		"-H", "User-Agent:" + config.Conf.UserAgent,
-	}
 	size := len(iiifUrls)
 	for i, uri := range iiifUrls {
 		if uri == "" || !config.PageRange(i, size) {
@@ -218,6 +225,14 @@ func (p *Harvard) doDezoomifyRs(iiifUrls []string) bool {
 			continue
 		}
 		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
+		cookies := gohttp.ReadCookieFile(config.Conf.CookieFile)
+		args := []string{
+			"--dezoomer=deepzoom",
+			"-H", "Origin:" + referer,
+			"-H", "Referer:" + referer,
+			"-H", "User-Agent:" + config.Conf.UserAgent,
+			"-H", "cookie:" + cookies,
+		}
 		util.StartProcess(uri, dest, args)
 	}
 	return true
@@ -229,8 +244,7 @@ func (p *Harvard) doNormal(imgUrls []string) bool {
 	}
 	size := len(imgUrls)
 	fmt.Println()
-	var wg sync.WaitGroup
-	q := QueueNew(int(config.Conf.Threads))
+	ctx := context.Background()
 	for i, uri := range imgUrls {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
@@ -242,28 +256,29 @@ func (p *Harvard) doNormal(imgUrls []string) bool {
 		if FileExist(dest) {
 			continue
 		}
-		imgUrl := uri
 		fmt.Println()
-		log.Printf("Get %d/%d  %s\n", i+1, size, imgUrl)
-		wg.Add(1)
-		q.Go(func() {
-			defer wg.Done()
-			ctx := context.Background()
-			opts := gohttp.Options{
-				DestFile:    dest,
-				Overwrite:   false,
-				Concurrency: 1,
-				CookieFile:  config.Conf.CookieFile,
-				CookieJar:   p.dt.Jar,
-				Headers: map[string]interface{}{
-					"User-Agent": config.Conf.UserAgent,
-				},
+		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
+		opts := gohttp.Options{
+			DestFile:    dest,
+			Overwrite:   false,
+			Concurrency: 1,
+			CookieFile:  config.Conf.CookieFile,
+			CookieJar:   p.dt.Jar,
+			Headers: map[string]interface{}{
+				"User-Agent": config.Conf.UserAgent,
+			},
+		}
+		for k := 0; k < 10; k++ {
+			resp, err := gohttp.FastGet(ctx, uri, opts)
+			if err == nil && resp.GetStatusCode() == 200 {
+				break
 			}
-			gohttp.FastGet(ctx, imgUrl, opts)
-			fmt.Println()
-		})
+			WaitNewCookieWithMsg(uri)
+		}
+		util.PrintSleepTime(config.Conf.Speed)
+		fmt.Println()
+
 	}
-	wg.Wait()
 	fmt.Println()
 	return true
 }

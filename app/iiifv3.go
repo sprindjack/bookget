@@ -12,7 +12,6 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"regexp"
-	"strings"
 )
 
 type IIIFv3 struct {
@@ -139,7 +138,7 @@ func (p *IIIFv3) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string
 	}
 	size := len(manifest.Canvases)
 	canvases = make([]string, 0, size)
-	config.Conf.Format = strings.ReplaceAll(config.Conf.Format, "full/full", "full/max")
+	//config.Conf.Format = strings.ReplaceAll(config.Conf.Format, "full/full", "full/max")
 	for _, canvase := range manifest.Canvases {
 		image := canvase.Items[0].Items[0]
 		id := image.Body.Service[0].Id

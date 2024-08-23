@@ -1,28 +1,29 @@
-#ver="1.2.6"
+#!/bin/sh
+
 ver=$(date "+%y.%m%d")
+#ver="24.0116"
+commit="${ver}"
+sed -i '/const version = */c const version = "'"$commit"'"' config/init.go
 
-sed -i '/const version = */c const version = "'"$ver"'"' config/init.go
-
-function buildWindows() {
+buildWindows() {
     ver=$1
     targetDir="target/bookget-${ver}.windows-amd64/"
     mkdir -p $targetDir
-    CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o "${targetDir}/bookget" .
-#    cp cookie.txt "${targetDir}/cookie.txt"
+    CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o "${targetDir}/bookget.exe" .
     cp config.ini "${targetDir}/config.ini"
-    cp target/dezoomify-rs/x86_64-windows/dezoomify-rs.exe "${targetDir}/dezoomify-rs"
+    cp -R target/bookget-gui/* $targetDir
+    cp target/dezoomify-rs/x86_64-windows/dezoomify-rs.exe "${targetDir}/dezoomify-rs.exe"
     cd target/ || return
     tar cjf bookget-${ver}.windows-amd64.tar.bz2 "bookget-${ver}.windows-amd64"
     cd ../
     rm -fr target/bookget-${ver}.windows-amd64/
 }
 
-function buildLinux() {
+buildLinux() {
     ver=$1
     targetDir="target/bookget-${ver}.linux-amd64/"
     mkdir -p $targetDir
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o "${targetDir}/bookget" .
-#    cp cookie.txt "${targetDir}/cookie.txt"
     cp config.ini "${targetDir}/config.ini"
     cp target/dezoomify-rs/x86_64-linux/dezoomify-rs "${targetDir}/dezoomify-rs"
     cd target/ || return
@@ -31,11 +32,10 @@ function buildLinux() {
     rm -fr target/bookget-${ver}.linux-amd64/
 }
 
-function buildDarwin() {
+buildDarwin() {
     targetDir="target/bookget-${ver}.macOS/"
     mkdir -p $targetDir
     CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o "${targetDir}/bookget" .
-#    cp cookie.txt "${targetDir}/cookie.txt"
     cp config.ini "${targetDir}/config.ini"
     cp target/dezoomify-rs/x86_64-apple/dezoomify-rs "${targetDir}/dezoomify-rs"
     cd target/ || return
@@ -44,12 +44,11 @@ function buildDarwin() {
     rm -fr target/bookget-${ver}.macOS/
 }
 
-function buildDarwinArm64() {
+buildDarwinArm64() {
     targetDir="target/bookget-${ver}.macOS-arm64/"
     mkdir -p $targetDir
     CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o "${targetDir}/bookget" .
 
-#    cp cookie.txt "${targetDir}/cookie.txt"
     cp config.ini "${targetDir}/config.ini"
     cp target/dezoomify-rs/aarch64-apple/dezoomify-rs "${targetDir}/dezoomify-rs"
     cd target/ || return
@@ -58,7 +57,7 @@ function buildDarwinArm64() {
     rm -fr target/bookget-${ver}.macOS-arm64/
 }
 
-#buildWindows $ver
+buildWindows $ver
 buildLinux $ver
 buildDarwin $ver
 buildDarwinArm64 $ver
