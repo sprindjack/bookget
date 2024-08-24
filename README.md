@@ -32,3 +32,9 @@ go build .
 ### 第三方社區/網站
 - 书格 https://www.shuge.org
 - Arch Linux AUR https://aur.archlinux.org/packages/bookget-git
+
+### 联系作者
+Email：zhudwi@outlook.com   
+微博：https://weibo.com/teweiz   
+ <a href="https://weibo.com/teweiz" target="_blank"><img src="https://zhudw.cn/static/weibo.jpg"  style="width:50%"/></a>
+
