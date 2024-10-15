@@ -1,0 +1,9 @@
+# Default ignored files
+/target/
+/dist/
+*.exe
+/.idea/
+.fleet/
+*.xml
+*.7z
+*.bak
