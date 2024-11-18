@@ -168,9 +168,9 @@ func (r DziCnLib) getCanvases(apiUrl string, jar *cookiejar.Jar) (canvases []str
 		}
 		jsonText := ""
 		if item.TileSize.W == 0 {
-			jsonText = fmt.Sprintf(text, serverUrl, item.Extension, item.TileSize2.Width, item.Height, item.Width)
+			jsonText = fmt.Sprintf(text, serverUrl, strings.ToLower(item.Extension), item.TileSize2.Width, item.Height, item.Width)
 		} else {
-			jsonText = fmt.Sprintf(text, serverUrl, item.Extension, item.TileSize.W, item.Height, item.Width)
+			jsonText = fmt.Sprintf(text, serverUrl, strings.ToLower(item.Extension), item.TileSize.W, item.Height, item.Width)
 		}
 		_ = os.WriteFile(dest, []byte(jsonText), os.ModePerm)
 		canvases = append(canvases, sortId)
