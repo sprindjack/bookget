@@ -1,10 +1,10 @@
 # 簡介
 
-bookget 数字古籍图书下载工具，已支持约 50+ 个数字图书馆。 截止 2024/01/16 日，已停止更新。
+bookget 数字古籍图书下载工具，已支持约 50+ 个数字图书馆。 
 
 ### 使用説明
 1. 打开 [https://github.com/deweizhu/bookget/releases](https://github.com/deweizhu/bookget/releases/latest) 下载最新版。
-1. [必读]使用手册wiki https://github.com/deweizhu/bookget/wiki
+1. [必读]使用手册wiki https://github.com/deweizhu/bookget/wiki 或 https://dev.azure.com/zhudw/bookget/_wiki/wikis
 1. 此项目代码仅供学习研究使用，欢迎有能力的朋友git clone 代码二次开发维护您自己的版本。
 
 #### 源碼編譯
@@ -12,6 +12,8 @@ bookget 数字古籍图书下载工具，已支持约 50+ 个数字图书馆。 
 阅读 [golang 官方文档](https://golang.google.cn/doc/install) ，给您的电脑安装 golang 开发环境。
 ```shell
 git clone --depth=1 https://github.com/deweizhu/bookget.git
+#或备用azure仓库
+git clone --depth=1 https://zhudw@dev.azure.com/zhudw/bookget/_git/bookget
 cd bookget
 go build .
 ```
