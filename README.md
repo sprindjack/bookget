@@ -19,11 +19,15 @@ bookget 数字古籍图书下载工具，已支持约 50+ 个数字图书馆。
 从源码构建，仅对计算机程序员参考。普通用户可直接跳过阅读。   
 阅读 [golang 官方文档](https://golang.google.cn/doc/install) ，给您的电脑安装 golang 开发环境。
 ```shell
-git clone --depth=1 https://github.com/deweizhu/bookget.git
-#或备用azure仓库
-git clone --depth=1 https://zhudw@dev.azure.com/zhudw/bookget/_git/bookget
+git clone https://github.com/deweizhu/bookget.git
 cd bookget
-go build .
+go build . #或 ./build.ps1
+```
+或备用azure仓库
+```shell
+git clone https://zhudw@dev.azure.com/zhudw/bookget/_git/bookget
+cd bookget
+go build . #或 ./build.ps1
 ```
 
 - For Win可用环境：windows 10 x64 / windows 11 （自2024/01/12日起，引入bookget-gui只适用于Win10/11 x64系统）。
