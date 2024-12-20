@@ -246,6 +246,7 @@ func (r *ChinaNlc) doPdfUrl(sUrl, filename string) error {
 	tokenKey, timeKey, timeFlag := r.getToken(sUrl)
 
 	//http://read.nlc.cn/menhu/OutOpenBook/getReaderNew
+	//http://read.nlc.cn/menhu/OutOpenBook/getReaderRangeNew
 	pdfUrl := fmt.Sprintf("%s://%s/menhu/OutOpenBook/getReaderNew?aid=%s&bid=%s&kime=%s&fime=%s",
 		r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host, v.Get("aid"), v.Get("bid"), timeKey, timeFlag)
 

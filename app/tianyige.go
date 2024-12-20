@@ -76,48 +76,16 @@ type TygResponseFile struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 	Data struct {
-		OcrInfo struct {
-			OcrId        string      `json:"ocrId"`
-			ImageId      string      `json:"imageId"`
-			CatalogId    string      `json:"catalogId"`
-			OcrText      string      `json:"ocrText"`
-			TradeOcrText interface{} `json:"tradeOcrText"`
-			OcrJson      string      `json:"ocrJson"`
-			Width        int         `json:"width"`
-			Height       int         `json:"height"`
-			FontWidth    interface{} `json:"fontWidth"`
-			CutLevel     interface{} `json:"cutLevel"`
-			BitwiseNot   int         `json:"bitwiseNot"`
-			Creator      string      `json:"creator"`
-			CreateTime   string      `json:"createTime"`
-			Updator      interface{} `json:"updator"`
-			UpdateTime   interface{} `json:"updateTime"`
-			IsDeleted    int         `json:"isDeleted"`
-			FilePath     []struct {
-				FileName    string `json:"fileName"`
-				FileSuffix  string `json:"fileSuffix"`
-				FilePath    string `json:"filePath"`
-				UpdateTime  string `json:"updateTime"`
-				Sort        string `json:"sort"`
-				CreateTime  string `json:"createTime"`
-				FileSize    int    `json:"fileSize"`
-				FileOldname string `json:"fileOldname"`
-				FileInfoId  string `json:"fileInfoId"`
-			} `json:"filePath"`
-			FascicleId    interface{} `json:"fascicleId"`
-			FascicleName  interface{} `json:"fascicleName"`
-			DirectoryId   interface{} `json:"directoryId"`
-			DirectoryName interface{} `json:"directoryName"`
-			CatalogName   interface{} `json:"catalogName"`
-		} `json:"ocrInfo"`
 		File []struct {
 			FileName    string `json:"fileName"`
 			FileSuffix  string `json:"fileSuffix"`
 			FilePath    string `json:"filePath"`
 			UpdateTime  string `json:"updateTime"`
+			Sort        string `json:"sort"`
 			CreateTime  string `json:"createTime"`
 			FileSize    int    `json:"fileSize"`
 			FileOldname string `json:"fileOldname"`
+			FileInfoId  string `json:"fileInfoId"`
 		} `json:"file"`
 	} `json:"data"`
 }
@@ -398,10 +366,12 @@ func (p *Tianyige) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{
-			"User-Agent":   config.Conf.UserAgent,
-			"Content-Type": "application/json;charset=UTF-8",
-			"token":        token,
-			"appId":        TIANYIGE_ID,
+			"User-Agent":     config.Conf.UserAgent,
+			"Content-Type":   "application/json;charset=UTF-8",
+			"token":          token,
+			"appId":          TIANYIGE_ID,
+			"authorization":  "", //TODO，用户登录后返回此值
+			"authorizationu": "",
 		},
 	})
 	resp, err := cli.Get(sUrl)
@@ -424,10 +394,12 @@ func (p *Tianyige) postBody(sUrl string, d []byte, jar *cookiejar.Jar) ([]byte, 
 		CookieFile: config.Conf.CookieFile,
 		CookieJar:  jar,
 		Headers: map[string]interface{}{
-			"User-Agent":   config.Conf.UserAgent,
-			"Content-Type": "application/json;charset=UTF-8",
-			"token":        token,
-			"appId":        TIANYIGE_ID,
+			"User-Agent":     config.Conf.UserAgent,
+			"Content-Type":   "application/json;charset=UTF-8",
+			"token":          token,
+			"appId":          TIANYIGE_ID,
+			"authorization":  "",
+			"authorizationu": "",
 		},
 		Body: d,
 	})
