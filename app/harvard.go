@@ -40,7 +40,7 @@ func (p *Harvard) Init(iTask int, sUrl string) (msg string, err error) {
 		return "requested URL was not found.", err
 	}
 	p.dt.Jar, _ = cookiejar.New(nil)
-	WaitNewCookie()
+	//WaitNewCookie()
 	return p.download()
 }
 
