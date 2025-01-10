@@ -5,7 +5,6 @@ import (
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
 	"context"
-	"crypto/md5"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -26,6 +25,7 @@ func (p *Ncpssd) Init(iTask int, sUrl string) (msg string, err error) {
 	p.dt.Url = sUrl
 	p.dt.Index = iTask
 	p.dt.Jar, _ = cookiejar.New(nil)
+	WaitNewCookie()
 	return p.download()
 }
 
@@ -138,8 +138,22 @@ func (p *Ncpssd) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 }
 
 func (p *Ncpssd) postBody(sUrl string, d []byte) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	ctx := context.Background()
+	cli := gohttp.NewClient(ctx, gohttp.Options{
+		CookieFile: config.Conf.CookieFile,
+		CookieJar:  p.dt.Jar,
+		Headers: map[string]interface{}{
+			"User-Agent":   config.Conf.UserAgent,
+			"Content-Type": "application/json; charset=utf-8",
+		},
+		Body: d,
+	})
+	resp, err := cli.Post(sUrl)
+	if err != nil {
+		return nil, err
+	}
+	bs, _ := resp.GetBody()
+	return bs, err
 }
 
 func (p *Ncpssd) getReadUrl(bookId string) (string, error) {
@@ -169,24 +183,24 @@ func (p *Ncpssd) getPdfUrl(sUrl string) string {
 }
 
 func (p *Ncpssd) getToken() (string, error) {
-	apiUrl := "https://" + p.dt.UrlParsed.Host + "/get/server/date"
-	bs, err := p.getBody(apiUrl, p.dt.Jar)
+	apiUrl := "https://" + p.dt.UrlParsed.Host + "/common/getMinioSign"
+	bs, err := p.postBody(apiUrl, nil)
 	if err != nil {
 		return "", err
 	}
-	type ResponseServerDate struct {
+
+	type MinioSign struct {
 		Result bool   `json:"result"`
 		Code   int    `json:"code"`
 		Data   string `json:"data"`
 		Succee bool   `json:"succee"`
 	}
-
-	var responseServerDate ResponseServerDate
-	if err = json.Unmarshal(bs, &responseServerDate); err != nil {
+	var minioSign MinioSign
+	if err = json.Unmarshal(bs, &minioSign); err != nil {
 		return "", err
 	}
-	h := md5.New()
-	h.Write([]byte("L!N45S26y1SGzq9^" + responseServerDate.Data))
-	token := fmt.Sprintf("%x", h.Sum(nil))
-	return token, nil
+	//h := md5.New()
+	//h.Write([]byte("L!N45S26y1SGzq9^" + minioSign.Data))
+	//token := fmt.Sprintf("%x", h.Sum(nil))
+	return minioSign.Data, nil
 }

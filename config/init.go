@@ -8,7 +8,7 @@ import (
 
 var Conf Input
 
-const version = "24.1204"
+const version = "24.1118"
 
 // initSeq    false = 最小值 <= 当前页码 <=  最大值
 func initSeqRange() {
@@ -56,4 +56,3 @@ func UserTmpDir() string {
 	}
 	return UserHomeDir() + "/bookget/"
 }
-
