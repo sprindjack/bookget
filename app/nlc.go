@@ -209,6 +209,10 @@ func (r *ChinaNlc) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string
 	text := util.SubText(string(r.body), "<div id=\"multiple\"", "id=\"catalogDiv\">")
 	//取册数
 	aUrls := regexp.MustCompile(`<a[^>]+class="a1"[^>].+href="/OutOpenBook/([^"]+)"`).FindAllStringSubmatch(text, -1)
+	if aUrls == nil {
+		//http://read.nlc.cn/menhu/allSearch/searchDetail?searchType=110&showType=1&indexName=data_040&fid=MU2024005
+		aUrls = regexp.MustCompile(`<a[^>]+class="a1"[^>].+href="/menhu/OutOpenBook/([^"]+)"`).FindAllStringSubmatch(text, -1)
+	}
 	for _, uri := range aUrls {
 		pageUrl := fmt.Sprintf("%s://%s/OutOpenBook/%s", r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host, uri[1])
 		volumes = append(volumes, pageUrl)
