@@ -477,7 +477,7 @@ func (p *Tianyige) getLocalStorage() (string, string, error) {
 			return "", "", fmt.Errorf("invalid line format: %s", line)
 		}
 		key := strings.TrimSpace(parts[0])
-		value := strings.Trim(strings.Trim(parts[1], "\""), " ")
+		value := strings.Trim(strings.Trim(strings.Trim(parts[1], "\""), " "), "'")
 
 		// 将键值对存储到 map 中
 		authTokens[key] = value
