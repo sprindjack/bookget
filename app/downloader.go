@@ -162,7 +162,6 @@ func OpenWebBrowser(sUrl string, args []string) {
 	}()
 
 	//WaitNewCookie
-	_ = os.Remove(config.Conf.CookieFile)
 	fmt.Println("请使用 bookget-gui 浏览器，打开图书网址，完成「真人验证 / 登录用户」，然后 「刷新」 网页.")
 	go func() {
 		defer wg.Done()
@@ -177,27 +176,10 @@ func OpenWebBrowser(sUrl string, args []string) {
 	wg.Wait()
 }
 
-func NeedCookie() {
+func WaitNewCookie() {
 	if FileExist(config.Conf.CookieFile) {
 		return
 	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	fmt.Println("请使用 bookget-gui 浏览器，打开图书网址，完成「真人验证 / 登录用户」，然后 「刷新」 网页.")
-	go func() {
-		defer wg.Done()
-		for i := 0; i < 3600*8; i++ {
-			if FileExist(config.Conf.CookieFile) {
-				break
-			}
-			util.PrintSleepTime(config.Conf.Speed)
-		}
-	}()
-	wg.Wait()
-}
-
-func WaitNewCookie() {
-	_ = os.Remove(config.Conf.CookieFile)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	fmt.Println("请使用 bookget-gui 浏览器，打开图书网址，完成「真人验证 / 登录用户」，然后 「刷新」 网页.")

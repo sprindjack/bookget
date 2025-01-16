@@ -1,7 +1,7 @@
 #!/bin/sh
 
 ver=$(date "+%y.%m%d")
-ver="24.1118"
+#ver="24.1118"
 commit="${ver}"
 sed -i '/const version = */c const version = "'"$commit"'"' config/init.go
 
@@ -60,5 +60,5 @@ buildDarwinArm64() {
 
 buildWindows $ver
 buildLinux $ver
-buildDarwin $ver
+#buildDarwin $ver
 buildDarwinArm64 $ver

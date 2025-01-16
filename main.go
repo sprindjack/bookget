@@ -21,13 +21,13 @@ func main() {
 	if !config.Init(ctx) {
 		os.Exit(0)
 	}
-
 	//終端運行：单个URL
 	if config.Conf.DUrl != "" {
 		ExecuteCommand(ctx, 1, config.Conf.DUrl)
 		log.Println("Download complete.")
 		return
 	}
+	_ = os.Remove(config.Conf.CookieFile)
 	//終端運行：批量URLs
 	if f, err := os.Stat(config.Conf.UrlsFile); err == nil && f.Size() > 0 {
 		taskForUrls()

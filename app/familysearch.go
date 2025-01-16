@@ -52,7 +52,7 @@ func (r *Familysearch) Init(iTask int, sUrl string) (msg string, err error) {
 	r.dt.Jar, _ = cookiejar.New(nil)
 	//  "https://www.familysearch.org/search/filmdata/filmdatainfo"
 	r.apiUrl = r.dt.UrlParsed.Scheme + "://" + r.dt.UrlParsed.Host + "/search/filmdata/filmdatainfo"
-	NeedCookie()
+	WaitNewCookie()
 	return r.download()
 }
 
