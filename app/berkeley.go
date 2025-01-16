@@ -5,6 +5,7 @@ import (
 	"bookget/lib/gohttp"
 	"bookget/lib/util"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -12,10 +13,18 @@ import (
 	"net/url"
 	"path/filepath"
 	"regexp"
+	"time"
 )
 
 type Berkeley struct {
 	dt *DownloadTask
+}
+
+type BerkeleyResponse struct {
+	Name        string `json:"name"`
+	Url         string `json:"url"`
+	Size        int    `json:"size"`
+	Description string `json:"description"`
 }
 
 func (r *Berkeley) Init(iTask int, sUrl string) (msg string, err error) {
@@ -96,17 +105,21 @@ func (r *Berkeley) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string
 }
 
 func (r *Berkeley) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	bs, err := r.getBody(sUrl, jar)
+
+	apiUrl := "https://" + r.dt.UrlParsed.Host + "/api/v1/file?recid=" + r.dt.BookId +
+		"&file_types=%5B%5D&hidden_types=%5B%22pdf%3Bpdfa%22%2C%22hocr%22%5D&ln=en&hr=1&_=" + string(time.Now().Unix())
+	bs, err := r.getBody(apiUrl, jar)
 	if err != nil {
 		return
 	}
-	matches := regexp.MustCompile(`value="https://([^"]+)\.pdf"`).FindAllSubmatch(bs, -1)
-	if matches == nil {
-		return nil, errors.New("not match")
+
+	var resT = make([]BerkeleyResponse, 0, 64)
+	if err = json.Unmarshal(bs, &resT); err != nil {
+		log.Printf("json.Unmarshal failed: %s\n", err)
+		return
 	}
-	for _, match := range matches {
-		pdfUrl := "https://" + string(match[1]) + ".pdf"
-		canvases = append(canvases, pdfUrl)
+	for _, ret := range resT {
+		canvases = append(canvases, ret.Url)
 	}
 	return
 }

@@ -125,7 +125,7 @@ func (r *ChinaNlc) do(imgUrls []string) (msg string, err error) {
 			continue
 		}
 		imgUrl := uri
-		log.Printf("Get %d/%d page, URL: %s\n", i+1, size, imgUrl)
+		log.Printf("Get %d/%d, URL: %s\n", i+1, size, imgUrl)
 		wg.Add(1)
 		q.Go(func() {
 			defer wg.Done()

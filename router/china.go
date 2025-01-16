@@ -5,7 +5,6 @@ import (
 	"bookget/site/China/ouroots"
 	"bookget/site/China/szlib"
 	"bookget/site/China/usthk"
-	"bookget/site/China/wzlib"
 	"bookget/site/China/ynutcm"
 )
 
@@ -58,10 +57,11 @@ func (p LuoYang) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	return nil, nil
 }
 
-type OyjyWzlib struct{}
+type Wzlib struct{}
 
-func (p OyjyWzlib) getRouterInit(sUrl []string) (map[string]interface{}, error) {
+func (p Wzlib) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var wzlib app.Wzlib
 		wzlib.Init(i+1, s)
 	}
 	return nil, nil

@@ -52,7 +52,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[中国]洛阳市图书馆
 		Router["111.7.82.29:8090"] = new(LuoYang)
 		//[中国]温州市图书馆
-		Router["oyjy.wzlib.cn"] = new(OyjyWzlib)
+		Router["oyjy.wzlib.cn"] = new(Wzlib)
+		Router["arcgxhpv7cw0.db.wzlib.cn"] = new(Wzlib)
 		//[中国]深圳市图书馆-古籍
 		Router["yun.szlib.org.cn"] = new(YunSzlib)
 		//[中国]广州大典
