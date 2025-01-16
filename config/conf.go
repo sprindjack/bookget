@@ -13,15 +13,16 @@ import (
 )
 
 type Input struct {
-	DUrl       string //单个输入URL
-	UrlsFile   string //输入urls.txt
-	CookieFile string //输入cookie.txt
-	Seq        string //页面范围 4:434
-	SeqStart   int
-	SeqEnd     int
-	Volume     string //册范围 4:434
-	VolStart   int
-	VolEnd     int
+	DUrl         string //单个输入URL
+	UrlsFile     string //输入urls.txt
+	CookieFile   string //输入cookie.txt
+	LocalStorage string //localStorage.txt
+	Seq          string //页面范围 4:434
+	SeqStart     int
+	SeqEnd       int
+	Volume       string //册范围 4:434
+	VolStart     int
+	VolEnd       int
 
 	Speed      uint   //限速
 	SaveFolder string //下载文件存放目录，默认为当前文件夹下 Downloads 目录下
@@ -69,6 +70,7 @@ func Init(ctx context.Context) bool {
 	flag.BoolVar(&Conf.Bookmark, "mark", iniConf.Bookmark, "只下载书签目录，可选值[0|1]。0=否，1=是。仅对 gj.tianyige.com.cn 有效。")
 	flag.BoolVar(&Conf.UseDziRs, "dzi", iniConf.UseDziRs, "使用dezoomify-rs下载，仅对支持iiif的网站生效。")
 	flag.StringVar(&Conf.CookieFile, "c", iniConf.CookieFile, "指定cookie.txt文件路径")
+	flag.StringVar(&Conf.LocalStorage, "localStorage", iniConf.LocalStorage, "指定localStorage.txt文件路径")
 	flag.StringVar(&Conf.FileExt, "ext", iniConf.FileExt, "指定文件扩展名[.jpg|.tif|.png]等")
 	flag.UintVar(&Conf.Threads, "n", iniConf.Threads, "最大并发连接数")
 	flag.UintVar(&Conf.Speed, "speed", iniConf.Speed, "下载限速 N 秒/任务，cuhk推荐5-60")
@@ -122,6 +124,7 @@ func initINI() (io Input, err error) {
 	}
 	cFile := dir + string(os.PathSeparator) + "cookie.txt"
 	urls := dir + string(os.PathSeparator) + "urls.txt"
+	localStorage := dir + string(os.PathSeparator) + "localStorage.txt"
 	c := uint(runtime.NumCPU() * 2)
 
 	ua := "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/118.0"
@@ -130,6 +133,7 @@ func initINI() (io Input, err error) {
 		DUrl:          "",
 		UrlsFile:      urls,
 		CookieFile:    cFile,
+		LocalStorage:  localStorage,
 		Seq:           "",
 		SeqStart:      0,
 		SeqEnd:        0,
