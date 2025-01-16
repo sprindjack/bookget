@@ -137,8 +137,12 @@ type TygCatalog struct {
 type TygParts map[string][]TygImageRecord
 
 type Tianyige struct {
-	dt    *DownloadTask
-	index int
+	dt           *DownloadTask
+	index        int
+	localStorage struct {
+		authorization  string
+		authorizationu string
+	}
 }
 
 func (p *Tianyige) Init(iTask int, sUrl string) (msg string, err error) {
@@ -152,6 +156,10 @@ func (p *Tianyige) Init(iTask int, sUrl string) (msg string, err error) {
 	}
 	p.dt.Jar, _ = cookiejar.New(nil)
 	//OpenWebBrowser(sUrl, []string{})
+	p.localStorage.authorization, p.localStorage.authorizationu, err = p.getLocalStorage()
+	if err != nil {
+		return "Invalid file localStorage.txt", err
+	}
 	return p.download()
 }
 
@@ -370,8 +378,8 @@ func (p *Tianyige) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 			"Content-Type":   "application/json;charset=UTF-8",
 			"token":          token,
 			"appId":          TIANYIGE_ID,
-			"authorization":  "", //TODO，用户登录后返回此值
-			"authorizationu": "",
+			"authorization":  p.localStorage.authorization,
+			"authorizationu": p.localStorage.authorizationu,
 		},
 	})
 	resp, err := cli.Get(sUrl)
@@ -398,8 +406,8 @@ func (p *Tianyige) postBody(sUrl string, d []byte, jar *cookiejar.Jar) ([]byte, 
 			"Content-Type":   "application/json;charset=UTF-8",
 			"token":          token,
 			"appId":          TIANYIGE_ID,
-			"authorization":  "",
-			"authorizationu": "",
+			"authorization":  p.localStorage.authorization,
+			"authorizationu": p.localStorage.authorizationu,
 		},
 		Body: d,
 	})
@@ -439,4 +447,49 @@ func (p *Tianyige) getToken() string {
 	// Key size for AES is either: 16 bytes (128 bits), 24 bytes (192 bits) or 32 bytes (256 bits)
 	key := []byte(TIANYIGE_KEY)
 	return p.encrypt(pt, key)
+}
+
+// // 假设 LocalStorage 中已经有 'authorization' 和 'authorizationu' 这两个键
+// const authorization = localStorage.getItem('authorization');
+// const authorizationu = localStorage.getItem('authorizationu');
+func (p *Tianyige) getLocalStorage() (string, string, error) {
+	bs, err := os.ReadFile(config.Conf.LocalStorage)
+	if bs == nil || err != nil {
+		return "", "", err
+	}
+
+	// 分割输入字符串为多个部分，以换行符为分隔符
+	lines := strings.Split(string(bs), "\n")
+
+	authTokens := make(map[string]string)
+	for _, line := range lines {
+		// 去除行首和行尾的空格
+		line = strings.TrimSpace(line)
+
+		// 如果行是空的，则跳过
+		if line == "" {
+			continue
+		}
+
+		// 分割键和值，以冒号为分隔符，并去除键和值两侧的空格
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) != 2 {
+			return "", "", fmt.Errorf("invalid line format: %s", line)
+		}
+		key := strings.TrimSpace(parts[0])
+		value := strings.Trim(strings.Trim(parts[1], "\""), " ")
+
+		// 将键值对存储到 map 中
+		authTokens[key] = value
+	}
+
+	// 从 map 中提取 authorization 和 authorizationu 的值
+	authorization, ok1 := authTokens["authorization"]
+	authorizationu, ok2 := authTokens["authorizationu"]
+
+	// 检查是否成功提取到所有需要的值
+	if !ok1 || !ok2 {
+		return "", "", fmt.Errorf("missing required token")
+	}
+	return authorization, authorizationu, nil
 }
