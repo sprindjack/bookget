@@ -45,6 +45,11 @@ go build . #或 ./build.ps1
 
 ### 第三方社區/網站
 - 书格 https://www.shuge.org
-- Arch Linux AUR https://aur.archlinux.org/packages/bookget-git
+### Arch Linux AUR 可选包
+以下是热心网友维护的 Linux 软件仓库，便于 Arch Linux 用户安装使用。
+-  https://aur.archlinux.org/packages/bookget
+-  https://aur.archlinux.org/packages/bookget-bin
+-  https://aur.archlinux.org/packages/bookget-git
+-  [bookget -  Arch Linux 中文维基](https://wiki.archlinuxcn.org/wiki/Bookget)
 
 
