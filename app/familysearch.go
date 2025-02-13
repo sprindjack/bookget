@@ -12,7 +12,6 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
-	"path"
 	"regexp"
 	"strings"
 )
@@ -51,34 +50,17 @@ func (r *Familysearch) Init(iTask int, sUrl string) (msg string, err error) {
 	r.baseUrl, r.sgBaseUrl, _ = r.getBaseUrl(r.dt.Url)
 	r.dt.Jar, _ = cookiejar.New(nil)
 	//  "https://www.familysearch.org/search/filmdata/filmdatainfo"
-	r.apiUrl = r.dt.UrlParsed.Scheme + "://" + r.dt.UrlParsed.Host + "/search/filmdata/filmdatainfo"
+	//r.apiUrl = r.dt.UrlParsed.Scheme + "://" + r.dt.UrlParsed.Host + "/search/filmdata/filmdatainfo"
+	//https://www.familysearch.org/search/filmdatainfo/image-data
+	r.apiUrl = r.dt.UrlParsed.Scheme + "://" + r.dt.UrlParsed.Host + "/search/filmdatainfo/image-data"
 	WaitNewCookie()
 	return r.download()
 }
 
 func (r *Familysearch) getBookId(sUrl string) (bookId string) {
-	m := regexp.MustCompile(`(?i)wc=([^&]+)`).FindStringSubmatch(sUrl)
-	if m != nil {
-		bookId = getBookId(m[1])
-		r.urlType = 0 //中國族譜收藏 1239-2014年 https://www.familysearch.org/search/collection/1787988
-		return bookId
-	}
-	m = regexp.MustCompile(`(?i)rmsId=([A-z\d-_]+)`).FindStringSubmatch(sUrl)
+	m := regexp.MustCompile(`(?i)ark:/(?:[A-z0-9-_:]+)/([A-z\d-_:]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
-		r.urlType = 1 //家谱图像 https://www.familysearch.org/records/images/
-		return bookId
-	}
-	m = regexp.MustCompile(`(?i)groupId=([A-z\d-_]+)`).FindStringSubmatch(sUrl)
-	if m != nil {
-		bookId = m[1]
-		r.urlType = 2 //家谱图像 https://www.familysearch.org/ark:/61903/3:1:3QS7-L9S9-WS92?view=explore&groupId=M94X-6HR
-		return bookId
-	}
-	m = regexp.MustCompile(`(?i)ark:/(?:[A-z0-9-_:]+)/([A-z\d-_:]+)`).FindStringSubmatch(sUrl)
-	if m != nil {
-		bookId = m[1]
-		r.urlType = 3 //微卷 https://www.familysearch.org/ark:/61903/3:1:3QSQ-G9MC-ZS8F-4?cat=1101921
 	}
 	return bookId
 }
@@ -114,23 +96,11 @@ func (r *Familysearch) download() (msg string, err error) {
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 	var canvases []string
-	if r.urlType == 1 {
-		canvases, err = r.getImageByGroups(r.dt.BookId)
-	} else if r.urlType == 2 {
-		canvases, err = r.getImageByGroupId(r.dt.BookId)
-	} else if r.urlType == 3 {
-		imageData, err := r.getImageData(r.dt.Url)
-		if err != nil {
-			return "", err
-		}
-		canvases, err = r.getFilmData(r.dt.Url, imageData)
-	} else {
-		imageData, err := r.getImageData(r.dt.Url)
-		if err != nil {
-			return "", err
-		}
-		canvases, err = r.getWaypointData(r.dt.Url, imageData)
+	imageData, err := r.getImageData(r.dt.Url)
+	if err != nil {
+		return "", err
 	}
+	canvases, err = r.getFilmData(r.dt.Url, imageData)
 	if err != nil {
 		return "", err
 	}
@@ -250,130 +220,6 @@ func (r *Familysearch) getImageData(sUrl string) (imageData FamilysearchImageDat
 		}
 	}
 	return imageData, nil
-}
-
-func (r *Familysearch) getWaypointData(sUrl string, imageData FamilysearchImageData) (canvases []string, err error) {
-	type ReqData struct {
-		Type string `json:"type"`
-		Args struct {
-			WaypointURL string `json:"waypointURL"`
-			DgsNum      string `json:"dgsNum"`
-			FilmData    string `json:"filmData"`
-			State       struct {
-				ImageOrFilmUrl     string `json:"imageOrFilmUrl"`
-				ViewMode           string `json:"viewMode"`
-				SelectedImageIndex int    `json:"selectedImageIndex"`
-			} `json:"state"`
-			Locale string `json:"locale"`
-		} `json:"args"`
-	}
-
-	type Response struct {
-		DgsNum      string   `json:"dgsNum"`
-		Images      []string `json:"images"`
-		Type        string   `json:"type"`
-		WaypointURL string   `json:"waypointURL"`
-		Templates   struct {
-			DzTemplate  string `json:"dzTemplate"`
-			DasTemplate string `json:"dasTemplate"`
-		} `json:"templates"`
-	}
-
-	var d = ReqData{}
-	d.Type = "waypoint-data"
-	d.Args.WaypointURL = imageData.WaypointURL
-	d.Args.State.ImageOrFilmUrl = ""
-	d.Args.State.ViewMode = "i"
-	d.Args.State.SelectedImageIndex = -1
-	d.Args.Locale = "zh"
-	bs, err := r.postJson(r.apiUrl, d)
-	if err != nil {
-		return
-	}
-	var resultError FamilysearchResultError
-	if err = json.Unmarshal(bs, &resultError); resultError.Error.StatusCode != 0 {
-		msg := fmt.Sprintf("StatusCode: %d, Message: %s", resultError.Error.StatusCode, resultError.Error.Message)
-		err = errors.New(msg)
-		return
-	}
-	resp := Response{}
-	if err = json.Unmarshal(bs, &resp); err != nil {
-		return
-	}
-	//https://sg30p0.familysearch.org/service/records/storage/deepzoomcloud/dz/v1/{id}/{image}
-	r.dziTemplate = regexp.MustCompile(`\{[A-z]+\}`).ReplaceAllString(resp.Templates.DzTemplate, "%s")
-	r.dziTemplate = regexp.MustCompile(`https://([A-z0-9\./]+)/service/records/storage/deepzoomcloud`).ReplaceAllString(r.dziTemplate, r.baseUrl)
-	for _, image := range resp.Images {
-		m, err := url.Parse(image)
-		if err != nil {
-			break
-		}
-		id := path.Base(m.Path)
-		xmlUrl := fmt.Sprintf(r.dziTemplate, id, "image.xml")
-		canvases = append(canvases, xmlUrl)
-
-	}
-	return canvases, nil
-}
-
-func (r *Familysearch) getImageByGroupId(groupId string) (canvases []string, err error) {
-	text := `{"operationName":"GetGroup","variables":{"groupIdOrArkId":"` + groupId + `","detailed":true},"query":"query GetGroup($groupIdOrArkId: String!, $detailed: Boolean!) {\n  group(groupIdOrArkId: $groupIdOrArkId) {\n    volumes @include(if: $detailed)\n    changeHistory @include(if: $detailed) {\n      user {\n        contactName\n        __typename\n      }\n      type\n      opCode\n      date {\n        formatted\n        formattedFullWithTime\n        gedcomX\n        fromTimestamp\n        formattedCompactWithTime\n        formattedCompactWithHourMinute\n        __typename\n      }\n      coverages {\n        place {\n          fullName\n          name\n          id\n          __typename\n        }\n        recordTypes {\n          apolloId\n          id\n          name\n          date {\n            formatted\n            gedcomX\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      metadata {\n        archivalReferenceNumber\n        languages\n        title\n        volumes\n        creator\n        __typename\n      }\n      __typename\n    }\n    childCount @include(if: $detailed)\n    childNumber @include(if: $detailed)\n    childGroups(changeHistoryForFirstChildOnly: true) @include(if: $detailed) {\n      changeHistory {\n        user {\n          contactName\n          __typename\n        }\n        type\n        opCode\n        date {\n          formatted\n          formattedFullWithTime\n          gedcomX\n          fromTimestamp\n          formattedCompactWithTime\n          formattedCompactWithHourMinute\n          __typename\n        }\n        coverages {\n          place {\n            fullName\n            name\n            id\n            __typename\n          }\n          recordTypes {\n            apolloId\n            id\n            name\n            date {\n              formatted\n              gedcomX\n              __typename\n            }\n            __typename\n          }\n          __typename\n        }\n        metadata {\n          archivalReferenceNumber\n          languages\n          title\n          volumes\n          creator\n          __typename\n        }\n        __typename\n      }\n      childCount\n      id\n      imageViewerCoverages {\n        place {\n          fullName\n          name\n          id\n          __typename\n        }\n        recordTypes {\n          apolloId\n          id\n          name\n          date {\n            formatted\n            gedcomX\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      imageApids\n      indexedChildCount\n      internalData {\n        cameraOperator\n        cameraOperatorNumber\n        id\n        originalMediaNumber\n        phoenixAcquisitionIds\n        __typename\n      }\n      metadata {\n        archivalReferenceNumber\n        createdDate {\n          formatted\n          gedcomX\n          __typename\n        }\n        creator\n        currentDate {\n          formatted\n          gedcomX\n          __typename\n        }\n        custodian\n        imageGroupNumber\n        languages\n        place\n        title\n        volume\n        volumes\n        __typename\n      }\n      naturalGroupId\n      __typename\n    }\n    currentWorkflowActions @include(if: $detailed) {\n      name\n      status\n      parameters {\n        name\n        value\n        __typename\n      }\n      __typename\n    }\n    id @include(if: $detailed)\n    indexedChildCount @include(if: $detailed)\n    imageReprocessing @include(if: $detailed) {\n      action\n      date {\n        formattedFullWithTime\n        fromTimestamp\n        __typename\n      }\n      __typename\n    }\n    imageRework @include(if: $detailed) {\n      cameraOperator {\n        id\n        name\n        __typename\n      }\n      status {\n        status\n        type\n        __typename\n      }\n      history {\n        action\n        date {\n          formatted\n          __typename\n        }\n        state\n        username\n        notes\n        __typename\n      }\n      __typename\n    }\n    imageViewerCoverages {\n      place {\n        fullName\n        name\n        id\n        __typename\n      }\n      recordTypes {\n        apolloId\n        id\n        name\n        date {\n          formatted\n          gedcomX\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    imageApids\n    internalData {\n      cameraOperator\n      cameraOperatorNumber\n      id\n      originalMediaNumber\n      phoenixAcquisitionIds\n      __typename\n    }\n    metadata {\n      archivalReferenceNumber\n      createdDate {\n        formatted\n        gedcomX\n        __typename\n      }\n      creator\n      currentDate {\n        formatted\n        gedcomX\n        __typename\n      }\n      custodian\n      imageGroupNumber\n      languages\n      place\n      title\n      volume\n      __typename\n    }\n    naturalGroupId @include(if: $detailed)\n    parentGroupId @include(if: $detailed)\n    properties @include(if: $detailed) {\n      name\n      values\n      type\n      __typename\n    }\n    siblingCount @include(if: $detailed)\n    types @include(if: $detailed)\n    volumes @include(if: $detailed)\n    volumeSetAncestralHall @include(if: $detailed)\n    volumeSetFirstAncestor @include(if: $detailed)\n    volumeSetMigrantAncestor @include(if: $detailed)\n    volumeSetTitle @include(if: $detailed)\n    volumeSetTotalVolumes @include(if: $detailed)\n    __typename\n  }\n  recordTypes @include(if: $detailed) {\n    id\n    name\n    __typename\n  }\n}\n"}`
-	type Response struct {
-		Data struct {
-			Group struct {
-				ChildGroups []struct {
-					ImageApids []string `json:"imageApids"`
-				} `json:"childGroups"`
-				ImageApids []interface{} `json:"imageApids"`
-			} `json:"group"`
-		} `json:"data"`
-	}
-
-	apiUrl := fmt.Sprintf("%s://%s/records/images/orchestration/", r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host)
-	bs, err := r.postBody(apiUrl, []byte(text))
-	if err != nil {
-		return
-	}
-
-	resp := Response{}
-	if err = json.Unmarshal(bs, &resp); err != nil {
-		return
-	}
-	for _, group := range resp.Data.Group.ChildGroups {
-		for _, v := range group.ImageApids {
-			dzUrl := r.baseUrl + "/dz/v1/apid:" + v + "/image.xml"
-			//dzUrl := r.sgBaseUrl + "/service/records/storage/deepzoomcloud/dz/v1/apid:" + v + "/image.xml"
-			canvases = append(canvases, dzUrl)
-		}
-	}
-	return canvases, nil
-}
-
-func (r *Familysearch) getImageByGroups(rmsId string) (canvases []string, err error) {
-	type Response struct {
-		Groups []struct {
-			ImageUrls []string `json:"imageUrls"`
-		} `json:"groups"`
-	}
-
-	apiUrl := fmt.Sprintf("%s://%s/records/images/api/imageDetails/groups/%s?properties&changeLog&coverageIndex=null",
-		r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host, rmsId)
-	bs, err := r.getBody(apiUrl, r.dt.Jar)
-	if err != nil {
-		return
-	}
-
-	resp := Response{}
-	if err = json.Unmarshal(bs, &resp); err != nil {
-		return
-	}
-	for _, group := range resp.Groups {
-		for _, v := range group.ImageUrls {
-			dzUrl := regexp.MustCompile(`https://([A-z0-9\./]+)/service/records/storage/deepzoomcloud`).ReplaceAllString(v, r.baseUrl) + "/image.xml"
-			canvases = append(canvases, dzUrl)
-		}
-	}
-	return canvases, nil
 }
 
 func (r *Familysearch) getFilmData(sUrl string, imageData FamilysearchImageData) (canvases []string, err error) {

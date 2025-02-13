@@ -27,7 +27,6 @@ func main() {
 		log.Println("Download complete.")
 		return
 	}
-	_ = os.Remove(config.Conf.CookieFile)
 	//終端運行：批量URLs
 	if f, err := os.Stat(config.Conf.UrlsFile); err == nil && f.Size() > 0 {
 		taskForUrls()
@@ -35,6 +34,7 @@ func main() {
 	}
 	//雙擊運行
 	iCount := 0
+	_ = os.Remove(config.Conf.CookieFile)
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("Enter an URL:")
