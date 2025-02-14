@@ -12,6 +12,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"regexp"
+	"strings"
 	"sync"
 )
 
@@ -24,7 +25,7 @@ func (r *Keio) Init(iTask int, sUrl string) (msg string, err error) {
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
 	r.dt.Index = iTask
-	r.dt.BookId = r.getBookId(r.dt.Url)
+	r.dt.BookId, r.dt.VolumeId = r.getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
 	}
@@ -32,12 +33,16 @@ func (r *Keio) Init(iTask int, sUrl string) (msg string, err error) {
 	return r.download()
 }
 
-func (r *Keio) getBookId(sUrl string) (bookId string) {
-	m := regexp.MustCompile(`bib_frame\?id=([A-z0-9]+)`).FindStringSubmatch(sUrl)
+func (r *Keio) getBookId(sUrl string) (bookId, volumeId string) {
+	m := regexp.MustCompile(`bib_frame\?id=([A-z0-9_-]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
-		bookId = m[1]
+		m1 := strings.Split(m[1], "-")
+		bookId = m1[0]
+		if len(m1) == 2 {
+			volumeId = m1[1]
+		}
 	}
-	return bookId
+	return bookId, volumeId
 }
 
 func (r *Keio) getManifestUrl(sUrl string) (uri string, err error) {
@@ -99,14 +104,13 @@ func (r *Keio) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, er
 		return
 	}
 	var isFolid4Digit bool
-	m := regexp.MustCompile(`id="isFolid4Digit"\s value=['|"]([A-z0-9]+)['|"]`).FindSubmatch(bs)
+	m := regexp.MustCompile(`id="isFolid4Digit"\s+value=['|"]([A-z0-9]+)['|"]`).FindSubmatch(bs)
 	if m != nil {
 		isFolid4Digit = string(m[1]) == "1"
 	}
 	//<input type="hidden" id="isFolid4Digit" value="0"><input type="hidden" id="bibid" value="006845">
 	for _, v := range matches {
 		childId := r.makeId(string(v[1]), r.dt.BookId, isFolid4Digit)
-		fmt.Sprintf("%s\n", childId)
 		uri := fmt.Sprintf("https://db2.sido.keio.ac.jp/iiif/manifests/kanseki/%s/%s/manifest.json", r.dt.BookId, childId)
 		volumes = append(volumes, uri)
 	}
