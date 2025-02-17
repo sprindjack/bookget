@@ -198,7 +198,7 @@ func (p *Tianyige) download() (msg string, err error) {
 		if !config.VolumeRange(i) {
 			continue
 		}
-		vid := util.GenNumberSorted(vol.Sort)
+		vid := util.GenNumberSorted(i + 1)
 		p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
 		sizePage := len(parts[vol.FascicleId])
 		log.Printf(" %d/%d volume, %d pages \n", i+1, sizeVol, sizePage)
@@ -230,15 +230,6 @@ func (p *Tianyige) do(records []TygImageRecord) (msg string, err error) {
 		if err != nil || uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		mh := xhash.NewMultiHasher()
-		_, _ = io.Copy(mh, bytes.NewBuffer([]byte(uri)))
-		kId, _ := mh.SumString(xhash.MD5, false)
-		_, ok := idDict[kId]
-		if ok {
-			continue
-		} else {
-			idDict[kId] = uri
-		}
 		i++
 		p.index++
 		sortId := util.GenNumberSorted(i)
@@ -247,7 +238,7 @@ func (p *Tianyige) do(records []TygImageRecord) (msg string, err error) {
 		if config.Conf.Bookmark || FileExist(dest) {
 			continue
 		}
-		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
+		log.Printf("Get %d/%d  %s\n", i, size, uri)
 		//下载时有验证码
 		ctx := context.Background()
 		opts := gohttp.Options{
@@ -261,11 +252,23 @@ func (p *Tianyige) do(records []TygImageRecord) (msg string, err error) {
 			},
 		}
 		for k := 0; k < 10; k++ {
-			resp, err := gohttp.FastGet(ctx, uri, opts)
-			if err == nil && resp.GetStatusCode() == 200 {
+			_, err = gohttp.FastGet(ctx, uri, opts)
+			if err == nil && FileExist(dest) {
 				break
 			}
 			WaitNewCookieWithMsg(uri)
+		}
+
+		bs, _ := os.ReadFile(dest)
+		mh := xhash.NewMultiHasher()
+		_, _ = io.Copy(mh, bytes.NewBuffer(bs))
+		kId, _ := mh.SumString(xhash.MD5, false)
+		_, ok := idDict[kId]
+		if ok {
+			fmt.Println()
+			continue
+		} else {
+			idDict[kId] = uri
 		}
 		util.PrintSleepTime(config.Conf.Speed)
 		fmt.Println()
