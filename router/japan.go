@@ -4,16 +4,6 @@ import (
 	"bookget/app"
 )
 
-type RmdaKyoto struct{}
-
-func (p RmdaKyoto) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	for i, s := range sUrl {
-		var kyoto app.Kyoto
-		kyoto.Init(i+1, s)
-	}
-	return nil, nil
-}
-
 type NdlGo struct{}
 
 func (p NdlGo) getRouterInit(sUrl []string) (map[string]interface{}, error) {

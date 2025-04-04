@@ -108,6 +108,7 @@ func Init(ctx context.Context) bool {
 	initVolumeRange()
 	//保存目录处理
 	_ = os.Mkdir(Conf.SaveFolder, os.ModePerm)
+	_ = os.Mkdir(CacheDir(), os.ModePerm)
 	return true
 }
 

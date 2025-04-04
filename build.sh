@@ -1,7 +1,7 @@
 #!/bin/sh
 
 ver=$(date "+%y.%m%d")
-#ver="24.1118"
+#ver="25.0213"
 commit="${ver}"
 sed -i '/const version = */c const version = "'"$commit"'"' config/init.go
 

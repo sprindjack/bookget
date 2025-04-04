@@ -56,3 +56,10 @@ func UserTmpDir() string {
 	}
 	return UserHomeDir() + "/bookget/"
 }
+
+func CacheDir() string {
+	if os.PathSeparator == '\\' {
+		return UserHomeDir() + "\\AppData\\Roaming\\BookGet\\cache\\"
+	}
+	return UserHomeDir() + "/bookget/cache"
+}

@@ -61,6 +61,7 @@ func (p *Nationaljp) download() (msg string, err error) {
 		}
 		log.Printf(" %d/%d volume, %s\n", i+1, len(respVolume), p.extId)
 		p.do(i+1, vol, dest)
+		fmt.Println()
 	}
 	return msg, err
 }
@@ -72,7 +73,7 @@ func (p *Nationaljp) do(index int, id, dest string) (msg string, err error) {
 	opts := gohttp.Options{
 		DestFile:    dest,
 		Overwrite:   false,
-		Concurrency: config.Conf.Threads,
+		Concurrency: 1,
 		CookieFile:  config.Conf.CookieFile,
 		CookieJar:   p.dt.Jar,
 		Headers: map[string]interface{}{
@@ -91,10 +92,9 @@ func (p *Nationaljp) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []stri
 	if err != nil {
 		return
 	}
-	text := string(bs)
 	//<input type="checkbox" class="check" name="id_2" posi="2" value="M2016092111023960474"
 	//取册数
-	matches := regexp.MustCompile(`<input[^>]+posi=["']([0-9]+)["'][^>]+value=["']([A-Za-z0-9]+)["']`).FindAllStringSubmatch(text, -1)
+	matches := regexp.MustCompile(`<input[^>]+posi=["']([0-9]+)["'][^>]+value=["']([A-Za-z0-9]+)["']`).FindAllStringSubmatch(string(bs), -1)
 	if matches == nil {
 		return
 	}

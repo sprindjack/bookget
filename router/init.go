@@ -95,8 +95,8 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//}}} -----------------------------------------------------------------
 
 		//---------------日本--------------------------------------------------
-		//[日本]京都大学图书馆
-		Router["rmda.kulib.kyoto-u.ac.jp"] = new(RmdaKyoto)
+		//[日本]京都大学图书馆 rmda.kulib.kyoto-u.ac.jp 自动检测
+
 		//[日本]国立国会图书馆
 		Router["dl.ndl.go.jp"] = new(NdlGo)
 		//[日本]E国宝eMuseum

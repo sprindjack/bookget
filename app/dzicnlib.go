@@ -157,15 +157,19 @@ func (r DziCnLib) getCanvases(apiUrl string, jar *cookiejar.Jar) (canvases []str
     }
 }
 `
+	// 有些不规范的JPG/jpg扩展名服务器，直接用配置文件指定
 	ext := config.Conf.FileExt[1:]
 	canvases = make([]string, 0, len(result.Tiles))
 	for key, item := range result.Tiles {
 		sortId := fmt.Sprintf("%s.json", key)
 		dest := r.dt.SavePath + sortId
 		serverUrl := fmt.Sprintf("%s/tiles/%s/", r.ServerUrl, key)
-		if r.Extention == "" {
-			r.Extention = "." + strings.ToLower(item.Extension)
-		}
+		// 有些不规范的JPG/jpg扩展名服务器
+		// http://zggj.jslib.org.cn/medias/0118816-0002//tiles/infos.json
+		// https://guji.sclib.cn/medias/557/tiles/infos.json
+		//if r.Extention == "" {
+		//	r.Extention = "." + strings.ToLower(item.Extension)
+		//}
 
 		jsonText := ""
 		if item.TileSize.W == 0 {

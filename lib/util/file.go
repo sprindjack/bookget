@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -50,7 +49,7 @@ func FileWrite(b []byte, filename string) (err error) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, b)
 	fp.Write(buf.Bytes())
-	log.Printf("save as  %s  (%s)\n", filename, ByteUnitString(int64(len(buf.Bytes()))))
+	//log.Printf("save as  %s  (%s)\n", filename, ByteUnitString(int64(len(buf.Bytes()))))
 	return nil
 }
 
