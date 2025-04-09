@@ -39,8 +39,9 @@ type Input struct {
 	Threads       uint
 	Retry         int  //重试次数
 	Bookmark      bool //只下載書簽目錄（浙江寧波天一閣）
-	Help          bool
-	Version       bool
+
+	Help    bool
+	Version bool
 }
 
 func Init(ctx context.Context) bool {

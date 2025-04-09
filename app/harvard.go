@@ -16,12 +16,13 @@ import (
 )
 
 type Harvard struct {
-	dt *DownloadTask
+	dt    *DownloadTask
+	drsId string
 }
 
 func (p *Harvard) Init(iTask int, sUrl string) (msg string, err error) {
 	if strings.Contains(sUrl, "curiosity.lib.harvard.edu") {
-		bs, err := p.getBodyLoop(sUrl, nil)
+		bs, err := p.getBody(sUrl, nil)
 		if err != nil {
 			return "", err
 		}
@@ -62,6 +63,11 @@ func (p *Harvard) getBookId(sUrl string) (bookId string) {
 }
 
 func (p *Harvard) download() (msg string, err error) {
+	_, err = p.tryEmail(p.dt.Url, p.dt.Jar)
+	if err != nil {
+		return "", err
+	}
+
 	name := util.GenNumberSorted(p.dt.Index)
 	log.Printf("Get %s  %s\n", name, p.dt.Url)
 
@@ -104,7 +110,7 @@ func (p *Harvard) do(imgUrls []string) (msg string, err error) {
 
 func (p *Harvard) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
 	if strings.Contains(sUrl, "listview.lib.harvard.edu") {
-		bs, err := p.getBodyLoop(sUrl, nil)
+		bs, err := p.getBody(sUrl, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -126,7 +132,7 @@ func (p *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 	var manifestUri = sUrl
 	if strings.Contains(sUrl, "iiif.lib.harvard.edu/manifests/view/") ||
 		strings.Contains(sUrl, "nrs.harvard.edu") {
-		bs, err := p.getBodyLoop(sUrl, jar)
+		bs, err := p.getBody(sUrl, jar)
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +144,7 @@ func (p *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 			return nil, errors.New("requested URL was not found.")
 		}
 	}
-	bs, err := p.getBodyLoop(manifestUri, jar)
+	bs, err := p.getBody(manifestUri, jar)
 	if err != nil {
 		return
 	}
@@ -187,18 +193,6 @@ func (p *Harvard) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	bs, _ := resp.GetBody()
 	if resp.GetStatusCode() != 200 || bs == nil {
 		return nil, errors.New(fmt.Sprintf("ErrCode:%d, %s", resp.GetStatusCode(), resp.GetReasonPhrase()))
-	}
-	return bs, nil
-}
-
-func (p *Harvard) getBodyLoop(sUrl string, jar *cookiejar.Jar) (bs []byte, err error) {
-	for i := 0; i < 1000; i++ {
-		bs, err = p.getBody(sUrl, jar)
-		if err != nil {
-			WaitNewCookie()
-			continue
-		}
-		break
 	}
 	return bs, nil
 }
@@ -280,4 +274,12 @@ func (p *Harvard) doNormal(imgUrls []string) bool {
 	}
 	fmt.Println()
 	return true
+}
+
+func (p *Harvard) tryEmail(sUrl string, jar *cookiejar.Jar) (bs []byte, err error) {
+	bs, err = p.getBody(sUrl, jar)
+	if err != nil {
+		fmt.Println("当前地区 IP 受限访问，请使用其它方法。该站可使用Email接收PDF。详见网页 “Print/Save” PDF\n")
+	}
+	return bs, err
 }
