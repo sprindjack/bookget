@@ -5,7 +5,6 @@ import (
 	"bookget/site/China/ouroots"
 	"bookget/site/China/szlib"
 	"bookget/site/China/usthk"
-	"bookget/site/China/ynutcm"
 )
 
 type ChinaNcl struct{}
@@ -14,16 +13,6 @@ func (p ChinaNcl) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
 		var nlc app.ChinaNlc
 		nlc.Init(i+1, s)
-	}
-	return nil, nil
-}
-
-type RbkdocNpmTw struct{}
-
-func (p RbkdocNpmTw) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	for i, s := range sUrl {
-		var npm app.NpmTw
-		npm.Init(i+1, s)
 	}
 	return nil, nil
 }
@@ -121,15 +110,6 @@ func (p Ncpssd) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
 		var ncpssd app.Ncpssd
 		ncpssd.Init(i+1, s)
-	}
-	return nil, nil
-}
-
-type GujiYnutcm struct{}
-
-func (p GujiYnutcm) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	for i, s := range sUrl {
-		ynutcm.Init(i+1, s)
 	}
 	return nil, nil
 }

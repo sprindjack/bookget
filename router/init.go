@@ -39,16 +39,12 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[中国]国家图书馆
 		Router["read.nlc.cn"] = new(ChinaNcl)
 		Router["mylib.nlc.cn"] = new(ChinaNcl)
-		//[中国]台北古籍与特藏文献
-		//Router["rbook.ncl.edu.tw"] = new(RbookNcl)
 		//[中国]臺灣華文電子書庫
 		Router["taiwanebook.ncl.edu.tw"] = new(Huawen)
 		//[中国]香港中文大学图书馆cuhk.Init
 		Router["repository.lib.cuhk.edu.hk"] = new(CuHk)
 		//[中国]香港科技大学图书馆 usthk.Init
 		Router["lbezone.hkust.edu.hk"] = new(UstHk)
-		//[中国]台北故宫博物院 - 古籍善本 rbkdocnpmtw.Init
-		Router["rbk-doc.npm.edu.tw"] = new(RbkdocNpmTw)
 		//[中国]洛阳市图书馆
 		Router["111.7.82.29:8090"] = new(LuoYang)
 		//[中国]温州市图书馆
@@ -73,8 +69,6 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[中国]国家哲学社会科学文献中心
 		Router["www.ncpssd.org"] = new(Ncpssd)
 		Router["www.ncpssd.cn"] = new(Ncpssd)
-		//[中国]云南中医药大学古籍图书馆
-		Router["guji.ynutcm.edu.cn"] = new(GujiYnutcm)
 		//[中国]山东中医药大学古籍数字图书馆
 		Router["gjsztsg.sdutcm.edu.cn"] = new(Sdutcm)
 		//[中国]天津图书馆历史文献数字资源库
