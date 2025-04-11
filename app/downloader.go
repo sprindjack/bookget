@@ -2,9 +2,9 @@ package app
 
 import (
 	"bookget/config"
-	"bookget/lib/gohttp"
-	xhash "bookget/lib/hash"
-	"bookget/lib/util"
+	"bookget/pkg/gohttp"
+	xhash "bookget/pkg/hash"
+	"bookget/pkg/util"
 	"bytes"
 	"context"
 	"errors"

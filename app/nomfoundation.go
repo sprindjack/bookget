@@ -2,8 +2,8 @@ package app
 
 import (
 	"bookget/config"
-	"bookget/lib/gohttp"
-	"bookget/lib/util"
+	"bookget/pkg/gohttp"
+	"bookget/pkg/util"
 	"context"
 	"errors"
 	"fmt"

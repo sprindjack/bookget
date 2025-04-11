@@ -3,8 +3,8 @@ package usthk
 import (
 	"bookget/app"
 	"bookget/config"
-	"bookget/lib/curl"
-	"bookget/lib/util"
+	"bookget/pkg/curl"
+	"bookget/pkg/util"
 	"encoding/json"
 	"fmt"
 	"log"

@@ -2,7 +2,7 @@
 package hash
 
 import (
-	"bookget/lib/quickxorhash"
+	"bookget/pkg/quickxorhash"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"

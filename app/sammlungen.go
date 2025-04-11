@@ -1,7 +1,7 @@
 package app
 
 import (
-	"bookget/lib/util"
+	"bookget/pkg/util"
 	"fmt"
 	"log"
 	"net/http/cookiejar"

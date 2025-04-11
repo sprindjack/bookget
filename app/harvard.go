@@ -2,8 +2,8 @@ package app
 
 import (
 	"bookget/config"
-	"bookget/lib/gohttp"
-	"bookget/lib/util"
+	"bookget/pkg/gohttp"
+	"bookget/pkg/util"
 	"context"
 	"encoding/json"
 	"errors"
@@ -21,7 +21,7 @@ type Harvard struct {
 }
 
 func (p *Harvard) Init(iTask int, sUrl string) (msg string, err error) {
-	if strings.Contains(sUrl, "curiosity.lib.harvard.edu") {
+	if strings.Contains(sUrl, "curiosity.pkg.harvard.edu") {
 		bs, err := p.getBody(sUrl, nil)
 		if err != nil {
 			return "", err
@@ -109,7 +109,7 @@ func (p *Harvard) do(imgUrls []string) (msg string, err error) {
 }
 
 func (p *Harvard) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	if strings.Contains(sUrl, "listview.lib.harvard.edu") {
+	if strings.Contains(sUrl, "listview.pkg.harvard.edu") {
 		bs, err := p.getBody(sUrl, nil)
 		if err != nil {
 			return nil, err
@@ -122,7 +122,7 @@ func (p *Harvard) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string,
 			volUrl := "https://nrs.harvard.edu" + strings.Replace(string(m[1]), "//", "/", -1)
 			volumes = append(volumes, volUrl)
 		}
-	} else if strings.Contains(sUrl, "iiif.lib.harvard.edu") {
+	} else if strings.Contains(sUrl, "iiif.pkg.harvard.edu") {
 		volumes = append(volumes, sUrl)
 	}
 	return volumes, nil
@@ -130,7 +130,7 @@ func (p *Harvard) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string,
 
 func (p *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
 	var manifestUri = sUrl
-	if strings.Contains(sUrl, "iiif.lib.harvard.edu/manifests/view/") ||
+	if strings.Contains(sUrl, "iiif.pkg.harvard.edu/manifests/view/") ||
 		strings.Contains(sUrl, "nrs.harvard.edu") {
 		bs, err := p.getBody(sUrl, jar)
 		if err != nil {

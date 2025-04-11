@@ -2,7 +2,7 @@ package curl
 
 import (
 	"bookget/config"
-	"bookget/lib/util"
+	"bookget/pkg/util"
 	"bytes"
 	"context"
 	"errors"

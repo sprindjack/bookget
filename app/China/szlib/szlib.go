@@ -3,9 +3,9 @@ package szlib
 import (
 	"bookget/app"
 	"bookget/config"
-	"bookget/lib/curl"
-	"bookget/lib/gohttp"
-	util "bookget/lib/util"
+	"bookget/pkg/curl"
+	"bookget/pkg/gohttp"
+	util "bookget/pkg/util"
 	"context"
 	"encoding/json"
 	"fmt"

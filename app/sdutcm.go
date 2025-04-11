@@ -2,9 +2,9 @@ package app
 
 import (
 	"bookget/config"
-	"bookget/lib/crypt"
-	"bookget/lib/gohttp"
-	"bookget/lib/util"
+	"bookget/pkg/crypt"
+	"bookget/pkg/gohttp"
+	"bookget/pkg/util"
 	"context"
 	"encoding/json"
 	"fmt"

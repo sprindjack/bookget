@@ -2,7 +2,7 @@ package app
 
 import (
 	"bookget/config"
-	"bookget/lib/util"
+	"bookget/pkg/util"
 	"encoding/json"
 	"fmt"
 	"log"

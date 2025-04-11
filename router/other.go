@@ -2,7 +2,7 @@ package router
 
 import (
 	"bookget/app"
-	"bookget/site/China/idp"
+	"bookget/app/China/idp"
 )
 
 type NormalIIIF struct{}

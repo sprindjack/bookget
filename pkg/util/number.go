@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-//GenNumberSorted 生成文件名排序
+// GenNumberSorted 生成文件名排序
 func GenNumberSorted(i int) string {
 	text := strconv.Itoa(i)
 	s := ""

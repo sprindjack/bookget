@@ -2,7 +2,7 @@ package router
 
 import (
 	"bookget/config"
-	"bookget/lib/util"
+	"bookget/pkg/util"
 	"crypto/tls"
 	"errors"
 	"log"
@@ -42,7 +42,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[中国]臺灣華文電子書庫
 		Router["taiwanebook.ncl.edu.tw"] = new(Huawen)
 		//[中国]香港中文大学图书馆cuhk.Init
-		Router["repository.lib.cuhk.edu.hk"] = new(CuHk)
+		Router["repository.pkg.cuhk.edu.hk"] = new(CuHk)
 		//[中国]香港科技大学图书馆 usthk.Init
 		Router["lbezone.hkust.edu.hk"] = new(UstHk)
 		//[中国]洛阳市图书馆
@@ -76,7 +76,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[中国]云南数字方志馆
 		Router["dfz.yn.gov.cn"] = new(Yndfz)
 		//[中国]香港大学数字图书
-		Router["digitalrepository.lib.hku.hk"] = new(Hkulib)
+		Router["digitalrepository.pkg.hku.hk"] = new(Hkulib)
 		//[中国]江苏省苏州博物馆
 		Router["www.szmuseum.com"] = new(Szmuseum)
 		//[中国]山东省诸城市图书馆
@@ -115,7 +115,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//[日本]关西大学图书馆
 		Router["www.iiif.ku-orcas.kansai-u.ac.jp"] = new(NormalIIIF)
 		//[日本]庆应义塾大学图书馆
-		Router["dcollections.lib.keio.ac.jp"] = new(NormalIIIF)
+		Router["dcollections.pkg.keio.ac.jp"] = new(NormalIIIF)
 
 		//[日本]大阪府立圖書館 IIIF自動檢測
 
@@ -130,9 +130,9 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 
 		//{{{---------------美国、欧洲--------------------------------------------------
 		//[美国]哈佛大学图书馆
-		Router["iiif.lib.harvard.edu"] = new(Harvard)
-		Router["listview.lib.harvard.edu"] = new(Harvard)
-		Router["curiosity.lib.harvard.edu"] = new(Harvard)
+		Router["iiif.pkg.harvard.edu"] = new(Harvard)
+		Router["listview.pkg.harvard.edu"] = new(Harvard)
+		Router["curiosity.pkg.harvard.edu"] = new(Harvard)
 		//[美国]hathitrust 数字图书馆
 		Router["babel.hathitrust.org"] = new(Hathitrust)
 		//[美国]普林斯顿大学图书馆
@@ -159,7 +159,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["iiif.si.edu"] = new(SiEdu)
 		Router["asia.si.edu"] = new(SiEdu)
 		//[美國]柏克萊加州大學東亞圖書館
-		Router["digicoll.lib.berkeley.edu"] = new(Berkeley)
+		Router["digicoll.pkg.berkeley.edu"] = new(Berkeley)
 		//奥地利国图
 		Router["digital.onb.ac.at"] = new(OnbDigital)
 
@@ -185,7 +185,7 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		//俄罗斯图书馆
 		Router["viewer.rsl.ru"] = new(RslRu)
 		//越南汉喃古籍文献典藏数位计划
-		Router["lib.nomfoundation.org"] = new(Nomfoundation)
+		Router["pkg.nomfoundation.org"] = new(Nomfoundation)
 		//越南国家图书馆汉农图书馆
 		Router["hannom.nlv.gov.vn"] = new(HannomNlv)
 

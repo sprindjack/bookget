@@ -5,7 +5,7 @@ import "strings"
 // 数字
 var chnNumChar = [10]string{"零", "一", "二", "三", "四", "五", "六", "七", "八", "九"}
 
-//权位
+// 权位
 var chnUnitSection = [4]string{"", "万", "亿", "万亿"}
 
 // 数字权位
@@ -17,7 +17,7 @@ type chnNameValue struct {
 	secUnit bool
 }
 
-//权位于结点的关系
+// 权位于结点的关系
 var chnValuePair = []chnNameValue{{"十", 10, false}, {"百", 100, false}, {"千", 1000, false}, {"万", 10000, true}, {"亿", 100000000, true}}
 
 //func main() {

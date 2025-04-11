@@ -2,9 +2,9 @@ package app
 
 import (
 	"bookget/config"
-	"bookget/lib/file"
-	"bookget/lib/gohttp"
-	"bookget/lib/util"
+	"bookget/pkg/file"
+	"bookget/pkg/gohttp"
+	"bookget/pkg/util"
 	"context"
 	"fmt"
 	"log"

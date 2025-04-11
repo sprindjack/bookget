@@ -3,8 +3,8 @@ package idp
 import (
 	"bookget/app"
 	"bookget/config"
-	"bookget/lib/gohttp"
-	util "bookget/lib/util"
+	"bookget/pkg/gohttp"
+	util "bookget/pkg/util"
 	"context"
 	"fmt"
 	"log"

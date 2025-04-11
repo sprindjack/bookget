@@ -2,9 +2,9 @@ package router
 
 import (
 	"bookget/app"
-	"bookget/site/China/ouroots"
-	"bookget/site/China/szlib"
-	"bookget/site/China/usthk"
+	"bookget/app/China/ouroots"
+	"bookget/app/China/szlib"
+	"bookget/app/China/usthk"
 )
 
 type ChinaNcl struct{}

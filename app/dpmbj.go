@@ -2,8 +2,8 @@ package app
 
 import (
 	"bookget/config"
-	xcrypt "bookget/lib/crypt"
-	"bookget/lib/util"
+	xcrypt "bookget/pkg/crypt"
+	"bookget/pkg/util"
 	"fmt"
 	"log"
 	"net/http/cookiejar"

@@ -3,8 +3,8 @@ package ouroots
 import (
 	"bookget/app"
 	"bookget/config"
-	"bookget/lib/gohttp"
-	"bookget/lib/util"
+	"bookget/pkg/gohttp"
+	"bookget/pkg/util"
 	"context"
 	"encoding/base64"
 	"encoding/json"

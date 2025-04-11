@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-//var UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36"
+// var UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36"
 func Get(uri string, header map[string]string) (body []byte, err error) {
 	return request("GET", uri, nil, header)
 }

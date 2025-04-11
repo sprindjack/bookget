@@ -217,5 +217,5 @@ func printHelp() {
 }
 
 func printVersion() {
-	fmt.Printf("bookget v%s\n", version)
+	fmt.Printf("bookget v%s\n", Version)
 }
