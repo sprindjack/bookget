@@ -2,7 +2,6 @@ package router
 
 import (
 	"bookget/app"
-	"bookget/app/China/idp"
 )
 
 type NormalIIIF struct{}
@@ -38,6 +37,7 @@ type IDP struct{}
 
 func (p IDP) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var idp app.Idp
 		idp.Init(i+1, s)
 	}
 	return nil, nil

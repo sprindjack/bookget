@@ -77,8 +77,6 @@ func FactoryRouter(siteID string, sUrl []string) (map[string]interface{}, error)
 		Router["dfz.yn.gov.cn"] = new(Yndfz)
 		//[中国]香港大学数字图书
 		Router["digitalrepository.pkg.hku.hk"] = new(Hkulib)
-		//[中国]江苏省苏州博物馆
-		Router["www.szmuseum.com"] = new(Szmuseum)
 		//[中国]山东省诸城市图书馆
 		Router["124.134.220.209:8100"] = new(ZhuCheng)
 		Router["dlibgate.cafa.edu.cn"] = new(CafaEdu)

@@ -2,9 +2,6 @@ package router
 
 import (
 	"bookget/app"
-	"bookget/app/China/ouroots"
-	"bookget/app/China/szlib"
-	"bookget/app/China/usthk"
 )
 
 type ChinaNcl struct{}
@@ -31,6 +28,7 @@ type UstHk struct{}
 
 func (p UstHk) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var usthk app.Usthk
 		usthk.Init(i+1, s)
 	}
 	return nil, nil
@@ -60,6 +58,7 @@ type YunSzlib struct{}
 
 func (p YunSzlib) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var szlib app.SzLib
 		szlib.Init(i+1, s)
 	}
 	return nil, nil
@@ -99,6 +98,7 @@ type OurootsNlc struct{}
 
 func (p OurootsNlc) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
+		var ouroots app.Ouroots
 		ouroots.Init(i+1, s)
 	}
 	return nil, nil
@@ -150,16 +150,6 @@ func (p Hkulib) getRouterInit(sUrl []string) (map[string]interface{}, error) {
 	for i, s := range sUrl {
 		var hku app.Hkulib
 		hku.Init(i+1, s)
-	}
-	return nil, nil
-}
-
-type Szmuseum struct{}
-
-func (p Szmuseum) getRouterInit(sUrl []string) (map[string]interface{}, error) {
-	for i, s := range sUrl {
-		var szlib app.Szmuseum
-		szlib.Init(i+1, s)
 	}
 	return nil, nil
 }
