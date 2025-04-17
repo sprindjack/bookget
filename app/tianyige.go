@@ -155,11 +155,7 @@ func (p *Tianyige) Init(iTask int, sUrl string) (msg string, err error) {
 		return "requested URL was not found.", err
 	}
 	p.dt.Jar, _ = cookiejar.New(nil)
-	//OpenWebBrowser(sUrl, []string{})
 	p.localStorage.authorization, p.localStorage.authorizationu, err = p.getLocalStorage()
-	if err != nil {
-		return "Invalid file localStorage.txt", err
-	}
 	return p.download()
 }
 
