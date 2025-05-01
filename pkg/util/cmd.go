@@ -61,7 +61,7 @@ func GetOutput(reader *bufio.Reader) {
 }
 
 // PrintSleepTime 打印0-60秒等待
-func PrintSleepTime(sec uint) {
+func PrintSleepTime(sec int) {
 	if sec <= 0 || sec > 60 {
 		return
 	}

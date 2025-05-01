@@ -24,19 +24,19 @@ type Input struct {
 	VolStart     int
 	VolEnd       int
 
-	Speed      uint   //限速
+	Speed      int    //限速
 	SaveFolder string //下载文件存放目录，默认为当前文件夹下 Downloads 目录下
 	//;生成 dezoomify-rs 可用的文件(默认生成文件名 dezoomify-rs.urls.txt）
 	// ;0 = 禁用，1=启用 （只对支持的图书馆有效）
 	Format        string //;全高清图下载时，指定宽度像素（16开纸185mm*260mm，像素2185*3071）
 	UserAgent     string //自定义UserAgent
 	AutoDetect    int    //自动检测下载URL。可选值[0|1|2]，;0=默认;1=通用批量下载（类似IDM、迅雷）;2= IIIF manifest.json 自动检测下载图片
-	MergePDFs     bool   //;台北故宫博物院 - 善本古籍，是否整册合并一个PDF下载？0=否，1=是。整册合并一个PDF遇到某一册最后一章节【无影像】会导致下载失败。 如：新刊校定集注杜詩 三十六卷 第二十四冊 聞惠子過東溪 无影像
 	DezoomifyPath string //dezoomify-rs 本地目录位置
 	DezoomifyRs   string //dezoomify-rs 参数
 	UseDziRs      bool   //启用DezoomifyRs下载IIIF
 	FileExt       string //指定下载的扩展名
-	Threads       uint
+	Threads       int
+	MaxConcurrent int
 	Retry         int  //重试次数
 	Bookmark      bool //只下載書簽目錄（浙江寧波天一閣）
 
@@ -61,25 +61,25 @@ func Init(ctx context.Context) bool {
 	}
 	iniConf, _ := initINI()
 
-	flag.StringVar(&Conf.UrlsFile, "i", iniConf.UrlsFile, "下载的URLs，指定任意本地文件，例如：urls.txt")
-	flag.StringVar(&Conf.SaveFolder, "o", iniConf.SaveFolder, "下载保存到目录")
-	flag.StringVar(&Conf.Seq, "seq", iniConf.Seq, "页面范围，如4:434")
-	flag.StringVar(&Conf.Volume, "vol", iniConf.Volume, "多册图书，如10:20册，只下载10至20册")
-	flag.StringVar(&Conf.Format, "fmt", iniConf.Format, "IIIF 图像请求URI: full/full/0/default.jpg")
-	flag.StringVar(&Conf.UserAgent, "ua", iniConf.UserAgent, "user-agent")
-	flag.BoolVar(&Conf.MergePDFs, "mp", iniConf.MergePDFs, "合并PDF文件下载，可选值[0|1]。0=否，1=是。仅对 rbk-doc.npm.edu.tw 有效。")
-	flag.BoolVar(&Conf.Bookmark, "mark", iniConf.Bookmark, "只下载书签目录，可选值[0|1]。0=否，1=是。仅对 gj.tianyige.com.cn 有效。")
-	flag.BoolVar(&Conf.UseDziRs, "dzi", iniConf.UseDziRs, "使用dezoomify-rs下载，仅对支持iiif的网站生效。")
-	flag.StringVar(&Conf.CookieFile, "c", iniConf.CookieFile, "指定cookie.txt文件路径")
-	flag.StringVar(&Conf.LocalStorage, "localStorage", iniConf.LocalStorage, "指定localStorage.txt文件路径")
-	flag.StringVar(&Conf.FileExt, "ext", iniConf.FileExt, "指定文件扩展名[.jpg|.tif|.png]等")
-	flag.UintVar(&Conf.Threads, "n", iniConf.Threads, "最大并发连接数")
-	flag.UintVar(&Conf.Speed, "speed", iniConf.Speed, "下载限速 N 秒/任务，cuhk推荐5-60")
-	flag.IntVar(&Conf.Retry, "r", iniConf.Retry, "下载重试次数")
-	flag.IntVar(&Conf.AutoDetect, "a", iniConf.AutoDetect, "自动检测下载URL。可选值[0|1|2]，;0=默认;\n1=通用批量下载（类似IDM、迅雷）;\n2= IIIF manifest.json 自动检测下载图片")
-	flag.BoolVar(&Conf.Help, "h", false, "显示帮助")
-	flag.BoolVar(&Conf.Version, "v", false, "显示版本")
-	flag.StringVar(&Conf.DezoomifyRs, "rs", iniConf.DezoomifyRs, "dezoomify-rs 参数")
+	flag.StringVar(&Conf.UrlsFile, "input", iniConf.UrlsFile, "下载的URLs，指定任意本地文件，例如：urls.txt")
+	flag.StringVar(&Conf.SaveFolder, "output", iniConf.SaveFolder, "下载保存到目录")
+	flag.StringVar(&Conf.Seq, "sequence", iniConf.Seq, "页面范围，如4:434")
+	flag.StringVar(&Conf.Volume, "volume", iniConf.Volume, "多册图书，如10:20册，只下载10至20册")
+	flag.StringVar(&Conf.Format, "format", iniConf.Format, "IIIF 图像请求URI: full/full/0/default.jpg")
+	flag.StringVar(&Conf.UserAgent, "user-agent", iniConf.UserAgent, "user-agent")
+	flag.BoolVar(&Conf.Bookmark, "bookmark", iniConf.Bookmark, "只下载书签目录，可选值[0|1]。0=否，1=是。仅对 gj.tianyige.com.cn 有效。")
+	flag.BoolVar(&Conf.UseDziRs, "dezoomify-rs", iniConf.UseDziRs, "使用dezoomify-rs下载，仅对支持iiif的网站生效。")
+	flag.StringVar(&Conf.CookieFile, "cookie", iniConf.CookieFile, "指定cookie.txt文件路径")
+	flag.StringVar(&Conf.LocalStorage, "local-storage", iniConf.LocalStorage, "指定localStorage.txt文件路径")
+	flag.StringVar(&Conf.FileExt, "extension", iniConf.FileExt, "指定文件扩展名[.jpg|.tif|.png]等")
+	flag.IntVar(&Conf.Threads, "threads", iniConf.Threads, "最大线程数")
+	flag.IntVar(&Conf.MaxConcurrent, "concurrent", iniConf.MaxConcurrent, "最大并发任务数")
+	flag.IntVar(&Conf.Speed, "speed", iniConf.Speed, "下载限速 N 秒/任务，cuhk推荐5-60")
+	flag.IntVar(&Conf.Retry, "retry", iniConf.Retry, "下载重试次数")
+	flag.IntVar(&Conf.AutoDetect, "auto-detect", iniConf.AutoDetect, "自动检测下载URL。可选值[0|1|2]，;0=默认;\n1=通用批量下载（类似IDM、迅雷）;\n2= IIIF manifest.json 自动检测下载图片")
+	flag.BoolVar(&Conf.Help, "help", false, "显示帮助")
+	flag.BoolVar(&Conf.Version, "version", false, "显示版本 -v")
+	flag.StringVar(&Conf.DezoomifyRs, "dezoomify-rs-args", iniConf.DezoomifyRs, "dezoomify-rs 参数")
 	Conf.DezoomifyPath = iniConf.DezoomifyPath
 	flag.Parse()
 
@@ -127,7 +127,7 @@ func initINI() (io Input, err error) {
 	cFile := dir + string(os.PathSeparator) + "cookie.txt"
 	urls := dir + string(os.PathSeparator) + "urls.txt"
 	localStorage := dir + string(os.PathSeparator) + "localStorage.txt"
-	c := uint(runtime.NumCPU() * 2)
+	c := runtime.NumCPU() * 2
 
 	ua := "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/118.0"
 	format := "full/full/0/default.jpg"
@@ -147,12 +147,12 @@ func initINI() (io Input, err error) {
 		Format:        format,
 		UserAgent:     ua,
 		AutoDetect:    0,
-		MergePDFs:     true,
 		DezoomifyPath: "",
 		DezoomifyRs:   "-l --compression 20",
 		UseDziRs:      false,
 		FileExt:       ".jpg",
-		Threads:       c,
+		Threads:       1,
+		MaxConcurrent: c,
 		Retry:         3,
 		Bookmark:      false,
 		Help:          false,
@@ -176,30 +176,45 @@ func initINI() (io Input, err error) {
 		return
 	}
 
-	io.AutoDetect = cfg.Section("").Key("app_mode").MustInt(0)
-	io.SaveFolder = cfg.Section("paths").Key("data").String()
+	// 读取自动检测模式
+	io.AutoDetect = cfg.Section("").Key("auto-detect").MustInt(0)
+
+	// 读取输出目录设置
+	io.SaveFolder = cfg.Section("paths").Key("output").String()
 	if io.SaveFolder == "" {
 		io.SaveFolder = dir
 	}
 
+	// 读取cookie和localStorage路径
+	io.CookieFile = cfg.Section("paths").Key("cookie").String()
+	io.LocalStorage = cfg.Section("paths").Key("local-storage").String()
+
+	// 读取下载相关设置
 	secDown := cfg.Section("download")
-	io.FileExt = secDown.Key("ext").String()
-	io.Threads = secDown.Key("threads").MustUint(c)
+	io.FileExt = secDown.Key("extension").String()
+	io.Threads = secDown.Key("threads").MustInt(c)
 	if io.Threads == 0 {
 		io.Threads = c
 	}
-	io.Speed = secDown.Key("speed").MustUint(c)
+	io.MaxConcurrent = secDown.Key("concurrent").MustInt(c)
+	if io.MaxConcurrent == 0 {
+		io.MaxConcurrent = c
+	}
+	io.Speed = secDown.Key("speed").MustInt(c)
+	io.Retry = secDown.Key("retry").MustInt(3) // 默认重试3次
 
+	// 读取自定义设置
 	secCus := cfg.Section("custom")
-	io.Seq = secCus.Key("seq").String()
-	io.Volume = secCus.Key("vol").String()
-	io.MergePDFs = secCus.Key("mp").MustBool(true)
+	io.Seq = secCus.Key("sequence").String()
+	io.Volume = secCus.Key("volume").String()
 	io.Bookmark = secCus.Key("bookmark").MustBool(false)
-	io.UserAgent = secCus.Key("ua").MustString(ua)
+	io.UserAgent = secCus.Key("user-agent").MustString(ua)
+	io.UrlsFile = secCus.Key("input").String() // 读取URLs文件路径
 
+	// 读取dzi相关设置
 	secDzi := cfg.Section("dzi")
-	io.UseDziRs = secDzi.Key("dzi").MustBool(false)
-	io.DezoomifyRs = secDzi.Key("rs").String()
+	io.UseDziRs = secDzi.Key("dezoomify-rs").MustBool(false)
+	io.DezoomifyRs = secDzi.Key("dezoomify-rs-args").String()
 	io.Format = secDzi.Key("format").MustString(format)
 
 	if !strings.Contains(io.DezoomifyRs, "-n") && !strings.Contains(io.DezoomifyRs, "--parallelism") {

@@ -41,8 +41,8 @@ func (d *Download) Path() string {
 	return d.path
 }
 
-func getDefaultConcurrency() uint {
-	c := uint(runtime.NumCPU() * 2)
+func getDefaultConcurrency() int {
+	c := runtime.NumCPU() * 2
 	return c
 }
 

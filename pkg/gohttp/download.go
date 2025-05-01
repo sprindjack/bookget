@@ -44,7 +44,7 @@ type Download struct {
 	size, lastSize uint64
 
 	Cookie                                          []http.Cookie
-	Concurrency                                     uint
+	Concurrency                                     int
 	StopProgress                                    bool
 	URL, Dir, Dest, path, unsafeName                string
 	Interval, ChunkSize, MinChunkSize, MaxChunkSize uint64

@@ -8,7 +8,7 @@ import (
 // Options object
 type Options struct {
 	Debug       bool
-	Concurrency uint //CPU核数
+	Concurrency int //CPU核数
 	BaseURI     string
 	Timeout     float32
 	timeout     time.Duration
