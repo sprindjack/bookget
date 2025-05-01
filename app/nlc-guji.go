@@ -140,7 +140,7 @@ func (s *NlcGuji) letsGo(canvases []nlc.DataItem) (msg string, err error) {
 			nil,
 			s.savePath,
 			fileName,
-			int(config.Conf.Threads),
+			config.Conf.Threads,
 		)
 	}
 	fmt.Println()

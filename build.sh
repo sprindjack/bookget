@@ -3,7 +3,7 @@
 ver=$(date "+%y.%m%d")
 #ver="25.0213"
 commit="${ver}"
-sed -i '/const version = */c const version = "'"$commit"'"' config/init.go
+sed -i '/const Version = */c const Version = "'"$commit"'"' config/init.go
 
 buildWindows() {
     ver=$1

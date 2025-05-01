@@ -10,8 +10,8 @@ function setVersion
     $fileContent = Get-Content -Path $filePath -Raw
 
     # 使用正则表达式替换版本号
-    $pattern = 'const version = "[^"]*"'
-    $replacement = "const version = `"$ver`""
+    $pattern = 'const Version = "[^"]*"'
+    $replacement = "const Version = `"$ver`""
     $updatedContent = [regex]::Replace($fileContent, $pattern, $replacement)
 
     # 将更新后的内容写入临时文件

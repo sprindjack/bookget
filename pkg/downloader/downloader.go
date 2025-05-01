@@ -98,8 +98,6 @@ func (dm *DownloadManager) AddTask(url, method string, headers map[string]string
 		threads = maxConcurrent
 	}
 
-	dm.maxConcurrent = threads
-
 	task := &DownloadTask{
 		URL:      url,
 		Method:   method,
