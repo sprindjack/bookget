@@ -17,11 +17,24 @@ type Luoyang struct {
 	dt *DownloadTask
 }
 
-func (p *Luoyang) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
+func NewLuoyang() *Luoyang {
+	return &Luoyang{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *Luoyang) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (p *Luoyang) Run(sUrl string) (msg string, err error) {
 	p.dt.UrlParsed, err = url.Parse(sUrl)
 	p.dt.Url = sUrl
-	p.dt.Index = iTask
 	p.dt.BookId = p.getBookId(p.dt.Url)
 	if p.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -38,7 +51,7 @@ func (p *Luoyang) getBookId(sUrl string) (bookId string) {
 }
 
 func (p *Luoyang) download() (msg string, err error) {
-	name := util.GenNumberSorted(p.dt.Index)
+	name := fmt.Sprintf("%04d", p.dt.Index)
 	log.Printf("Get %s  %s\n", name, p.dt.Url)
 	respVolume, err := p.getVolumes(p.dt.Url, p.dt.Jar)
 	if err != nil {
@@ -52,7 +65,7 @@ func (p *Luoyang) download() (msg string, err error) {
 		}
 		log.Printf(" %d/%d volume, %s \n", i+1, len(respVolume), vol)
 		fName := util.FileName(vol)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		dest := p.dt.SavePath + sortId + "." + fName
 		p.do(dest, vol)
 		util.PrintSleepTime(config.Conf.Speed)

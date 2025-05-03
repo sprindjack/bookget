@@ -3,7 +3,6 @@ package app
 import (
 	"bookget/config"
 	"bookget/pkg/gohttp"
-	"bookget/pkg/util"
 	"context"
 	"encoding/json"
 	"errors"
@@ -20,6 +19,21 @@ type Berkeley struct {
 	dt *DownloadTask
 }
 
+func NewBerkeley() *Berkeley {
+	return &Berkeley{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *Berkeley) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
 type BerkeleyResponse struct {
 	Name        string `json:"name"`
 	Url         string `json:"url"`
@@ -27,11 +41,9 @@ type BerkeleyResponse struct {
 	Description string `json:"description"`
 }
 
-func (r *Berkeley) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
+func (r *Berkeley) Run(sUrl string) (msg string, err error) {
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
 	r.dt.BookId = r.getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -49,7 +61,7 @@ func (r *Berkeley) getBookId(sUrl string) (bookId string) {
 }
 
 func (r *Berkeley) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
 	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
@@ -73,7 +85,7 @@ func (r *Berkeley) do(canvases []string) (msg string, err error) {
 		if dUrl == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		ext := filepath.Ext(dUrl)
 		filename := sortId + ext
 		dest := r.dt.SavePath + filename

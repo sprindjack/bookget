@@ -21,11 +21,26 @@ type Nomfoundation struct {
 	dt *DownloadTask
 }
 
-func (r *Nomfoundation) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
+func NewNomfoundation() *Nomfoundation {
+	return &Nomfoundation{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *Nomfoundation) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *Nomfoundation) Run(sUrl string) (msg string, err error) {
+
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
+
 	r.dt.BookId = r.getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -46,7 +61,7 @@ func (r *Nomfoundation) getBookId(sUrl string) (bookId string) {
 }
 
 func (r *Nomfoundation) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 	canvases, err := r.getCanvases(r.dt.Url, r.dt.Jar)
@@ -70,7 +85,7 @@ func (r *Nomfoundation) do(canvases []string) (msg string, err error) {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
 		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
@@ -132,7 +147,7 @@ func (r *Nomfoundation) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases [
 	path := regexp.MustCompile(`-(\d+)\.jpg`).ReplaceAll(m[1], []byte("-%s.jpg"))
 	imgUrlTemplate := "https://lib.nomfoundation.org" + strings.Replace(string(path), "/jpeg/", "/large/", 1)
 	for i := 1; i <= size; i++ {
-		sid := util.GenNumberLimitLen(i, 3)
+		sid := fmt.Sprintf("%03d", i)
 		imgUrl := fmt.Sprintf(imgUrlTemplate, sid)
 		canvases = append(canvases, imgUrl)
 	}

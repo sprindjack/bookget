@@ -2,8 +2,8 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/rslru"
 	"bookget/pkg/gohttp"
-	"bookget/pkg/util"
 	"context"
 	"encoding/json"
 	"errors"
@@ -20,55 +20,29 @@ import (
 
 type RslRu struct {
 	dt       *DownloadTask
-	response RslRuResponse
-}
-type RslRuResponse struct {
-	IsAvailable                     bool        `json:"isAvailable"`
-	IsAuthorizationRequired         bool        `json:"isAuthorizationRequired"`
-	IsGosuslugiVerificationRequired bool        `json:"isGosuslugiVerificationRequired"`
-	Formats                         []string    `json:"formats"`
-	PageCount                       int         `json:"pageCount"`
-	IsSearchable                    bool        `json:"isSearchable"`
-	HasTextLayer                    bool        `json:"hasTextLayer"`
-	OwnershipSystem                 string      `json:"ownershipSystem"`
-	AccessLevel                     string      `json:"accessLevel"`
-	AccessInformationMessage        interface{} `json:"accessInformationMessage"`
-	Description                     struct {
-		Author  interface{} `json:"author"`
-		Title   string      `json:"title"`
-		Imprint string      `json:"imprint"`
-	} `json:"description"`
-	PrintAccess struct {
-		IsPrintable             bool `json:"isPrintable"`
-		IsPrintableWhenLoggedIn bool `json:"isPrintableWhenLoggedIn"`
-	} `json:"printAccess"`
-	ViewAccess struct {
-		AvailablePdfPages []struct {
-			Min int `json:"min"`
-			Max int `json:"max"`
-		} `json:"availablePdfPages"`
-		AvailableEpubPercent    interface{} `json:"availableEpubPercent"`
-		PreviewPdfPages         interface{} `json:"previewPdfPages"`
-		OutOfPreviewRangeAction interface{} `json:"outOfPreviewRangeAction"`
-	} `json:"viewAccess"`
-	DownloadAccess struct {
-		IsDownloadable      bool          `json:"isDownloadable"`
-		DownloadableFormats []interface{} `json:"downloadableFormats"`
-		ForbiddenReasonText interface{}   `json:"forbiddenReasonText"`
-	} `json:"downloadAccess"`
-	HasAudio            bool   `json:"hasAudio"`
-	HasWordCoordinates  bool   `json:"hasWordCoordinates"`
-	ReadingSessionId    string `json:"readingSessionId"`
-	AllowedAccessTokens struct {
-		Pdf bool `json:"pdf"`
-	} `json:"allowedAccessTokens"`
+	response *rslru.Response
 }
 
-func (r *RslRu) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
+func NewRslRu() *RslRu {
+	return &RslRu{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *RslRu) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *RslRu) Run(sUrl string) (msg string, err error) {
+
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
+
 	r.dt.BookId = r.getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -86,8 +60,7 @@ func (r *RslRu) getBookId(sUrl string) (bookId string) {
 }
 
 func (r *RslRu) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
-	log.Printf("Get %s  %s\n", name, r.dt.Url)
+	log.Printf("Get  %s\n", r.dt.Url)
 
 	r.response, err = r.getJsonResponse()
 	if err != nil {
@@ -116,7 +89,7 @@ func (r *RslRu) do(canvases []string) (msg string, err error) {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
 		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
@@ -165,13 +138,13 @@ func (r *RslRu) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string,
 	return canvases, nil
 }
 
-func (r *RslRu) getJsonResponse() (resp RslRuResponse, err error) {
+func (r *RslRu) getJsonResponse() (resp *rslru.Response, err error) {
 	apiUrl := fmt.Sprintf("https://viewer.rsl.ru/api/v1/document/%s/info", r.dt.BookId)
 	bs, err := r.getBody(apiUrl, r.dt.Jar)
 	if err != nil {
 		return
 	}
-	if err = json.Unmarshal(bs, &resp); err != nil {
+	if err = json.Unmarshal(bs, resp); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 	}
 	return resp, err

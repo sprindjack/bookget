@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/korea"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -19,31 +20,34 @@ type Korea struct {
 	body []byte
 }
 
-type KoreaResponse struct {
-	ImgInfos []struct {
-		BookNum  string `json:"bookNum"`
-		Num      string `json:"num"`
-		BookPath string `json:"bookPath"`
-		ImgNum   string `json:"imgNum"`
-		Fname    string `json:"fname"`
-	} `json:"imgInfos"`
-	BookNum string `json:"bookNum"`
+func NewKorea() *Korea {
+	return &Korea{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
 }
 
-func (p *Korea) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
-	p.dt.UrlParsed, err = url.Parse(sUrl)
-	p.dt.Url = sUrl
-	p.dt.Index = iTask
-	p.dt.BookId = p.getBookId(p.dt.Url)
-	if p.dt.BookId == "" {
+func (r *Korea) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *Korea) Run(sUrl string) (msg string, err error) {
+	r.dt = new(DownloadTask)
+	r.dt.UrlParsed, err = url.Parse(sUrl)
+	r.dt.Url = sUrl
+	r.dt.BookId = r.getBookId(r.dt.Url)
+	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
 	}
-	p.dt.Jar, _ = cookiejar.New(nil)
-	return p.download()
+	r.dt.Jar, _ = cookiejar.New(nil)
+	return r.download()
 }
 
-func (p *Korea) getBookId(sUrl string) (bookId string) {
+func (r *Korea) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`uci=([^&]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		return m[1]
@@ -51,11 +55,11 @@ func (p *Korea) getBookId(sUrl string) (bookId string) {
 	return ""
 }
 
-func (p *Korea) download() (msg string, err error) {
-	name := util.GenNumberSorted(p.dt.Index)
-	log.Printf("Get %s  %s\n", name, p.dt.Url)
+func (r *Korea) download() (msg string, err error) {
+	name := fmt.Sprintf("%04d", r.dt.Index)
+	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
-	respVolume, err := p.getVolumes(p.dt.Url, p.dt.Jar)
+	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
 	if err != nil {
 		fmt.Println(err)
 		return "getVolumes", err
@@ -66,21 +70,21 @@ func (p *Korea) download() (msg string, err error) {
 			continue
 		}
 		if sizeVol == 1 {
-			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
+			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 		} else {
-			vid := util.GenNumberSorted(i + 1)
-			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
+			vid := fmt.Sprintf("%04d", i+1)
+			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 		}
 		if err != nil || vol.Canvases == nil {
 			continue
 		}
 		log.Printf(" %d/%d volume, %d pages \n", i+1, sizeVol, len(vol.Canvases))
-		p.do(vol.Canvases)
+		r.do(vol.Canvases)
 	}
 	return "", nil
 }
 
-func (p *Korea) do(imgUrls []string) (msg string, err error) {
+func (r *Korea) do(imgUrls []string) (msg string, err error) {
 	if imgUrls == nil {
 		return
 	}
@@ -93,9 +97,9 @@ func (p *Korea) do(imgUrls []string) (msg string, err error) {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
-		dest := p.dt.SavePath + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -110,7 +114,7 @@ func (p *Korea) do(imgUrls []string) (msg string, err error) {
 				Overwrite:   false,
 				Concurrency: 1,
 				CookieFile:  config.Conf.CookieFile,
-				CookieJar:   p.dt.Jar,
+				CookieJar:   r.dt.Jar,
 				Headers: map[string]interface{}{
 					"User-Agent": config.Conf.UserAgent,
 				},
@@ -125,7 +129,7 @@ func (p *Korea) do(imgUrls []string) (msg string, err error) {
 	return "", err
 }
 
-func (p *Korea) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []PartialCanvases, err error) {
+func (r *Korea) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []korea.PartialCanvases, err error) {
 	bs, err := getBody(sUrl, jar)
 	if err != nil {
 		return nil, err
@@ -134,14 +138,14 @@ func (p *Korea) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []PartialCa
 	if matches == nil {
 		return
 	}
-	resp := make([]KoreaResponse, 0, 100)
+	resp := make([]korea.Response, 0, 100)
 	if err = json.Unmarshal(matches[1], &resp); err != nil {
 		return nil, err
 	}
-	ossHost := fmt.Sprintf("%s://%s/data/des/%s/IMG/", p.dt.UrlParsed.Scheme, p.dt.UrlParsed.Host, p.dt.BookId)
+	ossHost := fmt.Sprintf("%s://%s/data/des/%s/IMG/", r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host, r.dt.BookId)
 	for _, match := range resp {
-		vol := PartialCanvases{
-			directory: "",
+		vol := korea.PartialCanvases{
+			Directory: "",
 			Title:     "",
 			Canvases:  make([]string, 0, len(match.ImgInfos)),
 		}
@@ -152,19 +156,4 @@ func (p *Korea) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []PartialCa
 		volumes = append(volumes, vol)
 	}
 	return
-}
-
-func (p *Korea) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *Korea) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *Korea) postBody(sUrl string, d []byte) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
 }

@@ -16,11 +16,26 @@ type Gzlib struct {
 	dt *DownloadTask
 }
 
-func (r Gzlib) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
+func NewGzlib() *Gzlib {
+	return &Gzlib{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *Gzlib) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r Gzlib) Run(sUrl string) (msg string, err error) {
+
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
+
 	r.dt.BookId = r.getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -42,7 +57,7 @@ func (r Gzlib) getBookId(sUrl string) (bookId string) {
 }
 
 func (r Gzlib) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 	canvases, err := r.getCanvases(r.dt.Url, r.dt.Jar)

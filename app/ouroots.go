@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/ouroots"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/progressbar"
 	"bookget/pkg/util"
@@ -26,65 +27,34 @@ type Ouroots struct {
 	bar     *progressbar.ProgressBar
 }
 
-type OurootsResponseLoginAnonymousUser struct {
-	StatusCode string `json:"statusCode"`
-	Msg        string `json:"msg"`
-	Token      string `json:"token"`
+func NewOuroots() *Ouroots {
+	return &Ouroots{
+		// 初始化字段
+		dt:      new(DownloadTask),
+		Counter: 0,
+	}
 }
 
-type OurootsResponseCatalogImage struct {
-	StatusCode string `json:"statusCode"`
-	Msg        string `json:"msg"`
-	ImagePath  string `json:"imagePath"`
-	ImageSize  int    `json:"imageSize"`
-	DocPath    string `json:"docPath"`
-}
-type OurootsResponseVolume struct {
-	StatusCode string `json:"statusCode"`
-	Msg        string `json:"msg"`
-	Volume     []struct {
-		Name     string `json:"name"`
-		Pages    int    `json:"pages"`
-		VolumeId int    `json:"volumeId"`
-	} `json:"volume"`
-	Catalogue []struct {
-		Key           string `json:"_key"`
-		Id            string `json:"_id"`
-		Rev           string `json:"_rev"`
-		BatchID       string `json:"batchID"`
-		PageProp      string `json:"page_prop"`
-		BookId        string `json:"book_id"`
-		ChapterName   string `json:"chapter_name"`
-		SerialNum     string `json:"serial_num"`
-		AdminId       string `json:"adminId"`
-		CreateTime    int64  `json:"createTime"`
-		IsLike        bool   `json:"isLike"`
-		IsCollect     bool   `json:"isCollect"`
-		ViewNum       int    `json:"viewNum"`
-		LikeNum       int    `json:"likeNum"`
-		CollectionNum int    `json:"collectionNum"`
-		ShareNum      int    `json:"shareNum"`
-		VolumeID      int    `json:"volumeID"`
-		EndNum        *int   `json:"end_num"`
-		VolumeNum     string `json:"volume_num,omitempty"`
-		PageNum       string `json:"page_num,omitempty"`
-	} `json:"catalogue"`
+func (r *Ouroots) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
 }
 
-func (p *Ouroots) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
-	p.dt.UrlParsed, err = url.Parse(sUrl)
-	p.dt.Url = sUrl
-	p.dt.Index = iTask
-	p.dt.BookId = p.getBookId(p.dt.Url)
-	if p.dt.BookId == "" {
+func (r *Ouroots) Run(sUrl string) (msg string, err error) {
+	r.dt.UrlParsed, err = url.Parse(sUrl)
+	r.dt.Url = sUrl
+	r.dt.BookId = r.getBookId(r.dt.Url)
+	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
 	}
-	p.dt.Jar, _ = cookiejar.New(nil)
-	return p.download()
+	r.dt.Jar, _ = cookiejar.New(nil)
+	return r.download()
 }
 
-func (p *Ouroots) getBookId(sUrl string) (bookId string) {
+func (r *Ouroots) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`(?i)\.html\?([A-z0-9]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
@@ -92,17 +62,17 @@ func (p *Ouroots) getBookId(sUrl string) (bookId string) {
 	return bookId
 }
 
-func (p *Ouroots) download() (msg string, err error) {
-	name := util.GenNumberSorted(p.dt.Index)
-	log.Printf("Get %s  %s\n", name, p.dt.Url)
+func (r *Ouroots) download() (msg string, err error) {
+	name := fmt.Sprintf("%04d", r.dt.Index)
+	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
-	respVolume, err := p.getVolumes(p.dt.BookId, p.dt.Jar)
+	respVolume, err := r.getVolumes(r.dt.BookId)
 	if err != nil || respVolume.StatusCode != "200" {
 		fmt.Println(err)
 		return "getVolumes", err
 	}
 	//不按卷下载，所有图片存一个目录
-	p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
+	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 	macCounter := 0
 	for i, vol := range respVolume.Volume {
 		if !config.VolumeRange(i) {
@@ -111,32 +81,32 @@ func (p *Ouroots) download() (msg string, err error) {
 		macCounter += vol.Pages
 	}
 	fmt.Println()
-	p.bar = progressbar.Default(int64(macCounter), "downloading")
+	r.bar = progressbar.Default(int64(macCounter), "downloading")
 	for i, vol := range respVolume.Volume {
 		if !config.VolumeRange(i) {
 			continue
 		}
-		p.do(vol.Pages, vol.VolumeId)
+		r.do(vol.Pages, vol.VolumeId)
 	}
 	return "", nil
 }
 
-func (p *Ouroots) do(pageTotal int, volumeId int) (msg string, err error) {
-	token, err := p.getToken()
+func (r *Ouroots) do(pageTotal int, volumeId int) (msg string, err error) {
+	token, err := r.getToken()
 	if err != nil {
-		p.bar.Clear()
+		r.bar.Clear()
 		return "token not found.", err
 	}
 	for i := 1; i <= pageTotal; i++ {
-		sortId := fmt.Sprintf("%s.jpg", util.GenNumberSorted(p.Counter+1))
-		dest := p.dt.SavePath + sortId
+		sortId := fmt.Sprintf("%s.jpg", fmt.Sprintf("%04d", r.Counter+1))
+		dest := r.dt.SavePath + sortId
 		if util.FileExist(dest) {
-			p.Counter++
-			p.bar.Add(1)
+			r.Counter++
+			r.bar.Add(1)
 			time.Sleep(40 * time.Millisecond)
 			continue
 		}
-		respImage, err := p.getBase64Image(p.dt.BookId, volumeId, i, "", token)
+		respImage, err := r.getBase64Image(r.dt.BookId, volumeId, i, "", token)
 		if err != nil || respImage.StatusCode != "200" {
 			continue
 		}
@@ -148,19 +118,19 @@ func (p *Ouroots) do(pageTotal int, volumeId int) (msg string, err error) {
 				continue
 			}
 			_ = os.WriteFile(dest, bs, os.ModePerm)
-			p.Counter++
-			p.bar.Add(1)
+			r.Counter++
+			r.bar.Add(1)
 			time.Sleep(40 * time.Millisecond)
 		}
 	}
 	return "", nil
 }
 
-func (p *Ouroots) getVolumes(catalogKey string, jar *cookiejar.Jar) (OurootsResponseVolume, error) {
+func (r *Ouroots) getVolumes(catalogKey string) (ouroots.ResponseVolume, error) {
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
-		CookieJar:  jar,
+		CookieJar:  r.dt.Jar,
 		Headers: map[string]interface{}{
 			"User-Agent": config.Conf.UserAgent,
 		},
@@ -172,10 +142,10 @@ func (p *Ouroots) getVolumes(catalogKey string, jar *cookiejar.Jar) (OurootsResp
 	resp, err := cli.Get("http://dsnode.ouroots.nlc.cn/gtService/data/catalogVolume")
 	bs, _ := resp.GetBody()
 	if bs == nil {
-		return OurootsResponseVolume{}, errors.New(resp.GetReasonPhrase())
+		return ouroots.ResponseVolume{}, errors.New(resp.GetReasonPhrase())
 	}
 
-	var respVolume OurootsResponseVolume
+	var respVolume ouroots.ResponseVolume
 	if err = json.Unmarshal(bs, &respVolume); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return respVolume, errors.New(resp.GetReasonPhrase())
@@ -183,12 +153,12 @@ func (p *Ouroots) getVolumes(catalogKey string, jar *cookiejar.Jar) (OurootsResp
 	return respVolume, nil
 }
 
-func (p *Ouroots) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+func (r *Ouroots) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Ouroots) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (r *Ouroots) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
@@ -208,28 +178,27 @@ func (p *Ouroots) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	return bs, nil
 }
 
-func (p *Ouroots) postBody(sUrl string, d []byte) ([]byte, error) {
+func (r *Ouroots) postBody(sUrl string, d []byte) ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Ouroots) getToken() (string, error) {
-	bs, err := p.getBody("http://dsNode.ouroots.nlc.cn/loginAnonymousUser", p.dt.Jar)
+func (r *Ouroots) getToken() (string, error) {
+	bs, err := r.getBody("http://dsNode.ouroots.nlc.cn/loginAnonymousUser", r.dt.Jar)
 	if err != nil {
 		return "", err
 	}
-	var respLoginAnonymousUser OurootsResponseLoginAnonymousUser
+	var respLoginAnonymousUser ouroots.ResponseLoginAnonymousUser
 	if err = json.Unmarshal(bs, &respLoginAnonymousUser); err != nil {
 		return "", err
 	}
 	return respLoginAnonymousUser.Token, nil
 }
-func (p *Ouroots) getBase64Image(catalogKey string, volumeId, page int, userKey, token string) (respImage OurootsResponseCatalogImage, err error) {
-	jar, _ := cookiejar.New(nil)
+func (r *Ouroots) getBase64Image(catalogKey string, volumeId, page int, userKey, token string) (respImage ouroots.ResponseCatalogImage, err error) {
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
-		CookieJar:  jar,
+		CookieJar:  r.dt.Jar,
 		Headers: map[string]interface{}{
 			"User-Agent": config.Conf.UserAgent,
 		},

@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/iiif"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -27,43 +28,28 @@ type DziCnLib struct {
 	Extention string
 }
 
-type ResponseServerBase struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Data    struct {
-		Title      string   `json:"title"`
-		ServerBase string   `json:"serverBase"`
-		Images     []string `json:"images"`
-	} `json:"data"`
+func NewDziCnLib() *DziCnLib {
+	return &DziCnLib{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
 }
 
-type Item struct {
-	Extension   string `json:"extension"`
-	Height      int    `json:"height"`
-	Resolutions int    `json:"resolutions"`
-	TileSize    struct {
-		H int `json:"h"`
-		W int `json:"w"`
-	} `json:"tile_size"`
-	TileSize2 struct {
-		Height int `json:"height"`
-		Width  int `json:"width"`
-	} `json:"tileSize"`
-	Width int `json:"width"`
+func (d *DziCnLib) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := d.Run(sUrl)
+	return map[string]interface{}{
+		"type": "iiif",
+		"url":  sUrl,
+		"msg":  msg,
+	}, err
 }
 
 // 自定义一个排序类型
-type strs []string
 
-func (s strs) Len() int           { return len(s) }
-func (s strs) Less(i, j int) bool { return s[i] < s[j] }
-func (s strs) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (r DziCnLib) Run(sUrl string) (msg string, err error) {
 
-func (r DziCnLib) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
 	r.dt.BookId = getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -73,7 +59,7 @@ func (r DziCnLib) Init(iTask int, sUrl string) (msg string, err error) {
 }
 
 func (r DziCnLib) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
 	r.ServerUrl = r.getServerUri()
@@ -107,7 +93,7 @@ func (r DziCnLib) do(dziUrls []string) (msg string, err error) {
 			continue
 		}
 		inputUri := storePath + val
-		outfile := storePath + util.GenNumberSorted(i+1) + r.Extention
+		outfile := storePath + fmt.Sprintf("%04d", i+1) + r.Extention
 		if FileExist(outfile) {
 			continue
 		}
@@ -130,10 +116,8 @@ func (r DziCnLib) getCanvases(apiUrl string, jar *cookiejar.Jar) (canvases []str
 	if err != nil {
 		return
 	}
-	type ResponseBody struct {
-		Tiles map[string]Item `json:"tiles"`
-	}
-	var result ResponseBody
+
+	var result iiif.BaseResponse
 	if err = json.Unmarshal(bs, &result); err != nil {
 		return
 	}
@@ -180,7 +164,7 @@ func (r DziCnLib) getCanvases(apiUrl string, jar *cookiejar.Jar) (canvases []str
 		_ = os.WriteFile(dest, []byte(jsonText), os.ModePerm)
 		canvases = append(canvases, sortId)
 	}
-	sort.Sort(strs(canvases))
+	sort.Sort(util.SortByStr(canvases))
 	return canvases, nil
 }
 
@@ -202,7 +186,7 @@ func (r DziCnLib) getServerUri() string {
 	//if err != nil {
 	//	return ""
 	//}
-	//var respServerBase ResponseServerBase
+	//var respServerBase iiif.ServerResponse
 	//if err = json.Unmarshal(bs, &respServerBase); err != nil {
 	//	return ""
 	//}

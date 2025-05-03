@@ -19,20 +19,33 @@ type Hathitrust struct {
 	dt *DownloadTask
 }
 
-func (h Hathitrust) Init(iTask int, sUrl string) (msg string, err error) {
-	h.dt = new(DownloadTask)
-	h.dt.UrlParsed, err = url.Parse(sUrl)
-	h.dt.Url = sUrl
-	h.dt.Index = iTask
-	h.dt.BookId = h.getBookId(h.dt.Url)
-	if h.dt.BookId == "" {
-		return "requested URL was not found.", err
+func NewHathitrust() *Hathitrust {
+	return &Hathitrust{
+		// 初始化字段
+		dt: new(DownloadTask),
 	}
-	h.dt.Jar, _ = cookiejar.New(nil)
-	return h.download()
 }
 
-func (h Hathitrust) getBookId(sUrl string) (bookId string) {
+func (r *Hathitrust) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r Hathitrust) Run(sUrl string) (msg string, err error) {
+	r.dt.UrlParsed, err = url.Parse(sUrl)
+	r.dt.Url = sUrl
+	r.dt.BookId = r.getBookId(r.dt.Url)
+	if r.dt.BookId == "" {
+		return "requested URL was not found.", err
+	}
+	r.dt.Jar, _ = cookiejar.New(nil)
+	return r.download()
+}
+
+func (r Hathitrust) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`id=([^&]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
@@ -40,25 +53,25 @@ func (h Hathitrust) getBookId(sUrl string) (bookId string) {
 	return bookId
 }
 
-func (h Hathitrust) download() (msg string, err error) {
-	name := util.GenNumberSorted(h.dt.Index)
-	log.Printf("Get %s  %s\n", name, h.dt.Url)
-	canvases, err := h.getCanvases(h.dt.Url, h.dt.Jar)
+func (r Hathitrust) download() (msg string, err error) {
+	name := fmt.Sprintf("%04d", r.dt.Index)
+	log.Printf("Get %s  %s\n", name, r.dt.Url)
+	canvases, err := r.getCanvases(r.dt.Url, r.dt.Jar)
 	if err != nil {
 		fmt.Println(err.Error())
 		return "requested URL was not found.", err
 	}
-	h.dt.SavePath = CreateDirectory(h.dt.UrlParsed.Host, h.dt.BookId, "")
-	msg, err = h.do(canvases)
+	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
+	msg, err = r.do(canvases)
 	return msg, err
 }
 
-func (h Hathitrust) do(imgUrls []string) (msg string, err error) {
+func (r Hathitrust) do(imgUrls []string) (msg string, err error) {
 	if imgUrls == nil {
 		return
 	}
 	fmt.Println()
-	referer := url.QueryEscape(h.dt.Url)
+	referer := url.QueryEscape(r.dt.Url)
 	size := len(imgUrls)
 	for i, uri := range imgUrls {
 		if !config.PageRange(i, size) {
@@ -67,9 +80,9 @@ func (h Hathitrust) do(imgUrls []string) (msg string, err error) {
 		if uri == "" {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
-		dest := h.dt.SavePath + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -79,7 +92,7 @@ func (h Hathitrust) do(imgUrls []string) (msg string, err error) {
 			Overwrite:   false,
 			Concurrency: 1,
 			CookieFile:  config.Conf.CookieFile,
-			CookieJar:   h.dt.Jar,
+			CookieJar:   r.dt.Jar,
 			Headers: map[string]interface{}{
 				"User-Agent": config.Conf.UserAgent,
 				"Referer":    referer,
@@ -101,13 +114,13 @@ func (h Hathitrust) do(imgUrls []string) (msg string, err error) {
 	return "", err
 }
 
-func (h Hathitrust) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
+func (r Hathitrust) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (h Hathitrust) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	bs, err := h.getBody(h.dt.Url, h.dt.Jar)
+func (r Hathitrust) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+	bs, err := r.getBody(r.dt.Url, r.dt.Jar)
 	if err != nil || bs == nil {
 		return nil, err
 	}
@@ -131,13 +144,13 @@ func (h Hathitrust) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []str
 		format = "tiff"
 	}
 	for i := 0; i < size; i++ {
-		imgurl := fmt.Sprintf("https://babel.hathitrust.org/cgi/imgsrv/image?id=%s&attachment=1&size=ppi%%3A300&format=image/%s&seq=%d", h.dt.BookId, format, i+1)
+		imgurl := fmt.Sprintf("https://babel.hathitrust.org/cgi/imgsrv/image?id=%s&attachment=1&size=ppi%%3A300&format=image/%s&seq=%d", r.dt.BookId, format, i+1)
 		canvases = append(canvases, imgurl)
 	}
 	return canvases, err
 }
 
-func (h Hathitrust) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (r Hathitrust) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,

@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/usthk"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -18,24 +19,34 @@ import (
 type Usthk struct {
 	dt *DownloadTask
 }
-type UsthkResponseFiles struct {
-	FileList []string `json:"file_list"`
+
+func NewUsthk() *Usthk {
+	return &Usthk{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
 }
 
-func (p *Usthk) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
-	p.dt.UrlParsed, err = url.Parse(sUrl)
-	p.dt.Url = sUrl
-	p.dt.Index = iTask
-	p.dt.BookId = p.getBookId(p.dt.Url)
-	if p.dt.BookId == "" {
+func (r *Usthk) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *Usthk) Run(sUrl string) (msg string, err error) {
+	r.dt.UrlParsed, err = url.Parse(sUrl)
+	r.dt.Url = sUrl
+	r.dt.BookId = r.getBookId(r.dt.Url)
+	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
 	}
-	p.dt.Jar, _ = cookiejar.New(nil)
-	return p.download()
+	r.dt.Jar, _ = cookiejar.New(nil)
+	return r.download()
 }
 
-func (p *Usthk) getBookId(sUrl string) (bookId string) {
+func (r *Usthk) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`bib/([A-z0-9_-]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
@@ -43,11 +54,11 @@ func (p *Usthk) getBookId(sUrl string) (bookId string) {
 	return bookId
 }
 
-func (p *Usthk) download() (msg string, err error) {
-	name := util.GenNumberSorted(p.dt.Index)
-	log.Printf("Get %s  %s\n", name, p.dt.Url)
+func (r *Usthk) download() (msg string, err error) {
+	name := fmt.Sprintf("%04d", r.dt.Index)
+	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
-	respVolume, err := p.getVolumes(p.dt.Url, p.dt.Jar)
+	respVolume, err := r.getVolumes(r.dt.Url)
 	if err != nil {
 		fmt.Println(err)
 		return "getVolumes", err
@@ -58,25 +69,25 @@ func (p *Usthk) download() (msg string, err error) {
 			continue
 		}
 		if sizeVol == 1 {
-			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
+			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 		} else {
-			vid := util.GenNumberSorted(i + 1)
-			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
+			vid := fmt.Sprintf("%04d", i+1)
+			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 		}
 
-		canvases, err := p.getCanvases(vol, p.dt.Jar)
+		canvases, err := r.getCanvases(vol)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
 			continue
 		}
 		fmt.Println()
 		log.Printf(" %d/%d volume, %d pages \n", i+1, sizeVol, len(canvases))
-		p.do(canvases)
+		r.do(canvases)
 	}
 	return "", nil
 }
 
-func (p *Usthk) do(imgUrls []string) (msg string, err error) {
+func (r *Usthk) do(imgUrls []string) (msg string, err error) {
 	if imgUrls == nil {
 		return "图片URLs为空", errors.New("imgUrls is nil")
 	}
@@ -89,9 +100,9 @@ func (p *Usthk) do(imgUrls []string) (msg string, err error) {
 			continue
 		}
 		ext := util.FileExt(uri)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + ext
-		dest := p.dt.SavePath + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -107,7 +118,7 @@ func (p *Usthk) do(imgUrls []string) (msg string, err error) {
 				Overwrite:   false,
 				Concurrency: 1,
 				CookieFile:  config.Conf.CookieFile,
-				CookieJar:   p.dt.Jar,
+				CookieJar:   r.dt.Jar,
 				Headers: map[string]interface{}{
 					"User-Agent": config.Conf.UserAgent,
 				},
@@ -121,13 +132,13 @@ func (p *Usthk) do(imgUrls []string) (msg string, err error) {
 	return "", nil
 }
 
-func (p *Usthk) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
+func (r *Usthk) getVolumes(sUrl string) (volumes []string, err error) {
 	volumes = append(volumes, sUrl)
 	return volumes, nil
 }
 
-func (p *Usthk) getCanvases(sUrl string, jar *cookiejar.Jar) ([]string, error) {
-	bs, err := p.getBody(sUrl, jar)
+func (r *Usthk) getCanvases(sUrl string) ([]string, error) {
+	bs, err := r.getBody(sUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -140,30 +151,30 @@ func (p *Usthk) getCanvases(sUrl string, jar *cookiejar.Jar) ([]string, error) {
 	canvases := make([]string, 0, len(matches))
 	for _, m := range matches {
 		sPath := m[1]
-		apiUrl := fmt.Sprintf("https://%s/bookreader/getfilelist.php?path=%s", p.dt.UrlParsed.Host, sPath)
-		bs, err = p.getBody(apiUrl, p.dt.Jar)
+		apiUrl := fmt.Sprintf("https://%s/bookreader/getfilelist.php?path=%s", r.dt.UrlParsed.Host, sPath)
+		bs, err = r.getBody(apiUrl)
 		if err != nil {
 			break
 		}
-		respFiles := new(UsthkResponseFiles)
+		respFiles := new(usthk.Response)
 		if err = json.Unmarshal(bs, respFiles); err != nil {
 			log.Printf("json.Unmarshal failed: %s\n", err)
 			break
 		}
 		//imgUrls := make([]string, 0, len(result.FileList))
 		for _, v := range respFiles.FileList {
-			imgUrl := fmt.Sprintf("https://%s/obj/%s/%s", p.dt.UrlParsed.Host, sPath, v)
+			imgUrl := fmt.Sprintf("https://%s/obj/%s/%s", r.dt.UrlParsed.Host, sPath, v)
 			canvases = append(canvases, imgUrl)
 		}
 	}
 	return canvases, nil
 }
 
-func (p *Usthk) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (r *Usthk) getBody(sUrl string) ([]byte, error) {
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
-		CookieJar:  jar,
+		CookieJar:  r.dt.Jar,
 		Headers: map[string]interface{}{
 			"User-Agent": config.Conf.UserAgent,
 		},
@@ -177,9 +188,4 @@ func (p *Usthk) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 		return nil, errors.New(fmt.Sprintf("ErrCode:%d, %s", resp.GetStatusCode(), resp.GetReasonPhrase()))
 	}
 	return bs, nil
-}
-
-func (p *Usthk) postBody(sUrl string, d []byte) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
 }

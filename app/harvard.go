@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/iiif"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -20,9 +21,25 @@ type Harvard struct {
 	drsId string
 }
 
-func (p *Harvard) Init(iTask int, sUrl string) (msg string, err error) {
+func NewHarvard() *Harvard {
+	return &Harvard{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *Harvard) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"type": "iiif",
+		"url":  sUrl,
+		"msg":  msg,
+	}, err
+}
+
+func (r *Harvard) Run(sUrl string) (msg string, err error) {
 	if strings.Contains(sUrl, "curiosity.pkg.harvard.edu") {
-		bs, err := p.getBody(sUrl, nil)
+		bs, err := r.getBody(sUrl, nil)
 		if err != nil {
 			return "", err
 		}
@@ -31,21 +48,18 @@ func (p *Harvard) Init(iTask int, sUrl string) (msg string, err error) {
 			sUrl = string(m[1])
 		}
 	}
-
-	p.dt = new(DownloadTask)
-	p.dt.UrlParsed, err = url.Parse(sUrl)
-	p.dt.Url = sUrl
-	p.dt.Index = iTask
-	p.dt.BookId = p.getBookId(p.dt.Url)
-	if p.dt.BookId == "" {
+	r.dt.UrlParsed, err = url.Parse(sUrl)
+	r.dt.Url = sUrl
+	r.dt.BookId = r.getBookId(r.dt.Url)
+	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
 	}
-	p.dt.Jar, _ = cookiejar.New(nil)
+	r.dt.Jar, _ = cookiejar.New(nil)
 	//WaitNewCookie()
-	return p.download()
+	return r.download()
 }
 
-func (p *Harvard) getBookId(sUrl string) (bookId string) {
+func (r *Harvard) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`manifests/view/([A-z0-9-_:]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		return m[1]
@@ -62,16 +76,16 @@ func (p *Harvard) getBookId(sUrl string) (bookId string) {
 	return ""
 }
 
-func (p *Harvard) download() (msg string, err error) {
-	_, err = p.tryEmail(p.dt.Url, p.dt.Jar)
+func (r *Harvard) download() (msg string, err error) {
+	_, err = r.tryEmail(r.dt.Url, r.dt.Jar)
 	if err != nil {
 		return "", err
 	}
 
-	name := util.GenNumberSorted(p.dt.Index)
-	log.Printf("Get %s  %s\n", name, p.dt.Url)
+	name := fmt.Sprintf("%04d", r.dt.Index)
+	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
-	respVolume, err := p.getVolumes(p.dt.Url, p.dt.Jar)
+	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
 	if err != nil {
 		fmt.Println(err)
 		return "getVolumes", err
@@ -82,35 +96,35 @@ func (p *Harvard) download() (msg string, err error) {
 			continue
 		}
 		if sizeVol == 1 {
-			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
+			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 		} else {
-			vid := util.GenNumberSorted(i + 1)
-			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
+			vid := fmt.Sprintf("%04d", i+1)
+			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 		}
 
-		canvases, err := p.getCanvases(vol, p.dt.Jar)
+		canvases, err := r.getCanvases(vol, r.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
 			continue
 		}
 		log.Printf(" %d/%d volume, %d pages \n", i+1, sizeVol, len(canvases))
-		p.do(canvases)
+		r.do(canvases)
 	}
 	return "", nil
 }
 
-func (p *Harvard) do(imgUrls []string) (msg string, err error) {
+func (r *Harvard) do(imgUrls []string) (msg string, err error) {
 	if config.Conf.UseDziRs {
-		p.doDezoomifyRs(imgUrls)
+		r.doDezoomifyRs(imgUrls)
 	} else {
-		p.doNormal(imgUrls)
+		r.doNormal(imgUrls)
 	}
 	return "", err
 }
 
-func (p *Harvard) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
+func (r *Harvard) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
 	if strings.Contains(sUrl, "listview.pkg.harvard.edu") {
-		bs, err := p.getBody(sUrl, nil)
+		bs, err := r.getBody(sUrl, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -128,11 +142,11 @@ func (p *Harvard) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string,
 	return volumes, nil
 }
 
-func (p *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+func (r *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
 	var manifestUri = sUrl
 	if strings.Contains(sUrl, "iiif.pkg.harvard.edu/manifests/view/") ||
 		strings.Contains(sUrl, "nrs.harvard.edu") {
-		bs, err := p.getBody(sUrl, jar)
+		bs, err := r.getBody(sUrl, jar)
 		if err != nil {
 			return nil, err
 		}
@@ -144,11 +158,11 @@ func (p *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 			return nil, errors.New("requested URL was not found.")
 		}
 	}
-	bs, err := p.getBody(manifestUri, jar)
+	bs, err := r.getBody(manifestUri, jar)
 	if err != nil {
 		return
 	}
-	var manifest = new(ResponseManifest)
+	var manifest = new(iiif.ManifestResponse)
 	if err = json.Unmarshal(bs, manifest); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
@@ -175,7 +189,7 @@ func (p *Harvard) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 
 }
 
-func (p *Harvard) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (r *Harvard) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	referer := url.QueryEscape(sUrl)
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
@@ -197,24 +211,24 @@ func (p *Harvard) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	return bs, nil
 }
 
-func (p *Harvard) postBody(sUrl string, d []byte) ([]byte, error) {
+func (r *Harvard) postBody(sUrl string, d []byte) ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Harvard) doDezoomifyRs(iiifUrls []string) bool {
+func (r *Harvard) doDezoomifyRs(iiifUrls []string) bool {
 	if iiifUrls == nil {
 		return false
 	}
-	referer := url.QueryEscape(p.dt.Url)
+	referer := url.QueryEscape(r.dt.Url)
 	size := len(iiifUrls)
 	for i, uri := range iiifUrls {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
-		dest := p.dt.SavePath + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -231,7 +245,7 @@ func (p *Harvard) doDezoomifyRs(iiifUrls []string) bool {
 	return true
 }
 
-func (p *Harvard) doNormal(imgUrls []string) bool {
+func (r *Harvard) doNormal(imgUrls []string) bool {
 	if imgUrls == nil {
 		return false
 	}
@@ -243,9 +257,9 @@ func (p *Harvard) doNormal(imgUrls []string) bool {
 			continue
 		}
 		ext := util.FileExt(uri)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + ext
-		dest := p.dt.SavePath + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -256,7 +270,7 @@ func (p *Harvard) doNormal(imgUrls []string) bool {
 			Overwrite:   false,
 			Concurrency: 1,
 			CookieFile:  config.Conf.CookieFile,
-			CookieJar:   p.dt.Jar,
+			CookieJar:   r.dt.Jar,
 			Headers: map[string]interface{}{
 				"User-Agent": config.Conf.UserAgent,
 			},
@@ -276,8 +290,8 @@ func (p *Harvard) doNormal(imgUrls []string) bool {
 	return true
 }
 
-func (p *Harvard) tryEmail(sUrl string, jar *cookiejar.Jar) (bs []byte, err error) {
-	bs, err = p.getBody(sUrl, jar)
+func (r *Harvard) tryEmail(sUrl string, jar *cookiejar.Jar) (bs []byte, err error) {
+	bs, err = r.getBody(sUrl, jar)
 	if err != nil {
 		fmt.Println("当前地区 IP 受限访问，请使用其它方法。该站可使用Email接收PDF。详见网页 “Print/Save” PDF\n")
 	}

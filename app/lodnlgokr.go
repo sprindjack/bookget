@@ -26,11 +26,26 @@ type LodNLGoKr struct {
 	tmpFile  string
 }
 
-func (r *LodNLGoKr) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
+func NewLodNLGoKr() *LodNLGoKr {
+	return &LodNLGoKr{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *LodNLGoKr) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *LodNLGoKr) Run(sUrl string) (msg string, err error) {
+
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
+
 	r.dt.BookId = r.getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -68,7 +83,7 @@ func (r *LodNLGoKr) download() (msg string, err error) {
 		r.PageBody = string(bs)
 		break
 	}
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 	//PDF
 	if strings.Contains(r.PageBody, "extention = \"PDF\";") {
@@ -96,7 +111,7 @@ func (r *LodNLGoKr) download() (msg string, err error) {
 		if !config.VolumeRange(i) {
 			continue
 		}
-		vid := util.GenNumberSorted(i + 1)
+		vid := fmt.Sprintf("%04d", i+1)
 		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 		canvases, err := r.getCanvasesByUrl(i, vol.Url)
 		if err != nil || canvases == nil {
@@ -124,7 +139,7 @@ func (r *LodNLGoKr) do(imgUrls []string) (msg string, err error) {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + r.fileExt
 		dest := r.dt.SavePath + filename
 		if FileExist(dest) {

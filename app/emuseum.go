@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/iiif"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -20,20 +21,33 @@ type Emuseum struct {
 	dt *DownloadTask
 }
 
-func (p *Emuseum) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
-	p.dt.UrlParsed, err = url.Parse(sUrl)
-	p.dt.Url = sUrl
-	p.dt.Index = iTask
-	p.dt.BookId = p.getBookId(p.dt.Url)
-	if p.dt.BookId == "" {
-		return "requested URL was not found.", err
+func NewEmuseum() *Emuseum {
+	return &Emuseum{
+		// 初始化字段
+		dt: new(DownloadTask),
 	}
-	p.dt.Jar, _ = cookiejar.New(nil)
-	return p.download()
 }
 
-func (p *Emuseum) getBookId(sUrl string) (bookId string) {
+func (d *Emuseum) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := d.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (d *Emuseum) Run(sUrl string) (msg string, err error) {
+	d.dt.UrlParsed, err = url.Parse(sUrl)
+	d.dt.Url = sUrl
+	d.dt.BookId = d.getBookId(d.dt.Url)
+	if d.dt.BookId == "" {
+		return "requested URL was not found.", err
+	}
+	d.dt.Jar, _ = cookiejar.New(nil)
+	return d.download()
+}
+
+func (d *Emuseum) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`content_base_id=([A-z0-9]+)&content_part_id=([A-z0-9]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		if len(m[2]) < 3 {
@@ -44,11 +58,11 @@ func (p *Emuseum) getBookId(sUrl string) (bookId string) {
 	return bookId
 }
 
-func (p *Emuseum) download() (msg string, err error) {
-	name := util.GenNumberSorted(p.dt.Index)
-	log.Printf("Get %s  %s\n", name, p.dt.Url)
+func (d *Emuseum) download() (msg string, err error) {
+	name := fmt.Sprintf("%04d", d.dt.Index)
+	log.Printf("Get %s  %s\n", name, d.dt.Url)
 
-	respVolume, err := p.getVolumes(p.dt.Url, p.dt.Jar)
+	respVolume, err := d.getVolumes(d.dt.Url, d.dt.Jar)
 	if err != nil {
 		fmt.Println(err)
 		return "getVolumes", err
@@ -59,34 +73,34 @@ func (p *Emuseum) download() (msg string, err error) {
 			continue
 		}
 		if sizeVol == 1 {
-			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
+			d.dt.SavePath = CreateDirectory(d.dt.UrlParsed.Host, d.dt.BookId, "")
 		} else {
-			vid := util.GenNumberSorted(i + 1)
-			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
+			vid := fmt.Sprintf("%04d", i+1)
+			d.dt.SavePath = CreateDirectory(d.dt.UrlParsed.Host, d.dt.BookId, vid)
 		}
 
-		canvases, err := p.getCanvases(vol, p.dt.Jar)
+		canvases, err := d.getCanvases(vol, d.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
 			continue
 		}
 		log.Printf(" %d/%d volume, %d pages \n", i+1, sizeVol, len(canvases))
-		p.do(canvases)
+		d.do(canvases)
 	}
 	return "", nil
 }
 
-func (p *Emuseum) do(imgUrls []string) (msg string, err error) {
+func (d *Emuseum) do(imgUrls []string) (msg string, err error) {
 	if config.Conf.UseDziRs {
-		p.doDezoomifyRs(imgUrls)
+		d.doDezoomifyRs(imgUrls)
 	} else {
-		p.doNormal(imgUrls)
+		d.doNormal(imgUrls)
 	}
 	return "", err
 }
 
-func (p *Emuseum) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	bs, err := p.getBody(sUrl, jar)
+func (d *Emuseum) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
+	bs, err := d.getBody(sUrl, jar)
 	if err != nil {
 		return
 	}
@@ -99,12 +113,12 @@ func (p *Emuseum) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string,
 	return volumes, nil
 }
 
-func (p *Emuseum) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	bs, err := p.getBody(sUrl, jar)
+func (d *Emuseum) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+	bs, err := d.getBody(sUrl, jar)
 	if err != nil {
 		return
 	}
-	var manifest = new(ResponseManifest)
+	var manifest = new(iiif.ManifestResponse)
 	if err = json.Unmarshal(bs, manifest); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
@@ -135,7 +149,7 @@ func (p *Emuseum) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 
 }
 
-func (p *Emuseum) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (d *Emuseum) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	referer := url.QueryEscape(sUrl)
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
@@ -157,16 +171,11 @@ func (p *Emuseum) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	return bs, nil
 }
 
-func (p *Emuseum) postBody(sUrl string, d []byte) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *Emuseum) doDezoomifyRs(iiifUrls []string) bool {
+func (d *Emuseum) doDezoomifyRs(iiifUrls []string) bool {
 	if iiifUrls == nil {
 		return false
 	}
-	referer := url.QueryEscape(p.dt.Url)
+	referer := url.QueryEscape(d.dt.Url)
 	args := []string{
 		"-H", "Origin:" + referer,
 		"-H", "Referer:" + referer,
@@ -177,9 +186,9 @@ func (p *Emuseum) doDezoomifyRs(iiifUrls []string) bool {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
-		dest := p.dt.SavePath + filename
+		dest := d.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -189,7 +198,7 @@ func (p *Emuseum) doDezoomifyRs(iiifUrls []string) bool {
 	return true
 }
 
-func (p *Emuseum) doNormal(imgUrls []string) bool {
+func (d *Emuseum) doNormal(imgUrls []string) bool {
 	if imgUrls == nil {
 		return false
 	}
@@ -202,9 +211,9 @@ func (p *Emuseum) doNormal(imgUrls []string) bool {
 			continue
 		}
 		ext := util.FileExt(uri)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + ext
-		dest := p.dt.SavePath + filename
+		dest := d.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -220,7 +229,7 @@ func (p *Emuseum) doNormal(imgUrls []string) bool {
 				Overwrite:   false,
 				Concurrency: 1,
 				CookieFile:  config.Conf.CookieFile,
-				CookieJar:   p.dt.Jar,
+				CookieJar:   d.dt.Jar,
 				Headers: map[string]interface{}{
 					"User-Agent": config.Conf.UserAgent,
 				},

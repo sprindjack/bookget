@@ -4,7 +4,6 @@ import (
 	"bookget/config"
 	"bookget/model/nlc"
 	"bookget/pkg/downloader"
-	"bookget/pkg/util"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -31,11 +30,9 @@ type NlcGuji struct {
 	bookId    string
 }
 
-func NewNlcGuji(sUrl string) *NlcGuji {
+func NewNlcGuji() *NlcGuji {
 	ctx, cancel := context.WithCancel(context.Background())
-
 	dm := downloader.NewDownloadManager(config.Conf.MaxConcurrent)
-	parsedUrl, _ := url.Parse(sUrl)
 
 	// 创建自定义 Transport 忽略 SSL 验证
 	tr := &http.Transport{
@@ -46,13 +43,22 @@ func NewNlcGuji(sUrl string) *NlcGuji {
 	jar, _ := cookiejar.New(nil)
 
 	return &NlcGuji{
-		dm:        dm,
-		rawUrl:    sUrl,
-		parsedUrl: parsedUrl,
-		client:    &http.Client{Timeout: 30 * time.Second, Jar: jar, Transport: tr},
-		ctx:       ctx,
-		cancel:    cancel,
+		// 初始化字段
+		dm:     dm,
+		client: &http.Client{Timeout: 30 * time.Second, Jar: jar, Transport: tr},
+		ctx:    ctx,
+		cancel: cancel,
 	}
+}
+
+func (s *NlcGuji) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	s.rawUrl = sUrl
+	s.parsedUrl, _ = url.Parse(sUrl)
+	s.Run()
+	return map[string]interface{}{
+		"type": "dzicnlib",
+		"url":  sUrl,
+	}, nil
 }
 
 func (s *NlcGuji) getBookId() (bookId string) {
@@ -80,7 +86,7 @@ func (s *NlcGuji) getBookId() (bookId string) {
 	return "" // 明确返回空字符串表示未找到
 }
 
-func (s *NlcGuji) Start() (msg string, err error) {
+func (s *NlcGuji) Run() (msg string, err error) {
 	s.bookId = s.getBookId()
 	if s.bookId == "" {
 		return "[err=getBookId]", err
@@ -120,9 +126,11 @@ func (s *NlcGuji) letsGo(canvases []nlc.DataItem) (msg string, err error) {
 			return "[err=letsGo::Unmarshal]", err
 		}
 		i++
-		imgUrl := imgServer + resp.Data.FilePath
-		//fileName := util.GenNumberSorted(item.PageNum) + config.Conf.FileExt
-		sortId := util.GenNumberSorted(i)
+
+		encoded := url.QueryEscape(resp.Data.FilePath)
+		imgUrl := imgServer + encoded
+		//fileName := fmt.Sprintf("%04d", item.PageNum) + config.Conf.FileExt
+		sortId := fmt.Sprintf("%04d", i)
 		fileName := sortId + config.Conf.FileExt
 
 		//跳过存在的文件

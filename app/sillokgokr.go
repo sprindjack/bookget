@@ -2,8 +2,8 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/sillokgokr"
 	"bookget/pkg/gohttp"
-	"bookget/pkg/util"
 	"context"
 	"encoding/json"
 	"errors"
@@ -23,62 +23,30 @@ type SillokGoKr struct {
 	dt       *DownloadTask
 	bookMark string
 	index    int
-	canvases []SillokGoKrImage
+	canvases []sillokgokr.Canvases
 	apiUrl   string
 }
 
-type SillokGoKrImage struct {
-	KingCode   string `json:"kingCode"`
-	ImageId    string `json:"imageId"`
-	Previous   string `json:"previous"`
-	Firstchild string `json:"firstchild"`
-	Title      string `json:"title"`
-	PageId     string `json:"pageId"`
-	Parent     string `json:"parent"`
-	Type       string `json:"type"`
-	Level      string `json:"level"`
-	Next       string `json:"next"`
-	Seq        string `json:"seq"`
-}
-
-type SillokGoKrResponse struct {
-	TreeList struct {
-		List      []SillokGoKrImage `json:"list"`
-		ListCount int               `json:"listCount"`
-	} `json:"treeList"`
-}
-
-type SillokGoKrBook struct {
-	Title      string
-	Seq        int
-	Id         string
-	KingCode   string
-	Level      int
-	Type       string
-	Next       string
-	Firstchild string
-}
-
-type ByImageIdSort []SillokGoKrImage
-
-func (ni ByImageIdSort) Len() int      { return len(ni) }
-func (ni ByImageIdSort) Swap(i, j int) { ni[i], ni[j] = ni[j], ni[i] }
-func (ni ByImageIdSort) Less(i, j int) bool {
-	idA := ni[i].ImageId
-	idB := ni[j].ImageId
-	a, err1 := strconv.ParseInt(idA[strings.LastIndex(idA, "_"):], 10, 64)
-	b, err2 := strconv.ParseInt(idB[strings.LastIndex(idB, "_"):], 10, 64)
-	if err1 != nil || err2 != nil {
-		return idA < idB
+func NewSillokGoKr() *SillokGoKr {
+	return &SillokGoKr{
+		// 初始化字段
+		dt: new(DownloadTask),
 	}
-	return a < b
 }
 
-func (r *SillokGoKr) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
+func (r *SillokGoKr) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *SillokGoKr) Run(sUrl string) (msg string, err error) {
+
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
+
 	r.dt.BookId = r.getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -97,7 +65,7 @@ func (r *SillokGoKr) getBookId(sUrl string) (bookId string) {
 }
 
 func (r *SillokGoKr) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
 	respBook, err := r.getBooks(r.dt.Url, r.dt.Jar)
@@ -119,10 +87,10 @@ func (r *SillokGoKr) download() (msg string, err error) {
 			}
 			r.bookMark = ""
 			r.index = 0
-			r.canvases = make([]SillokGoKrImage, 0, 1000)
+			r.canvases = make([]sillokgokr.Canvases, 0, 1000)
 			_seq, _ := strconv.Atoi(v.Seq)
 			_level, _ := strconv.Atoi(v.Level)
-			volume := SillokGoKrBook{
+			volume := sillokgokr.Book{
 				Title:      v.Title,
 				Seq:        _seq,
 				Id:         v.Seq,
@@ -139,7 +107,7 @@ func (r *SillokGoKr) download() (msg string, err error) {
 			}
 			fmt.Println()
 
-			vid := util.GenNumberSorted(i + 1)
+			vid := fmt.Sprintf("%04d", i+1)
 			r.dt.VolumeId = r.dt.UrlParsed.Host + "_book." + book.Id + "." + book.Title + string(os.PathSeparator) + "vol." + vid + "." + v.Title
 			r.dt.SavePath = config.Conf.SaveFolder + string(os.PathSeparator) + r.dt.VolumeId
 			_ = os.MkdirAll(r.dt.SavePath, os.ModePerm)
@@ -156,15 +124,15 @@ func (r *SillokGoKr) do(imgUrls []string) (msg string, err error) {
 	}
 	fmt.Println()
 
-	canvasesM := make(map[string]SillokGoKrImage)
+	canvasesM := make(map[string]sillokgokr.Canvases)
 	for _, v := range r.canvases {
 		canvasesM[v.ImageId] = v
 	}
-	canvases := make([]SillokGoKrImage, 0, len(canvasesM))
+	canvases := make([]sillokgokr.Canvases, 0, len(canvasesM))
 	for _, v := range canvasesM {
 		canvases = append(canvases, v)
 	}
-	sort.Sort(ByImageIdSort(canvases))
+	sort.Sort(sillokgokr.ByImageIdSort(canvases))
 	referer := r.dt.Url
 	size := len(canvases)
 	var wg sync.WaitGroup
@@ -174,7 +142,7 @@ func (r *SillokGoKr) do(imgUrls []string) (msg string, err error) {
 			continue
 		}
 		imgUrl := r.imageIdUrl(v.KingCode, v.ImageId)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + ".jpg"
 		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
@@ -205,7 +173,7 @@ func (r *SillokGoKr) do(imgUrls []string) (msg string, err error) {
 	return "", err
 }
 
-func (r *SillokGoKr) getBooks(sUrl string, jar *cookiejar.Jar) (books []SillokGoKrBook, err error) {
+func (r *SillokGoKr) getBooks(sUrl string, jar *cookiejar.Jar) (books []sillokgokr.Book, err error) {
 	bs, err := r.getBody(sUrl, jar)
 	if err != nil {
 		return
@@ -215,7 +183,7 @@ func (r *SillokGoKr) getBooks(sUrl string, jar *cookiejar.Jar) (books []SillokGo
 	if matches == nil {
 		return
 	}
-	books = make([]SillokGoKrBook, 0, len(matches))
+	books = make([]sillokgokr.Book, 0, len(matches))
 	mTitle := regexp.MustCompile(`<span class="folder(?:[^>]+)><a href=(?:[^>]+)>([^<]+)</a></span>`).FindAllStringSubmatch(text, -1)
 	if mTitle == nil {
 		return
@@ -223,7 +191,7 @@ func (r *SillokGoKr) getBooks(sUrl string, jar *cookiejar.Jar) (books []SillokGo
 	for i, m := range matches {
 		id, _ := strconv.Atoi(m[1])
 		level, _ := strconv.Atoi(m[3])
-		book := SillokGoKrBook{
+		book := sillokgokr.Book{
 			Title:      mTitle[i][1],
 			Seq:        id,
 			Id:         m[1],
@@ -241,7 +209,7 @@ func (r *SillokGoKr) getBooks(sUrl string, jar *cookiejar.Jar) (books []SillokGo
 	return books, nil
 }
 
-func (r *SillokGoKr) getVolumesByBookId(book SillokGoKrBook) (volumes []SillokGoKrImage, err error) {
+func (r *SillokGoKr) getVolumesByBookId(book sillokgokr.Book) (volumes []sillokgokr.Canvases, err error) {
 	level := strconv.Itoa(book.Level)
 	q := url.Values{}
 	q.Add("seq", book.Id)
@@ -257,7 +225,7 @@ func (r *SillokGoKr) getVolumesByBookId(book SillokGoKrBook) (volumes []SillokGo
 	if err != nil {
 		return
 	}
-	resp := SillokGoKrResponse{}
+	resp := sillokgokr.Response{}
 	if err = json.Unmarshal(bs, &resp); err != nil {
 		return
 	}
@@ -270,7 +238,7 @@ func (r *SillokGoKr) getVolumesByBookId(book SillokGoKrBook) (volumes []SillokGo
 	return
 }
 
-func (r *SillokGoKr) getImagesByVolumeId(book SillokGoKrBook, canvases *[]SillokGoKrImage) error {
+func (r *SillokGoKr) getImagesByVolumeId(book sillokgokr.Book, canvases *[]sillokgokr.Canvases) error {
 	fmt.Printf("\r volume id=%s, title=%s                                          ", book.Id, book.Title)
 	level := strconv.Itoa(book.Level)
 	q := url.Values{}
@@ -286,7 +254,7 @@ func (r *SillokGoKr) getImagesByVolumeId(book SillokGoKrBook, canvases *[]Sillok
 	if err != nil {
 		return err
 	}
-	resp := SillokGoKrResponse{}
+	resp := sillokgokr.Response{}
 	if err = json.Unmarshal(bs, &resp); err != nil {
 		return err
 	}
@@ -295,7 +263,7 @@ func (r *SillokGoKr) getImagesByVolumeId(book SillokGoKrBook, canvases *[]Sillok
 		if v.Type == "L" {
 			_level, _ := strconv.Atoi(v.Level)
 			_seq, _ := strconv.Atoi(v.Seq)
-			volume := SillokGoKrBook{
+			volume := sillokgokr.Book{
 				Title:      v.Title,
 				Seq:        _seq,
 				Id:         v.Seq,

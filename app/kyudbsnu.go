@@ -24,11 +24,26 @@ type KyudbSnu struct {
 	entry  string
 }
 
-func (r *KyudbSnu) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
+func NewKyudbSnu() *KyudbSnu {
+	return &KyudbSnu{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *KyudbSnu) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *KyudbSnu) Run(sUrl string) (msg string, err error) {
+
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
+
 	r.dt.BookId = r.getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -65,7 +80,7 @@ func (r *KyudbSnu) getBookId(sUrl string) (bookId string) {
 }
 
 func (r *KyudbSnu) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 	bs, err := r.getBody(r.dt.Url, r.dt.Jar)
 	if err != nil || bs == nil {
@@ -125,7 +140,7 @@ func (r *KyudbSnu) do(imgUrls []string) (msg string, err error) {
 			continue
 		}
 		ext := util.FileExt(uri)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		log.Printf("Get %d/%d page, URL: %s\n", i+1, len(imgUrls), uri)
 		filename := sortId + ext
 		dest := r.dt.SavePath + filename
@@ -163,7 +178,7 @@ func (r *KyudbSnu) doPdf(imgUrls []string) (msg string, err error) {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + ".pdf"
 		dest := r.dt.SavePath + filename
 		if FileExist(dest) {

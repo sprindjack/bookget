@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/family"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -25,24 +26,27 @@ type Familysearch struct {
 	baseUrl     string
 	sgBaseUrl   string
 }
-type FamilysearchImageData struct {
-	DgsNum      string
-	WaypointURL string
-	ImageURL    string
-}
-type FamilysearchResultError struct {
-	Error struct {
-		Message     string   `json:"message"`
-		FailedRoles []string `json:"failedRoles"`
-		StatusCode  int      `json:"statusCode"`
-	} `json:"error"`
+
+func NewFamilysearch() *Familysearch {
+	return &Familysearch{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
 }
 
-func (r *Familysearch) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
+func (r *Familysearch) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *Familysearch) Run(sUrl string) (msg string, err error) {
+
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
+
 	r.dt.BookId = r.getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -92,7 +96,7 @@ func (r *Familysearch) getBaseUrl(sUrl string) (baseUrl, sgBaseUrl string, err e
 }
 
 func (r *Familysearch) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 	var canvases []string
@@ -132,7 +136,7 @@ func (r *Familysearch) do(iiifUrls []string) (msg string, err error) {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		dest := r.dt.SavePath + sortId + config.Conf.FileExt
 		if FileExist(dest) {
 			continue
@@ -153,7 +157,7 @@ func (r *Familysearch) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []
 	panic("implement me")
 }
 
-func (r *Familysearch) getImageData(sUrl string) (imageData FamilysearchImageData, err error) {
+func (r *Familysearch) getImageData(sUrl string) (imageData family.ImageData, err error) {
 	type ReqData struct {
 		Type string `json:"type"`
 		Args struct {
@@ -189,19 +193,19 @@ func (r *Familysearch) getImageData(sUrl string) (imageData FamilysearchImageDat
 		} `json:"meta"`
 	}
 
-	var d = ReqData{}
-	d.Type = "image-data"
-	d.Args.ImageURL = sUrl
-	d.Args.State.ImageOrFilmUrl = ""
-	d.Args.State.ViewMode = "i"
-	d.Args.State.SelectedImageIndex = -1
-	d.Args.Locale = "zh"
+	var data = ReqData{}
+	data.Type = "image-data"
+	data.Args.ImageURL = sUrl
+	data.Args.State.ImageOrFilmUrl = ""
+	data.Args.State.ViewMode = "i"
+	data.Args.State.SelectedImageIndex = -1
+	data.Args.Locale = "zh"
 
-	bs, err := r.postJson(r.apiUrl, d)
+	bs, err := r.postJson(r.apiUrl, r)
 	if err != nil {
 		return
 	}
-	var resultError FamilysearchResultError
+	var resultError family.ResultError
 	if err = json.Unmarshal(bs, &resultError); resultError.Error.StatusCode != 0 {
 		msg := fmt.Sprintf("StatusCode: %d, Message: %s", resultError.Error.StatusCode, resultError.Error.Message)
 		err = errors.New(msg)
@@ -222,7 +226,7 @@ func (r *Familysearch) getImageData(sUrl string) (imageData FamilysearchImageDat
 	return imageData, nil
 }
 
-func (r *Familysearch) getFilmData(sUrl string, imageData FamilysearchImageData) (canvases []string, err error) {
+func (r *Familysearch) getFilmData(sUrl string, imageData family.ImageData) (canvases []string, err error) {
 	type ReqData struct {
 		Type string `json:"type"`
 		Args struct {
@@ -246,17 +250,17 @@ func (r *Familysearch) getFilmData(sUrl string, imageData FamilysearchImageData)
 		return nil, err
 	}
 	q := u.Query()
-	var d = ReqData{}
-	d.Type = "film-data"
-	d.Args.DgsNum = imageData.DgsNum
-	d.Args.State.CatalogContext = q.Get("cat")
-	d.Args.State.Cat = q.Get("cat")
-	d.Args.State.ImageOrFilmUrl = u.Path
-	d.Args.State.ViewMode = "i"
-	d.Args.State.SelectedImageIndex = -1
-	d.Args.Locale = "zh"
-	d.Args.LoggedIn = true
-	d.Args.SessionId = r.getSessionId()
+	var data = ReqData{}
+	data.Type = "film-data"
+	data.Args.DgsNum = imageData.DgsNum
+	data.Args.State.CatalogContext = q.Get("cat")
+	data.Args.State.Cat = q.Get("cat")
+	data.Args.State.ImageOrFilmUrl = u.Path
+	data.Args.State.ViewMode = "i"
+	data.Args.State.SelectedImageIndex = -1
+	data.Args.Locale = "zh"
+	data.Args.LoggedIn = true
+	data.Args.SessionId = r.getSessionId()
 
 	type Response struct {
 		DgsNum             string      `json:"dgsNum"`
@@ -270,11 +274,11 @@ func (r *Familysearch) getFilmData(sUrl string, imageData FamilysearchImageData)
 			DzTemplate  string `json:"dzTemplate"`
 		} `json:"templates"`
 	}
-	bs, err := r.postJson(r.apiUrl, d)
+	bs, err := r.postJson(r.apiUrl, r)
 	if err != nil {
 		return
 	}
-	var resultError FamilysearchResultError
+	var resultError family.ResultError
 	if err = json.Unmarshal(bs, &resultError); resultError.Error.StatusCode != 0 {
 		msg := fmt.Sprintf("StatusCode: %d, Message: %s", resultError.Error.StatusCode, resultError.Error.Message)
 		err = errors.New(msg)
@@ -312,7 +316,7 @@ func (r *Familysearch) postJson(sUrl string, d interface{}) ([]byte, error) {
 			"origin":       r.baseUrl,
 			"referer":      r.dt.Url,
 		},
-		JSON: d,
+		JSON: r,
 	})
 	resp, err := cli.Post(sUrl)
 	if err != nil {
@@ -333,7 +337,7 @@ func (r *Familysearch) getSessionId() string {
 	return ""
 }
 
-func (r *Familysearch) postBody(sUrl string, d []byte) ([]byte, error) {
+func (r *Familysearch) postBody(sUrl string, data []byte) ([]byte, error) {
 	sid := r.getSessionId()
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
@@ -347,7 +351,7 @@ func (r *Familysearch) postBody(sUrl string, d []byte) ([]byte, error) {
 			"authorization": sid,
 			"referer":       r.dt.Url,
 		},
-		Body: d,
+		Body: data,
 	})
 	resp, err := cli.Post(sUrl)
 	if err != nil {

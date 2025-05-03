@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/iiif"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -18,63 +19,48 @@ import (
 type IIIF struct {
 	dt         *DownloadTask
 	xmlContent []byte
-	BookId     string
+
+	bookId string
 }
 
-// ResponseManifest  by view-source:https://iiif.lib.harvard.edu/manifests/drs:53262215
-type ResponseManifest struct {
-	Sequences []struct {
-		Canvases []struct {
-			Id   string `json:"@id"`
-			Type string `json:"@type"`
-			//兼容某些不正规的网站竟然用了string类型，见https://digitalarchive.npm.gov.tw/Antique/setJsonU?uid=58102&Dept=U
-			//Height int    `json:"height"`
-			Images []struct {
-				Id       string `json:"@id"`
-				Type     string `json:"@type"`
-				On       string `json:"on"`
-				Resource struct {
-					Id     string `json:"@id"`
-					Type   string `json:"@type"`
-					Format string `json:"format"`
-					//兼容digitalarchive.npm.gov.tw
-					//Height  int    `json:"height"`
-					Service struct {
-						Id string `json:"@id"`
-					} `json:"service"`
-					Width int `json:"width"`
-				} `json:"resource"`
-			} `json:"images"`
-			Label string `json:"label"`
-			//Width int    `json:"width"`
-		} `json:"canvases"`
-	} `json:"sequences"`
+func NewIiifRouter() *IIIF {
+	return &IIIF{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
 }
 
-func (p *IIIF) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
-	p.dt.UrlParsed, err = url.Parse(sUrl)
-	p.dt.Url = sUrl
-	p.dt.Index = iTask
-	p.dt.Jar, _ = cookiejar.New(nil)
-	p.dt.BookId = p.getBookId(p.dt.Url)
-	if p.dt.BookId == "" {
+func (i *IIIF) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := i.Run(sUrl)
+	return map[string]interface{}{
+		"type": "iiif",
+		"url":  sUrl,
+		"msg":  msg,
+	}, err
+}
+
+func (i *IIIF) Run(sUrl string) (msg string, err error) {
+	i.dt.UrlParsed, err = url.Parse(sUrl)
+	i.dt.Url = sUrl
+	i.dt.Jar, _ = cookiejar.New(nil)
+	i.dt.BookId = i.getBookId(i.dt.Url)
+	if i.dt.BookId == "" {
 		return "requested URL was not found.", err
 	}
-	return p.download()
+	return i.download()
 }
 
-func (p *IIIF) InitWithId(iTask int, sUrl string, id string) (msg string, err error) {
-	p.dt = new(DownloadTask)
-	p.dt.UrlParsed, err = url.Parse(sUrl)
-	p.dt.Url = sUrl
-	p.dt.Index = iTask
-	p.dt.Jar, _ = cookiejar.New(nil)
-	p.dt.BookId = id
-	return p.download()
+func (i *IIIF) InitWithId(iTask int, sUrl string, id string) (msg string, err error) {
+	i.dt = new(DownloadTask)
+	i.dt.UrlParsed, err = url.Parse(sUrl)
+	i.dt.Url = sUrl
+	i.dt.Index = iTask
+	i.dt.Jar, _ = cookiejar.New(nil)
+	i.dt.BookId = id
+	return i.download()
 }
 
-func (p *IIIF) getBookId(sUrl string) (bookId string) {
+func (i *IIIF) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`/([^/]+)/manifest.json`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
@@ -83,31 +69,31 @@ func (p *IIIF) getBookId(sUrl string) (bookId string) {
 	return getBookId(sUrl)
 }
 
-func (p *IIIF) download() (msg string, err error) {
-	p.xmlContent, err = p.getBody(p.dt.Url, p.dt.Jar)
-	if err != nil || p.xmlContent == nil {
+func (i *IIIF) download() (msg string, err error) {
+	i.xmlContent, err = i.getBody(i.dt.Url, i.dt.Jar)
+	if err != nil || i.xmlContent == nil {
 		return "requested URL was not found.", err
 	}
-	canvases, err := p.getCanvases(p.dt.Url, p.dt.Jar)
+	canvases, err := i.getCanvases(i.dt.Url, i.dt.Jar)
 	if err != nil || canvases == nil {
 		return
 	}
-	p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
-	return p.do(canvases)
+	i.dt.SavePath = CreateDirectory(i.dt.UrlParsed.Host, i.dt.BookId, "")
+	return i.do(canvases)
 }
 
-func (p *IIIF) do(imgUrls []string) (msg string, err error) {
+func (i *IIIF) do(imgUrls []string) (msg string, err error) {
 	if config.Conf.UseDziRs {
-		p.doDezoomifyRs(imgUrls)
+		i.doDezoomifyRs(imgUrls)
 	} else {
-		p.doNormal(imgUrls)
+		i.doNormal(imgUrls)
 	}
 	return "", nil
 }
 
-func (p *IIIF) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	var manifest = new(ResponseManifest)
-	if err = json.Unmarshal(p.xmlContent, manifest); err != nil {
+func (i *IIIF) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+	var manifest = new(iiif.ManifestResponse)
+	if err = json.Unmarshal(i.xmlContent, manifest); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
 	}
@@ -132,7 +118,7 @@ func (p *IIIF) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, 
 	return canvases, nil
 }
 
-func (p *IIIF) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (i *IIIF) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
@@ -163,58 +149,59 @@ func (p *IIIF) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	return bs, nil
 }
 
-func (p *IIIF) doDezoomifyRs(iiifUrls []string) bool {
+func (i *IIIF) doDezoomifyRs(iiifUrls []string) bool {
 	if iiifUrls == nil {
 		return false
 	}
-	referer := url.QueryEscape(p.dt.Url)
+	referer := url.QueryEscape(i.dt.Url)
 	args := []string{
 		"-H", "Origin:" + referer,
 		"-H", "Referer:" + referer,
 		"-H", "User-Agent:" + config.Conf.UserAgent,
 	}
 	size := len(iiifUrls)
-	for i, uri := range iiifUrls {
-		if uri == "" || !config.PageRange(i, size) {
+	for k, uri := range iiifUrls {
+		if uri == "" || !config.PageRange(k, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", k+1)
+
 		filename := sortId + config.Conf.FileExt
-		dest := p.dt.SavePath + filename
+		dest := i.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
-		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
+		log.Printf("Get %d/%d  %s\n", k+1, size, uri)
 		util.StartProcess(uri, dest, args)
 	}
 	return true
 }
 
-func (p *IIIF) doNormal(imgUrls []string) bool {
+func (i *IIIF) doNormal(imgUrls []string) bool {
 	if imgUrls == nil {
 		return false
 	}
 	size := len(imgUrls)
 	fmt.Println()
 	ctx := context.Background()
-	for i, uri := range imgUrls {
-		if uri == "" || !config.PageRange(i, size) {
+	for k, uri := range imgUrls {
+		if uri == "" || !config.PageRange(k, size) {
 			continue
 		}
 		ext := util.FileExt(uri)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", k+1)
 		filename := sortId + ext
-		dest := p.dt.SavePath + filename
+		dest := i.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
-		log.Printf("Get %d/%d  %s\n", i+1, size, uri)
+		log.Printf("Get %d/%d  %s\n", k+1, size, uri)
 		opts := gohttp.Options{
 			DestFile:    dest,
 			Overwrite:   false,
 			Concurrency: 1,
 			CookieFile:  config.Conf.CookieFile,
-			CookieJar:   p.dt.Jar,
+			CookieJar:   i.dt.Jar,
 			Headers: map[string]interface{}{
 				"User-Agent": config.Conf.UserAgent,
 			},
@@ -233,23 +220,23 @@ func (p *IIIF) doNormal(imgUrls []string) bool {
 // https://snu.alma.exlibrisgroup.com/view/iiif/presentation/82SNU_INST/12748596580002591/manifest?iiifVersion=3
 // https://catalog.lib.kyushu-u.ac.jp/image/manifest/1/820/1446033.json
 // https://iiif.dl.itc.u-tokyo.ac.jp/repo/iiif/07956eb1-931c-74ff-61e9-e66d4c30817d/manifest
-func (p *IIIF) AutoDetectManifest(iTask int, sUrl string) (msg string, err error) {
-	name := util.GenNumberSorted(iTask)
+func (i *IIIF) AutoDetectManifest(iTask int, sUrl string) (msg string, err error) {
+	name := fmt.Sprintf("%04d", iTask)
 	log.Printf("Auto Detect %s  %s\n", name, sUrl)
 	bs, err := getBody(sUrl, nil)
 	if err != nil {
 		return "", err
 	}
-	ver, err := p.checkVersion(bs)
+	ver, err := i.checkVersion(bs)
 	if err != nil {
-		jsonUrl := p.getManifestUrl(sUrl, string(bs))
+		jsonUrl := i.getManifestUrl(sUrl, string(bs))
 		//查找到新的 jsonUrl
 		if jsonUrl != sUrl && jsonUrl != "" {
 			bs, err = getBody(jsonUrl, nil)
 			if err != nil {
 				return "", err
 			}
-			ver, err = p.checkVersion(bs)
+			ver, err = i.checkVersion(bs)
 			if err != nil {
 				return "", err
 			}
@@ -257,17 +244,17 @@ func (p *IIIF) AutoDetectManifest(iTask int, sUrl string) (msg string, err error
 		}
 	}
 	if ver == 3 {
-		var iiif IIIFv3
-		return iiif.Init(iTask, sUrl)
+		var iiif3 IIIFv3
+		return iiif3.Run(sUrl)
 	} else if ver == 2 {
-		var iiif IIIF
-		return iiif.Init(iTask, sUrl)
+		var iiif2 IIIF
+		return iiif2.Run(sUrl)
 	}
 	return "", err
 }
 
-func (p *IIIF) checkVersion(bs []byte) (int, error) {
-	var presentation ManifestPresentation
+func (i *IIIF) checkVersion(bs []byte) (int, error) {
+	var presentation iiif.ManifestPresentation
 	if err := json.Unmarshal(bs, &presentation); err != nil {
 		return 0, err
 	}
@@ -277,7 +264,7 @@ func (p *IIIF) checkVersion(bs []byte) (int, error) {
 	return 2, nil
 }
 
-func (p *IIIF) getManifestUrl(pageUrl, text string) string {
+func (i *IIIF) getManifestUrl(pageUrl, text string) string {
 	//最后是，相对URI
 	u, err := url.Parse(pageUrl)
 	if err != nil {
@@ -288,18 +275,18 @@ func (p *IIIF) getManifestUrl(pageUrl, text string) string {
 	if strings.Contains(pageUrl, ".json") {
 		m := regexp.MustCompile(`manifest=([^&]+)`).FindStringSubmatch(pageUrl)
 		if m != nil {
-			return p.padUri(host, m[1])
+			return i.padUri(host, m[1])
 		}
 		return pageUrl
 	}
 	//网页内含manifest URL
 	m := regexp.MustCompile(`manifest=(\S+).json["']`).FindStringSubmatch(text)
 	if m != nil {
-		return p.padUri(host, m[1]+".json")
+		return i.padUri(host, m[1]+".json")
 	}
 	m = regexp.MustCompile(`manifest=(\S+)["']`).FindStringSubmatch(text)
 	if m != nil {
-		return p.padUri(host, m[1])
+		return i.padUri(host, m[1])
 	}
 	m = regexp.MustCompile(`data-uri=["'](\S+)manifest(\S+).json["']`).FindStringSubmatch(text)
 	if m != nil {
@@ -309,10 +296,10 @@ func (p *IIIF) getManifestUrl(pageUrl, text string) string {
 	if m == nil {
 		return ""
 	}
-	return p.padUri(host, m[1]+"/manifest.json")
+	return i.padUri(host, m[1]+"/manifest.json")
 }
 
-func (p *IIIF) padUri(host, uri string) string {
+func (i *IIIF) padUri(host, uri string) string {
 	//https:// 或 http:// 绝对URL
 	if strings.HasPrefix(uri, "https://") || strings.HasPrefix(uri, "http://") {
 		return uri

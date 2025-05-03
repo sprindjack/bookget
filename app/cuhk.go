@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/cuhk"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -18,26 +19,25 @@ import (
 type Cuhk struct {
 	dt *DownloadTask
 }
-type ResponsePage struct {
-	ImagePage []ImagePage `json:"pages"`
+
+func NewCuhk() *Cuhk {
+	return &Cuhk{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
 }
 
-type ImagePage struct {
-	Pid        string `json:"pid"`
-	Page       string `json:"page"`
-	Label      string `json:"label"`
-	Width      string `json:"width"`
-	Height     string `json:"height"`
-	Dsid       string `json:"dsid"`
-	Token      string `json:"token"`
-	Identifier string `json:"identifier"`
+func (r *Cuhk) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
 }
 
-func (r *Cuhk) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
+func (r *Cuhk) Run(sUrl string) (msg string, err error) {
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
 	r.dt.BookId = getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -49,7 +49,7 @@ func (r *Cuhk) Init(iTask int, sUrl string) (msg string, err error) {
 }
 
 func (r *Cuhk) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
 	if err != nil {
@@ -60,7 +60,7 @@ func (r *Cuhk) download() (msg string, err error) {
 		if !config.VolumeRange(i) {
 			continue
 		}
-		vid := util.GenNumberSorted(i + 1)
+		vid := fmt.Sprintf("%04d", i+1)
 		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 		canvases, err := r.getCanvases(vol, r.dt.Jar)
 		if err != nil || canvases == nil {
@@ -95,7 +95,7 @@ func (r *Cuhk) doDezoomifyRs(iiifUrls []string) bool {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
 		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
@@ -123,7 +123,7 @@ func (r *Cuhk) doNormal(imgUrls []string) {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
 		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
@@ -178,7 +178,7 @@ func (r *Cuhk) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, er
 
 func (r *Cuhk) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
 	bs, err := r.getBodyWithLoop(sUrl, jar)
-	var resp ResponsePage
+	var resp cuhk.ResponsePage
 	matches := regexp.MustCompile(`"pages":([^]]+)]`).FindSubmatch(bs)
 	if matches == nil {
 		return nil, err
@@ -238,16 +238,16 @@ func (r *Cuhk) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	return bs, nil
 }
 
-func (r *Cuhk) getCanvasesJPEG2000(sUrl string, jar *cookiejar.Jar) (imagePage []ImagePage) {
+func (r *Cuhk) getCanvasesJPEG2000(sUrl string, jar *cookiejar.Jar) (imagePage []cuhk.ImagePage) {
 	bs, err := r.getBodyWithLoop(sUrl, jar)
-	var resp ResponsePage
+	var resp cuhk.ResponsePage
 	matches := regexp.MustCompile(`"pages":([^]]+)]`).FindSubmatch(bs)
 	if matches != nil {
 		data := []byte("{\"pages\":" + string(matches[1]) + "]}")
 		if err = json.Unmarshal(data, &resp); err != nil {
 			log.Printf("json.Unmarshal failed: %s\n", err)
 		}
-		imagePage = make([]ImagePage, len(resp.ImagePage))
+		imagePage = make([]cuhk.ImagePage, len(resp.ImagePage))
 		copy(imagePage, resp.ImagePage)
 	}
 	return imagePage

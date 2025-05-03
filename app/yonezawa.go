@@ -20,11 +20,24 @@ type Yonezawa struct {
 	dt *DownloadTask
 }
 
-func (p *Yonezawa) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
+func NewYonezawa() *Yonezawa {
+	return &Yonezawa{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *Yonezawa) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (p *Yonezawa) Run(sUrl string) (msg string, err error) {
 	p.dt.UrlParsed, err = url.Parse(sUrl)
 	p.dt.Url = sUrl
-	p.dt.Index = iTask
 	p.dt.BookId = p.getBookId(p.dt.Url)
 	if p.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -41,7 +54,7 @@ func (p *Yonezawa) getBookId(sUrl string) (bookId string) {
 }
 
 func (p *Yonezawa) download() (msg string, err error) {
-	name := util.GenNumberSorted(p.dt.Index)
+	name := fmt.Sprintf("%04d", p.dt.Index)
 	log.Printf("Get %s  %s\n", name, p.dt.Url)
 	respVolume, err := p.getVolumes(p.dt.Url, p.dt.Jar)
 	if err != nil {
@@ -56,7 +69,7 @@ func (p *Yonezawa) download() (msg string, err error) {
 		if sizeVol == 1 {
 			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
 		} else {
-			vid := util.GenNumberSorted(i + 1)
+			vid := fmt.Sprintf("%04d", i+1)
 			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
 		}
 
@@ -84,7 +97,7 @@ func (p *Yonezawa) do(imgUrls []string) (msg string, err error) {
 			continue
 		}
 		ext := util.FileExt(uri)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + ext
 		dest := p.dt.SavePath + filename
 		if FileExist(dest) {
@@ -195,7 +208,7 @@ func (p *Yonezawa) makeUri(imageDir, val string, i int) string {
 	book := val[0:8]
 	page := val[len(val)-3:]
 	page = regexp.MustCompile(`^0+0?`).ReplaceAllString(page, "")
-	sortId := util.GenNumberLimitLen(i, 3)
+	sortId := fmt.Sprintf("%03d", i)
 	s := fmt.Sprintf("%s%s/%s_%s.jpg", imageDir, dir2, book, sortId)
 	return s
 }

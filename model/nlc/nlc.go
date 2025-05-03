@@ -25,29 +25,12 @@ type ImageData struct {
 	Msg  string `json:"msg"`
 	Code int    `json:"code"`
 	Data struct {
-		OrderSeq        int     `json:"orderSeq"`
-		ImageWidth      float64 `json:"imageWidth"`
-		EntityTagStatus int     `json:"entityTagStatus"`
-		FileName        string  `json:"fileName"`
-		RecoErrorMsg    string  `json:"recoErrorMsg"`
-		ImageId         int     `json:"imageId"`
-		FilePath        string  `json:"filePath"`
-		TxtFileName     string  `json:"txtFileName"`
-		StructureId     int     `json:"structureId"`
-		UpdateTime      string  `json:"updateTime"`
-		DelFlag         int     `json:"delFlag"`
-		RecoJson        struct {
-			Chars []interface{} `json:"chars"`
-		} `json:"recoJson"`
-		SeriesId    int     `json:"seriesId"`
-		ImageHeight float64 `json:"imageHeight"`
-		FtpId       int     `json:"ftpId"`
-		MetadataId  int     `json:"metadataId"`
-		Comma       string  `json:"comma"`
-		CreateTime  string  `json:"createTime"`
-		PdfFileName string  `json:"pdfFileName"`
-		FileType    string  `json:"fileType"`
-		RecoStatus  int     `json:"recoStatus"`
-		Trans       string  `json:"trans"`
+		FileName    string `json:"fileName"`
+		ImageId     int    `json:"imageId"`
+		FilePath    string `json:"filePath"`
+		StructureId int    `json:"structureId"`
+		UpdateTime  string `json:"updateTime"`
+		CreateTime  string `json:"createTime"`
+		FileType    string `json:"fileType"`
 	} `json:"data"`
 }

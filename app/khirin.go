@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/iiif"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -21,11 +22,27 @@ type Khirin struct {
 	apiUrl string
 }
 
-func (r *Khirin) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
+func NewKhirin() *Khirin {
+	return &Khirin{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *Khirin) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"type": "iiif",
+		"url":  sUrl,
+		"msg":  msg,
+	}, err
+}
+
+func (r *Khirin) Run(sUrl string) (msg string, err error) {
+
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
+
 	r.dt.BookId = r.getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -44,7 +61,7 @@ func (r *Khirin) getBookId(sUrl string) (bookId string) {
 }
 
 func (r *Khirin) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 	r.dt.SavePath = CreateDirectory(r.dt.Url, r.dt.BookId, "")
 	manifestUrl, err := r.getManifestUrl(r.dt.Url)
@@ -83,7 +100,7 @@ func (r *Khirin) doDezoomifyRs(canvases []string) bool {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
 		inputUri := r.dt.SavePath + sortId + "_info.json"
 		bs, err := r.getBody(uri, r.dt.Jar)
@@ -115,7 +132,7 @@ func (r *Khirin) doNormal(canvases []string) bool {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
 		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
@@ -147,7 +164,7 @@ func (r *Khirin) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, 
 
 func (r *Khirin) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
 	bs, err := r.getBody(sUrl, jar)
-	var manifest = new(ResponseManifest)
+	var manifest = new(iiif.ManifestResponse)
 	if err != nil {
 		return nil, err
 	}

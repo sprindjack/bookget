@@ -2,8 +2,8 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/onbdigital"
 	"bookget/pkg/gohttp"
-	"bookget/pkg/util"
 	"context"
 	"encoding/json"
 	"errors"
@@ -19,59 +19,64 @@ type OnbDigital struct {
 	dt *DownloadTask
 }
 
-type OnbResponse struct {
-	ImageData []struct {
-		ImageID     string `json:"imageID"`
-		OrderNumber string `json:"orderNumber"`
-		QueryArgs   string `json:"queryArgs"`
-	} `json:"imageData"`
+func NewOnbDigital() *OnbDigital {
+	return &OnbDigital{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
 }
 
-func (p *OnbDigital) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
-	p.dt.UrlParsed, err = url.Parse(sUrl)
-	p.dt.Url = sUrl
-	p.dt.Index = iTask
-	p.dt.BookId = p.getBookId(p.dt.Url)
-	if p.dt.BookId == "" {
+func (r *OnbDigital) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *OnbDigital) Run(sUrl string) (msg string, err error) {
+	r.dt.UrlParsed, err = url.Parse(sUrl)
+	r.dt.Url = sUrl
+	r.dt.BookId = r.getBookId(r.dt.Url)
+	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
 	}
-	p.dt.Jar, _ = cookiejar.New(nil)
-	return p.download()
+	r.dt.Jar, _ = cookiejar.New(nil)
+	return r.download()
 }
 
-func (p *OnbDigital) getBookId(sUrl string) (bookId string) {
+func (r *OnbDigital) getBookId(sUrl string) (bookId string) {
 	if m := regexp.MustCompile(`doc=([^&]+)`).FindStringSubmatch(sUrl); m != nil {
 		bookId = m[1]
 	}
 	return bookId
 }
 
-func (p *OnbDigital) download() (msg string, err error) {
-	name := util.GenNumberSorted(p.dt.Index)
-	log.Printf("Get %s  %s\n", name, p.dt.Url)
-	respVolume, err := p.getVolumes(p.dt.Url, p.dt.Jar)
+func (r *OnbDigital) download() (msg string, err error) {
+	name := fmt.Sprintf("%04d", r.dt.Index)
+	log.Printf("Get %s  %s\n", name, r.dt.Url)
+	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
 	if err != nil {
 		fmt.Println(err)
 		return "getVolumes", err
 	}
-	p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
+	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 	for i, vol := range respVolume {
 		if !config.VolumeRange(i) {
 			continue
 		}
-		canvases, err := p.getCanvases(vol, p.dt.Jar)
+		canvases, err := r.getCanvases(vol, r.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
 			continue
 		}
 		log.Printf(" %d/%d volume, %d pages \n", i+1, len(respVolume), len(canvases))
-		p.do(canvases)
+		r.do(canvases)
 	}
 	return msg, err
 }
 
-func (p *OnbDigital) do(imgUrls []string) (msg string, err error) {
+func (r *OnbDigital) do(imgUrls []string) (msg string, err error) {
 	if imgUrls == nil {
 		return "", nil
 	}
@@ -83,9 +88,9 @@ func (p *OnbDigital) do(imgUrls []string) (msg string, err error) {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
-		dest := p.dt.SavePath + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -101,7 +106,7 @@ func (p *OnbDigital) do(imgUrls []string) (msg string, err error) {
 				Overwrite:   false,
 				Concurrency: 1,
 				CookieFile:  config.Conf.CookieFile,
-				CookieJar:   p.dt.Jar,
+				CookieJar:   r.dt.Jar,
 				Headers: map[string]interface{}{
 					"User-Agent": config.Conf.UserAgent,
 				},
@@ -115,9 +120,9 @@ func (p *OnbDigital) do(imgUrls []string) (msg string, err error) {
 	return "", err
 }
 
-func (p *OnbDigital) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
+func (r *OnbDigital) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
 	//刷新cookie
-	_, err = p.getBody(sUrl, jar)
+	_, err = r.getBody(sUrl, jar)
 	if err != nil {
 		return
 	}
@@ -125,18 +130,18 @@ func (p *OnbDigital) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []stri
 	return volumes, nil
 }
 
-func (p *OnbDigital) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	apiUrl := "https://" + p.dt.UrlParsed.Host + "/OnbViewer/service/viewer/imageData?doc=" + p.dt.BookId + "&from=1&to=3000"
-	bs, err := p.getBody(apiUrl, jar)
+func (r *OnbDigital) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+	apiUrl := "https://" + r.dt.UrlParsed.Host + "/OnbViewer/service/viewer/imageData?doc=" + r.dt.BookId + "&from=1&to=3000"
+	bs, err := r.getBody(apiUrl, jar)
 	if err != nil {
 		return
 	}
-	var result = new(OnbResponse)
+	var result = new(onbdigital.Response)
 	if err = json.Unmarshal(bs, result); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
 	}
-	serverUrl := "https://" + p.dt.UrlParsed.Host + "/OnbViewer/image?"
+	serverUrl := "https://" + r.dt.UrlParsed.Host + "/OnbViewer/image?"
 	for _, m := range result.ImageData {
 		imgUrl := serverUrl + m.QueryArgs + "&w=2400&q=70"
 		canvases = append(canvases, imgUrl)
@@ -144,7 +149,7 @@ func (p *OnbDigital) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []st
 	return canvases, err
 }
 
-func (p *OnbDigital) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (r *OnbDigital) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
@@ -164,7 +169,7 @@ func (p *OnbDigital) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	return bs, nil
 }
 
-func (p *OnbDigital) postBody(sUrl string, d []byte) ([]byte, error) {
+func (r *OnbDigital) postBody(sUrl string, d []byte) ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }

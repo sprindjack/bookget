@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/iiif"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -19,11 +20,25 @@ type Niiac struct {
 	dt *DownloadTask
 }
 
-func (p *Niiac) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
+func NewNiiac() *Niiac {
+	return &Niiac{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *Niiac) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"type": "iiif",
+		"url":  sUrl,
+		"msg":  msg,
+	}, err
+}
+
+func (p *Niiac) Run(sUrl string) (msg string, err error) {
 	p.dt.UrlParsed, err = url.Parse(sUrl)
 	p.dt.Url = sUrl
-	p.dt.Index = iTask
 	p.dt.BookId = p.getBookId(p.dt.Url)
 	if p.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -41,7 +56,7 @@ func (p *Niiac) getBookId(sUrl string) (bookId string) {
 }
 
 func (p *Niiac) download() (msg string, err error) {
-	name := util.GenNumberSorted(p.dt.Index)
+	name := fmt.Sprintf("%04d", p.dt.Index)
 	log.Printf("Get %s  %s\n", name, p.dt.Url)
 
 	respVolume, err := p.getVolumes(p.dt.Url, p.dt.Jar)
@@ -57,7 +72,7 @@ func (p *Niiac) download() (msg string, err error) {
 		if sizeVol == 1 {
 			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
 		} else {
-			vid := util.GenNumberSorted(i + 1)
+			vid := fmt.Sprintf("%04d", i+1)
 			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
 		}
 
@@ -100,7 +115,7 @@ func (p *Niiac) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string,
 	if err != nil {
 		return
 	}
-	var manifest = new(ResponseManifest)
+	var manifest = new(iiif.ManifestResponse)
 	if err = json.Unmarshal(bs, manifest); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
@@ -169,7 +184,7 @@ func (p *Niiac) doDezoomifyRs(iiifUrls []string) bool {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
 		dest := p.dt.SavePath + filename
 		if FileExist(dest) {
@@ -194,7 +209,7 @@ func (p *Niiac) doNormal(imgUrls []string) bool {
 			continue
 		}
 		ext := util.FileExt(uri)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + ext
 		dest := p.dt.SavePath + filename
 		if FileExist(dest) {

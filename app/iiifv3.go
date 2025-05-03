@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/iiif"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -20,64 +21,9 @@ type IIIFv3 struct {
 	BookId     string
 }
 
-// ResponseManifestv3  https://iiif.io/api/presentation/3.0/#52-manifest
-type ResponseManifestv3 struct {
-	Id    string `json:"id"`
-	Type  string `json:"type"`
-	Label struct {
-		None []string `json:"none"`
-	} `json:"label"`
-	Height   int `json:"height"`
-	Width    int `json:"width"`
-	Canvases []struct {
-		Id     string `json:"id"`
-		Type   string `json:"type"`
-		Height int    `json:"height"`
-		Width  int    `json:"width"`
-		Items  []struct {
-			Id    string `json:"id"`
-			Type  string `json:"type"`
-			Items []struct {
-				Id         string `json:"id"`
-				Type       string `json:"type"`
-				Motivation string `json:"motivation"`
-				Body       struct {
-					Id      string `json:"id"`
-					Type    string `json:"type"`
-					Format  string `json:"format"`
-					Service []struct {
-						Id   string `json:"id"`
-						Type string `json:"type"`
-						//![ See https://da.library.pref.osaka.jp/api/items/03-0000183/manifest.json
-						Id_   string `json:"@id"`
-						Type_ string `json:"@type"`
-						//]!
-						Profile string `json:"profile"`
-					} `json:"service"`
-					Height int `json:"height"`
-					Width  int `json:"width"`
-				} `json:"body"`
-				Target string `json:"target"`
-			} `json:"items"`
-		} `json:"items"`
-	} `json:"items"`
-	Annotations []struct {
-		Id    string        `json:"id"`
-		Type  string        `json:"type"`
-		Items []interface{} `json:"items"`
-	} `json:"annotations"`
-}
-
-type ManifestPresentation struct {
-	Context string `json:"@context"`
-	Id      string `json:"id"`
-}
-
-func (p *IIIFv3) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
+func (p *IIIFv3) Run(sUrl string) (msg string, err error) {
 	p.dt.UrlParsed, err = url.Parse(sUrl)
 	p.dt.Url = sUrl
-	p.dt.Index = iTask
 	p.dt.Jar, _ = cookiejar.New(nil)
 	p.dt.BookId = p.getBookId(p.dt.Url)
 	if p.dt.BookId == "" {
@@ -128,7 +74,7 @@ func (p *IIIFv3) do(imgUrls []string) (msg string, err error) {
 }
 
 func (p *IIIFv3) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	var manifest = new(ResponseManifestv3)
+	var manifest = new(iiif.ManifestV3Response)
 	if err = json.Unmarshal(p.xmlContent, manifest); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
@@ -194,7 +140,7 @@ func (p *IIIFv3) doDezoomifyRs(iiifUrls []string) bool {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
 		dest := p.dt.SavePath + filename
 		if FileExist(dest) {
@@ -218,7 +164,7 @@ func (p *IIIFv3) doNormal(imgUrls []string) bool {
 			continue
 		}
 		ext := util.FileExt(uri)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + ext
 		dest := p.dt.SavePath + filename
 		if FileExist(dest) {

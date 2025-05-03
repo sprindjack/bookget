@@ -2,8 +2,8 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/wzlib"
 	"bookget/pkg/gohttp"
-	"bookget/pkg/util"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -17,55 +17,24 @@ type Wzlib struct {
 	dt *DownloadTask
 }
 
-type WzlibDigital struct {
-	ID                  int    `json:"ID"`
-	SiteID              int    `json:"SiteID"`
-	Title               string `json:"Title"`
-	Author              string `json:"author"`
-	Source              string `json:"source"`
-	Txt                 string `json:"txt"`
-	PdfUrl              string `json:"pdf_url"`
-	DigitalResourceData []struct {
-		Title string `json:"Title"`
-		Url   string `json:"Url"`
-	} `json:"DigitalResourceData"`
+func NewWzlib() *Wzlib {
+	return &Wzlib{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
 }
 
-type WzlibResult []WzlibItem
-
-type WzlibItem struct {
-	Items []struct {
-		Id          string `json:"_id"`
-		DcPublisher string `json:"dc_publisher"`
-		DcTitle     string `json:"dc_title"`
-		WzlPdfUrl   string `json:"wzl_pdf_url"`
-	} `json:"items"`
-	Title string `json:"title"`
+func (r *Wzlib) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
 }
 
-type WzlibPdfUrls []WzlibPdfUrl
-type WzlibPdfUrl struct {
-	Url  string
-	Name string
-}
-
-type WzlibResultPdf struct {
-	Data struct {
-		Id         string `json:"_id"`
-		DcTitle    string `json:"dc_title"`
-		ModelId    string `json:"model_id"`
-		RelateName string `json:"relate_name"`
-		WzlPdfUrl  string `json:"wzl_pdf_url"`
-	} `json:"Data"`
-
-	RelateList []interface{} `json:"RelateList"`
-}
-
-func (p *Wzlib) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
+func (p *Wzlib) Run(sUrl string) (msg string, err error) {
 	p.dt.UrlParsed, err = url.Parse(sUrl)
 	p.dt.Url = sUrl
-	p.dt.Index = iTask
 	p.dt.BookId = p.getBookId(p.dt.Url)
 	if p.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -84,7 +53,7 @@ func (p *Wzlib) getBookId(sUrl string) (bookId string) {
 }
 
 func (p *Wzlib) download() (msg string, err error) {
-	name := util.GenNumberSorted(p.dt.Index)
+	name := fmt.Sprintf("%04d", p.dt.Index)
 	log.Printf("Get %s  %s\n", name, p.dt.Url)
 	p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
 
@@ -120,7 +89,7 @@ func (p *Wzlib) do(dUrls []string) (msg string, err error) {
 			continue
 		}
 		log.Printf("Get %d/%d, URL: %s\n", i+1, size, uri)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + ".pdf"
 		dest := p.dt.SavePath + filename
 		if FileExist(dest) {
@@ -156,7 +125,7 @@ func (p *Wzlib) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string,
 		return
 	}
 
-	var resT = new(WzlibDigital)
+	var resT = new(wzlib.Digital)
 	if err = json.Unmarshal(bs, &resT); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
@@ -172,22 +141,12 @@ func (p *Wzlib) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string,
 	return canvases, nil
 }
 
-func (p *Wzlib) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *Wzlib) postBody(sUrl string, d []byte) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (p *Wzlib) OyjyGetCanvases(bookId string) (canvases []string, err error) {
 	//一册
 	uri := fmt.Sprintf("https://oyjy.wzlib.cn/api/search/v1/resource/%s", bookId)
 	bs, err := getBody(uri, p.dt.Jar)
 	if err == nil {
-		var result WzlibResultPdf
+		var result wzlib.ResultPdf
 		if err = json.Unmarshal(bs, &result); err == nil {
 			m := regexp.MustCompile(`file=(\S+)`).FindStringSubmatch(result.Data.WzlPdfUrl)
 			if m != nil {
@@ -204,7 +163,7 @@ func (p *Wzlib) OyjyGetCanvases(bookId string) (canvases []string, err error) {
 	if err != nil {
 		return
 	}
-	var result WzlibResult
+	var result wzlib.Result
 	if err = json.Unmarshal(bs, &result); err != nil {
 		return
 	}

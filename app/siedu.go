@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/iiif"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -21,11 +22,27 @@ type SiEdu struct {
 	dt *DownloadTask
 }
 
-func (r *SiEdu) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
+func NewSiEdu() *SiEdu {
+	return &SiEdu{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *SiEdu) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"type": "iiif",
+		"url":  sUrl,
+		"msg":  msg,
+	}, err
+}
+
+func (r *SiEdu) Run(sUrl string) (msg string, err error) {
+
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
+
 	r.dt.BookId = r.getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -56,7 +73,7 @@ func (r *SiEdu) getBookId(sUrl string) (bookId string) {
 }
 
 func (r *SiEdu) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 	apiUrl := "https://ids.si.edu/ids/manifest/" + r.dt.BookId
@@ -83,7 +100,7 @@ func (r *SiEdu) do(iiifUrls []string) (msg string, err error) {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
 		inputUri := r.dt.SavePath + sortId + "_info.json"
 		bs, err := r.getBody(uri, r.dt.Jar)
@@ -105,14 +122,9 @@ func (r *SiEdu) do(iiifUrls []string) (msg string, err error) {
 	return "", nil
 }
 
-func (r *SiEdu) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (r *SiEdu) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
 	bs, err := r.getBody(sUrl, jar)
-	var manifest = new(ResponseManifest)
+	var manifest = new(iiif.ManifestResponse)
 	if err != nil {
 		return nil, err
 	}

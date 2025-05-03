@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bookget/app"
 	"bookget/config"
 	"bookget/pkg/queue"
 	"bookget/pkg/version"
@@ -57,7 +58,10 @@ func executeByRunMode(ctx context.Context) {
 		executeBatchURLs()
 	case RunModeInteractive:
 		runInteractiveMode(ctx)
+	case RunModeInteractiveImage:
+		runInteractiveModeImage(ctx)
 	}
+
 	log.Println("Download complete.")
 }
 
@@ -67,10 +71,14 @@ const (
 	RunModeSingleURL RunMode = iota
 	RunModeBatchURLs
 	RunModeInteractive
+	RunModeInteractiveImage
 )
 
 // determineRunMode 确定运行模式
 func determineRunMode() RunMode {
+	if config.Conf.AutoDetect == 1 {
+		return RunModeInteractiveImage
+	}
 	if config.Conf.DUrl != "" {
 		return RunModeSingleURL
 	}
@@ -87,15 +95,15 @@ func hasValidURLsFile() bool {
 }
 
 // executeSingleURL 处理单个URL模式
-func executeSingleURL(ctx context.Context, url string) {
-	if err := processURL(ctx, 1, url); err != nil {
+func executeSingleURL(ctx context.Context, rawUrl string) {
+	if err := processURL(ctx, rawUrl); err != nil {
 		log.Println(err)
 	}
 }
 
 // executeBatchURLs 处理批量URLs模式
 func executeBatchURLs() {
-	urls, err := loadAndFilterURLs(config.Conf.UrlsFile)
+	allUrls, err := loadAndFilterURLs(config.Conf.UrlsFile)
 	if err != nil {
 		log.Println(err)
 		return
@@ -103,9 +111,9 @@ func executeBatchURLs() {
 
 	q := queue.NewConcurrentQueue(int(config.Conf.Threads))
 	if config.Conf.AutoDetect == 1 {
-		processURLsAutoDetect(q, urls)
+		processURLsAutoDetect(q, allUrls)
 	} else {
-		processURLsManual(q, urls)
+		processURLsManual(q, allUrls)
 	}
 	wg.Wait()
 }
@@ -113,19 +121,22 @@ func executeBatchURLs() {
 // runInteractiveMode 运行交互模式
 func runInteractiveMode(ctx context.Context) {
 	cleanupCookieFile()
-
-	counter := 0
 	for {
-		sUrl, err := readURLFromInput()
+		rawUrl, err := readURLFromInput()
 		if err != nil {
 			break
 		}
-		counter++
 
-		if err := processURL(ctx, counter, sUrl); err != nil {
+		if err = processURL(ctx, rawUrl); err != nil {
 			log.Println(err)
 		}
 	}
+}
+
+// runInteractiveModeImage 运行交互模式：图片下载
+func runInteractiveModeImage(ctx context.Context) {
+	cleanupCookieFile()
+	app.NewImageDownloader().Run("")
 }
 
 // loadAndFilterURLs 加载并过滤URLs
@@ -157,42 +168,44 @@ func isValidURL(url string) bool {
 }
 
 // processURLsAutoDetect 自动检测模式处理URLs
-func processURLsAutoDetect(q *queue.ConcurrentQueue, urls []string) {
-	wg.Add(1)
-	q.Go(func() {
-		defer wg.Done()
-		processURLSet("bookget", urls)
-	})
+func processURLsAutoDetect(q *queue.ConcurrentQueue, allUrls []string) {
+	for _, v := range allUrls {
+		wg.Add(1)
+		rawURL := v // 创建局部变量供闭包使用
+		q.Go(func() {
+			defer wg.Done()
+			processURLSet("bookget", rawURL)
+		})
+	}
 }
 
 // processURLsManual 手动模式处理URLs
-func processURLsManual(q *queue.ConcurrentQueue, urls []string) {
-	for _, rawURL := range urls {
-		u, err := url.Parse(rawURL)
+func processURLsManual(q *queue.ConcurrentQueue, allUrls []string) {
+	for _, v := range allUrls {
+		u, err := url.Parse(v)
 		if err != nil {
-			log.Printf("URL解析失败: %s, 错误: %v\n", rawURL, err)
+			log.Printf("URL解析失败: %s, 错误: %v\n", v, err)
 			continue
 		}
 
 		wg.Add(1)
-		sUrl := rawURL // 创建局部变量供闭包使用
+		rawURL := v // 创建局部变量供闭包使用
 		q.Go(func() {
 			defer wg.Done()
-			processURLSet(u.Host, []string{sUrl})
+			processURLSet(u.Host, rawURL)
 		})
 	}
 }
 
 // processURLSet 处理一组URLs
-func processURLSet(siteID string, urls []string) {
-	msg, err := router.FactoryRouter(siteID, urls)
+func processURLSet(siteID string, rawUrl string) {
+	result, err := router.FactoryRouter(siteID, rawUrl)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	if msg != nil {
-		log.Printf("%+v\n", msg)
-	}
+	// 使用result
+	_ = result
 }
 
 // readURLFromInput 从用户输入读取URL
@@ -208,10 +221,10 @@ func readURLFromInput() (string, error) {
 }
 
 // processURL 处理单个URL
-func processURL(ctx context.Context, id int, rawURL string) error {
-	rawURL = strings.TrimSpace(rawURL)
+func processURL(ctx context.Context, rawUrl string) error {
+	rawURL := strings.TrimSpace(rawUrl)
 	if !isValidURL(rawURL) {
-		return fmt.Errorf("无效的URL: %s", rawURL)
+		return fmt.Errorf("无效的URL: %s", rawUrl)
 	}
 
 	u, err := url.Parse(rawURL)
@@ -219,14 +232,13 @@ func processURL(ctx context.Context, id int, rawURL string) error {
 		return fmt.Errorf("URL解析失败: %w", err)
 	}
 
-	msg, err := router.FactoryRouter(u.Host, []string{rawURL})
+	result, err := router.FactoryRouter(u.Host, rawURL)
 	if err != nil {
-		return fmt.Errorf("处理URL失败: %w", err)
+		log.Println(err)
+		return err
 	}
-
-	if msg != nil {
-		log.Printf("%d %+v\n", id, msg)
-	}
+	// 使用result
+	_ = result
 
 	return nil
 }

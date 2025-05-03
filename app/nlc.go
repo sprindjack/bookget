@@ -2,76 +2,123 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/pkg/downloader"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 type ChinaNlc struct {
-	dt          *DownloadTask
+	dm     *downloader.DownloadManager
+	ctx    context.Context
+	cancel context.CancelFunc
+	client *http.Client
+	jar    *cookiejar.Jar
+
+	rawUrl    string
+	parsedUrl *url.URL
+	savePath  string
+	bookId    string
+
 	body        []byte
 	dataType    int //0=pdf,1=pic
 	aid         string
 	vectorBooks []string
 }
 
-func (r *ChinaNlc) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
-	r.dt.UrlParsed, err = url.Parse(sUrl)
-	r.dt.Url = sUrl
-	r.dt.Index = iTask
-	r.dt.Jar, _ = cookiejar.New(nil)
-	if strings.Contains(sUrl, "OutOpenBook/Open") {
-		r.body, _ = r.getBody(sUrl, r.dt.Jar)
-		r.dt.BookId = r.getBookId(string(r.body))
-	} else {
-		r.dt.BookId = r.getBookId(r.dt.Url)
+func NewChinaNlc() *ChinaNlc {
+	ctx, cancel := context.WithCancel(context.Background())
+	dm := downloader.NewDownloadManager(config.Conf.MaxConcurrent)
+
+	// 创建自定义 Transport 忽略 SSL 验证
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
 	}
-	if r.dt.BookId == "" {
+	jar, _ := cookiejar.New(nil)
+
+	return &ChinaNlc{
+		// 初始化字段
+		dm:     dm,
+		client: &http.Client{Timeout: 30 * time.Second, Jar: jar, Transport: tr},
+		ctx:    ctx,
+		cancel: cancel,
+		jar:    jar,
+	}
+}
+
+func (r *ChinaNlc) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	r.rawUrl = sUrl
+	r.parsedUrl, _ = url.Parse(sUrl)
+	msg, err := r.Run()
+	return map[string]interface{}{
+		"type": "dzicnlib",
+		"url":  sUrl,
+		"msg":  msg,
+	}, err
+}
+
+func (r *ChinaNlc) Run() (msg string, err error) {
+	if strings.Contains(r.rawUrl, "OutOpenBook/Open") {
+		r.body, _ = r.getBody(r.rawUrl)
+		r.bookId = r.getBookId(string(r.body))
+	} else {
+		r.bookId = r.getBookId(r.rawUrl)
+	}
+	if r.bookId == "" {
 		return "requested URL was not found.", err
 	}
 	return r.download()
 }
 
 func (r *ChinaNlc) getBookId(sUrl string) (bookId string) {
-	m := regexp.MustCompile(`identifier\s+=\s+["']([^"']+)["']`).FindStringSubmatch(sUrl)
-	if m != nil {
-		bookId = m[1]
-		return
+	var (
+		// 预编译正则表达式
+		identifierRegex = regexp.MustCompile(`identifier\s*=\s*["']([^"']+)["']`)
+		fidRegex        = regexp.MustCompile(`fid=([A-Za-z0-9]+)`)
+	)
+
+	// 尝试第一种匹配模式
+	if matches := identifierRegex.FindStringSubmatch(sUrl); matches != nil {
+		return matches[1]
 	}
-	m = regexp.MustCompile(`fid=([A-z0-9]+)`).FindStringSubmatch(sUrl)
-	if m != nil {
-		bookId = m[1]
-		return
+
+	// 尝试第二种匹配模式
+	if matches := fidRegex.FindStringSubmatch(sUrl); matches != nil {
+		return matches[1]
 	}
-	return bookId
+
+	// 默认返回空字符串
+	return ""
 }
 
 func (r *ChinaNlc) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
-	log.Printf("Get %s  %s\n", name, r.dt.Url)
 	//单册PDF
-	if strings.Contains(r.dt.Url, "OutOpenBook/OpenObjectBook") {
+	if strings.Contains(r.rawUrl, "OutOpenBook/OpenObjectBook") {
 		//PDF
-		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
-		v, _ := r.identifier(r.dt.Url)
+		r.savePath = CreateDirectory(r.parsedUrl.Host, r.bookId, "")
+		v, _ := r.identifier(r.rawUrl)
 		filename := v.Get("bid") + ".pdf"
-		err = r.doPdfUrl(r.dt.Url, filename)
+		err = r.doPdfUrl(r.rawUrl, filename)
 		return "", err
 	}
 	//单张图
-	if strings.Contains(r.dt.Url, "OutOpenBook/OpenObjectPic") {
-		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
-		canvases, err := r.getCanvases(r.dt.Url, r.dt.Jar)
+	if strings.Contains(r.rawUrl, "OutOpenBook/OpenObjectPic") {
+		r.savePath = CreateDirectory(r.parsedUrl.Host, r.bookId, "")
+		canvases, err := r.getCanvases()
 		if err != nil || canvases == nil {
 			return "", err
 		}
@@ -80,16 +127,16 @@ func (r *ChinaNlc) download() (msg string, err error) {
 		return "", err
 	}
 	//对照阅读单册
-	if strings.Contains(r.dt.Url, "OpenTwoObjectBook") {
-		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
-		v, _ := r.identifier(r.dt.Url)
+	if strings.Contains(r.rawUrl, "OpenTwoObjectBook") {
+		r.savePath = CreateDirectory(r.parsedUrl.Host, r.bookId, "")
+		v, _ := r.identifier(r.rawUrl)
 		filename := v.Get("bid") + ".pdf"
-		pageUrl := fmt.Sprintf("%s://%s/OutOpenBook/OpenObjectBook?aid=%s&bid=%s", r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host,
+		pageUrl := fmt.Sprintf("%s://%s/OutOpenBook/OpenObjectBook?aid=%s&bid=%s", r.parsedUrl.Scheme, r.parsedUrl.Host,
 			v.Get("aid"), v.Get("bid"))
 		err = r.doPdfUrl(pageUrl, filename)
 
 		filename = v.Get("cid") + ".pdf"
-		pageUrl = fmt.Sprintf("%s://%s/OutOpenBook/OpenObjectBook?aid=%s&bid=%s", r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host,
+		pageUrl = fmt.Sprintf("%s://%s/OutOpenBook/OpenObjectBook?aid=%s&bid=%s", r.parsedUrl.Scheme, r.parsedUrl.Host,
 			v.Get("aid"), v.Get("cid"))
 		err = r.doPdfUrl(pageUrl, filename)
 		return "", err
@@ -110,7 +157,7 @@ func (r *ChinaNlc) do(imgUrls []string) (msg string, err error) {
 		return
 	}
 	fmt.Println()
-	referer := url.QueryEscape(r.dt.Url)
+	referer := url.QueryEscape(r.rawUrl)
 	size := len(imgUrls)
 	var wg sync.WaitGroup
 	q := QueueNew(int(config.Conf.Threads))
@@ -118,9 +165,9 @@ func (r *ChinaNlc) do(imgUrls []string) (msg string, err error) {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
-		dest := r.dt.SavePath + filename
+		dest := r.savePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -129,19 +176,18 @@ func (r *ChinaNlc) do(imgUrls []string) (msg string, err error) {
 		wg.Add(1)
 		q.Go(func() {
 			defer wg.Done()
-			ctx := context.Background()
 			opts := gohttp.Options{
 				DestFile:    dest,
 				Overwrite:   false,
 				Concurrency: 1,
 				CookieFile:  config.Conf.CookieFile,
-				CookieJar:   r.dt.Jar,
+				CookieJar:   r.jar,
 				Headers: map[string]interface{}{
 					"User-Agent": config.Conf.UserAgent,
 					"Referer":    referer,
 				},
 			}
-			gohttp.FastGet(ctx, imgUrl, opts)
+			gohttp.FastGet(r.ctx, imgUrl, opts)
 			util.PrintSleepTime(config.Conf.Speed)
 			fmt.Println()
 		})
@@ -152,7 +198,7 @@ func (r *ChinaNlc) do(imgUrls []string) (msg string, err error) {
 }
 
 func (r *ChinaNlc) downloadForPDFs() error {
-	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
+	respVolume, err := r.getVolumes()
 	if err != nil {
 		return err
 	}
@@ -161,12 +207,12 @@ func (r *ChinaNlc) downloadForPDFs() error {
 		if !config.VolumeRange(i) {
 			continue
 		}
-		vid := util.GenNumberSorted(i + 1)
+		vid := fmt.Sprintf("%04d", i+1)
 		//图片
 		if strings.Contains(vol, "OpenObjectPic") {
 			r.dataType = 1
-			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
-			canvases, err := r.getCanvases(vol, r.dt.Jar)
+			r.savePath = CreateDirectory(r.parsedUrl.Host, r.bookId, vid)
+			canvases, err := r.getCanvases()
 			if err != nil || canvases == nil {
 				fmt.Println(err)
 				continue
@@ -175,7 +221,7 @@ func (r *ChinaNlc) downloadForPDFs() error {
 			r.do(canvases)
 		} else {
 			//PDF
-			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
+			r.savePath = CreateDirectory(r.parsedUrl.Host, r.bookId, "")
 			log.Printf("Get %d/%d volume, URL: %s\n", i+1, size, vol)
 			filename := vid + ".pdf"
 			r.doPdfUrl(vol, filename)
@@ -192,8 +238,8 @@ func (r *ChinaNlc) downloadForOCR() {
 		if !config.VolumeRange(i) {
 			continue
 		}
-		vid := util.GenNumberSorted(i + 1)
-		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "ocr")
+		vid := fmt.Sprintf("%04d", i+1)
+		r.savePath = CreateDirectory(r.parsedUrl.Host, r.bookId, "ocr")
 		log.Printf("Get %d/%d volume, URL: %s\n", i+1, len(r.vectorBooks), vol)
 		filename := vid + ".pdf"
 		r.doPdfUrl(vol, filename)
@@ -201,8 +247,8 @@ func (r *ChinaNlc) downloadForOCR() {
 	return
 }
 
-func (r *ChinaNlc) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	r.body, err = r.getBody(r.dt.Url, r.dt.Jar)
+func (r *ChinaNlc) getVolumes() (volumes []string, err error) {
+	r.body, err = r.getBody(r.rawUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +256,7 @@ func (r *ChinaNlc) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string
 	//取册数
 	aUrls := regexp.MustCompile(`<a[^>]+class="a1"[^>].+href="([^"]+)OutOpenBook/([^"]+)"`).FindAllStringSubmatch(text, -1)
 	for _, uri := range aUrls {
-		pageUrl := fmt.Sprintf("%s://%s%sOutOpenBook/%s", r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host, uri[1], uri[2])
+		pageUrl := fmt.Sprintf("%s://%s%sOutOpenBook/%s", r.parsedUrl.Scheme, r.parsedUrl.Host, uri[1], uri[2])
 		volumes = append(volumes, pageUrl)
 	}
 	//
@@ -227,7 +273,7 @@ func (r *ChinaNlc) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string
 	if twoUrls != nil && aid != "" {
 		r.vectorBooks = make([]string, 0, len(twoUrls))
 		for _, uri := range twoUrls {
-			pageUrl := fmt.Sprintf("%s://%s/OutOpenBook/OpenObjectBook?aid=%s&bid=%s", r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host, aid, uri[2])
+			pageUrl := fmt.Sprintf("%s://%s/OutOpenBook/OpenObjectBook?aid=%s&bid=%s", r.parsedUrl.Scheme, r.parsedUrl.Host, aid, uri[2])
 			r.vectorBooks = append(r.vectorBooks, pageUrl)
 		}
 	}
@@ -235,7 +281,7 @@ func (r *ChinaNlc) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string
 }
 
 func (r *ChinaNlc) doPdfUrl(sUrl, filename string) error {
-	dest := r.dt.SavePath + filename
+	dest := r.savePath + filename
 	if FileExist(dest) {
 		return nil
 	}
@@ -248,15 +294,14 @@ func (r *ChinaNlc) doPdfUrl(sUrl, filename string) error {
 	//http://read.nlc.cn/menhu/OutOpenBook/getReaderNew
 	//http://read.nlc.cn/menhu/OutOpenBook/getReaderRangeNew
 	pdfUrl := fmt.Sprintf("%s://%s/menhu/OutOpenBook/getReaderNew?aid=%s&bid=%s&kime=%s&fime=%s",
-		r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host, v.Get("aid"), v.Get("bid"), timeKey, timeFlag)
+		r.parsedUrl.Scheme, r.parsedUrl.Host, v.Get("aid"), v.Get("bid"), timeKey, timeFlag)
 
-	ctx := context.Background()
 	opts := gohttp.Options{
 		DestFile:    dest,
 		Overwrite:   false,
 		Concurrency: 1,
 		CookieFile:  config.Conf.CookieFile,
-		CookieJar:   r.dt.Jar,
+		CookieJar:   r.jar,
 		Headers: map[string]interface{}{
 			"User-Agent": config.Conf.UserAgent,
 			"Referer":    "http://read.nlc.cn/static/webpdf/lib/WebPDFJRWorker.js",
@@ -264,7 +309,7 @@ func (r *ChinaNlc) doPdfUrl(sUrl, filename string) error {
 			"myreader":   tokenKey,
 		},
 	}
-	resp, err := gohttp.FastGet(ctx, pdfUrl, opts)
+	resp, err := gohttp.FastGet(r.ctx, pdfUrl, opts)
 	if err != nil || resp.GetStatusCode() != 200 {
 		fmt.Println(err)
 	}
@@ -273,8 +318,8 @@ func (r *ChinaNlc) doPdfUrl(sUrl, filename string) error {
 	return err
 }
 
-func (r *ChinaNlc) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	v, err := r.identifier(sUrl)
+func (r *ChinaNlc) getCanvases() (canvases []string, err error) {
+	v, err := r.identifier(r.rawUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -285,23 +330,23 @@ func (r *ChinaNlc) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []stri
 	aid := v.Get("aid")
 	if aid == "495" || aid == "952" || aid == "467" || aid == "1080" {
 		pageUrl = fmt.Sprintf("%s://%s/allSearch/openBookPic?id=%d&l_id=%s&indexName=data_%s",
-			r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host, iBid, v.Get("lid"), aid)
+			r.parsedUrl.Scheme, r.parsedUrl.Host, iBid, v.Get("lid"), aid)
 	} else if aid == "022" {
 		//中国记忆库图片 不用登录可以查看
 		pageUrl = fmt.Sprintf("%s://%s/allSearch/openPic_noUser?id=%d&identifier=%s&indexName=data_%s",
-			r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host, iBid, v.Get("did"), aid)
+			r.parsedUrl.Scheme, r.parsedUrl.Host, iBid, v.Get("did"), aid)
 	} else {
 		pageUrl = fmt.Sprintf("%s://%s/allSearch/openPic?id=%d&identifier=%s&indexName=data_%s",
-			r.dt.UrlParsed.Scheme, r.dt.UrlParsed.Host, iBid, v.Get("did"), aid)
+			r.parsedUrl.Scheme, r.parsedUrl.Host, iBid, v.Get("did"), aid)
 	}
 	//
-	bs, err := r.getBody(pageUrl, jar)
+	bs, err := r.getBody(pageUrl)
 	if err != nil {
 		return
 	}
 	matches := regexp.MustCompile(`<img\s+src="(http|https)://(read|mylib).nlc.cn([^"]+)"`).FindAllSubmatch(bs, -1)
 	for _, m := range matches {
-		imgUrl := r.dt.UrlParsed.Scheme + "://" + r.dt.UrlParsed.Host + string(m[3])
+		imgUrl := r.parsedUrl.Scheme + "://" + r.parsedUrl.Host + string(m[3])
 		canvases = append(canvases, imgUrl)
 	}
 	return canvases, nil
@@ -319,12 +364,11 @@ func (r *ChinaNlc) identifier(sUrl string) (v url.Values, err error) {
 	return m, nil
 }
 
-func (r *ChinaNlc) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (r *ChinaNlc) getBody(apiUrl string) ([]byte, error) {
 	referer := url.QueryEscape(apiUrl)
-	ctx := context.Background()
-	cli := gohttp.NewClient(ctx, gohttp.Options{
+	cli := gohttp.NewClient(r.ctx, gohttp.Options{
 		CookieFile: config.Conf.CookieFile,
-		CookieJar:  jar,
+		CookieJar:  r.jar,
 		Headers: map[string]interface{}{
 			"User-Agent": config.Conf.UserAgent,
 			"Referer":    referer,
@@ -342,7 +386,7 @@ func (r *ChinaNlc) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 }
 
 func (r *ChinaNlc) getToken(uri string) (tokenKey, timeKey, timeFlag string) {
-	body, err := r.getBody(uri, nil)
+	body, err := r.getBody(uri)
 	if err != nil {
 		log.Printf("Server unavailable: %s", err.Error())
 		return

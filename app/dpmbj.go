@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/iiif"
 	xcrypt "bookget/pkg/crypt"
 	"bookget/pkg/util"
 	"fmt"
@@ -32,40 +33,41 @@ type DpmBj struct {
 	dt *DownloadTask
 }
 
-type DziFormat struct {
-	Xmlns    string `json:"xmlns"`
-	Url      string `json:"Url"`
-	Overlap  int    `json:"Overlap"`
-	TileSize int    `json:"TileSize"`
-	Format   string `json:"Format"`
-	Size     struct {
-		Width  int `json:"Width"`
-		Height int `json:"Height"`
-	} `json:"Size"`
+func NewDpmBj() *DpmBj {
+	return &DpmBj{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
 }
 
-func (p *DpmBj) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
-	p.dt.UrlParsed, err = url.Parse(sUrl)
-	p.dt.Url = sUrl
-	p.dt.Index = iTask
-	p.dt.VolumeId = getBookId(p.dt.Url)
-	p.dt.BookId = p.getBookId(p.dt.Url)
-	if p.dt.BookId == "" {
+func (r *DpmBj) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *DpmBj) Run(sUrl string) (msg string, err error) {
+	r.dt.UrlParsed, err = url.Parse(sUrl)
+	r.dt.Url = sUrl
+	r.dt.VolumeId = getBookId(r.dt.Url)
+	r.dt.BookId = r.getBookId(r.dt.Url)
+	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
 	}
-	p.dt.Jar, _ = cookiejar.New(nil)
-	return p.download()
+	r.dt.Jar, _ = cookiejar.New(nil)
+	return r.download()
 }
 
-func (p *DpmBj) getBookId(sUrl string) (bookId string) {
+func (r *DpmBj) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`id=([A-z0-9_-]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
 	}
 	return bookId
 }
-func (p *DpmBj) getTitle(bs []byte) string {
+func (r *DpmBj) getTitle(bs []byte) string {
 	//<title>赵孟頫水村图卷-故宫名画记</title>
 	m := regexp.MustCompile(`<title>([^<]+)</title>`).FindSubmatch(bs)
 	if m == nil {
@@ -75,7 +77,7 @@ func (p *DpmBj) getTitle(bs []byte) string {
 	return strings.Replace(string(title), "-故宫名画记", "", -1)
 }
 
-func (p *DpmBj) getCipherText(bs []byte) []byte {
+func (r *DpmBj) getCipherText(bs []byte) []byte {
 	//gv.init("",...)
 	m := regexp.MustCompile(`gv.init(?:[ \r\n\t\f]*)\("([^"]+)"`).FindSubmatch(bs)
 	if m == nil {
@@ -84,40 +86,40 @@ func (p *DpmBj) getCipherText(bs []byte) []byte {
 	return m[1]
 }
 
-func (p *DpmBj) download() (msg string, err error) {
-	bs, err := getBody(p.dt.Url, p.dt.Jar)
+func (r *DpmBj) download() (msg string, err error) {
+	bs, err := getBody(r.dt.Url, r.dt.Jar)
 	if err != nil {
 		return "Error:", err
 	}
-	cipherText := p.getCipherText(bs)
-	p.dt.Title = p.getTitle(bs)
+	cipherText := r.getCipherText(bs)
+	r.dt.Title = r.getTitle(bs)
 
-	name := util.GenNumberSorted(p.dt.Index)
-	log.Printf("Get %s %s %s\n", name, p.dt.Title, p.dt.Url)
+	name := fmt.Sprintf("%04d", r.dt.Index)
+	log.Printf("Get %s %s %s\n", name, r.dt.Title, r.dt.Url)
 
 	if cipherText == nil || len(cipherText) == 0 {
 		return "cipherText not found", err
 	}
 
-	p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
+	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 
-	dziJson, dziFormat := p.getDziJson(p.dt.UrlParsed.Host, cipherText)
-	filename := fmt.Sprintf("%s.json", p.dt.VolumeId)
-	dest := p.dt.SavePath + filename
+	dziJson, dziFormat := r.getDziJson(r.dt.UrlParsed.Host, cipherText)
+	filename := fmt.Sprintf("%s.json", r.dt.VolumeId)
+	dest := r.dt.SavePath + filename
 	os.WriteFile(dest, []byte(dziJson), os.ModePerm)
-	return p.do(dest, dziFormat)
+	return r.do(dest, dziFormat)
 }
 
-func (p *DpmBj) do(dest string, dziFormat DziFormat) (msg string, err error) {
-	referer := fmt.Sprintf("https://%s", p.dt.UrlParsed.Host)
+func (r *DpmBj) do(dest string, dziFormat iiif.DziFormat) (msg string, err error) {
+	referer := fmt.Sprintf("https://%s", r.dt.UrlParsed.Host)
 	args := []string{"--dezoomer=deepzoom",
 		"-H", "Origin:" + referer,
 		"-H", "Referer:" + referer,
 		"-H", "User-Agent:" + config.Conf.UserAgent,
 	}
-	storePath := p.dt.SavePath
+	storePath := r.dt.SavePath
 	ext := "." + dziFormat.Format
-	outfile := storePath + p.dt.VolumeId + ext
+	outfile := storePath + r.dt.VolumeId + ext
 	if util.FileExist(outfile) {
 		return "", nil
 	}
@@ -127,27 +129,27 @@ func (p *DpmBj) do(dest string, dziFormat DziFormat) (msg string, err error) {
 	return "", err
 }
 
-func (p *DpmBj) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
+func (r *DpmBj) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *DpmBj) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+func (r *DpmBj) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *DpmBj) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (r *DpmBj) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *DpmBj) postBody(sUrl string, d []byte) ([]byte, error) {
+func (r *DpmBj) postBody(sUrl string, d []byte) ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *DpmBj) getDziJson(host string, text []byte) (dziJson string, dzi DziFormat) {
+func (r *DpmBj) getDziJson(host string, text []byte) (dziJson string, dzi iiif.DziFormat) {
 	template := `{
   "xmlns": "http://schemas.microsoft.com/deepzoom/2009",
   "Url": "%s",

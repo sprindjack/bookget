@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/iiif"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -19,20 +20,34 @@ type Oxacuk struct {
 	dt *DownloadTask
 }
 
-func (p *Oxacuk) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
-	p.dt.UrlParsed, err = url.Parse(sUrl)
-	p.dt.Url = sUrl
-	p.dt.Index = iTask
-	p.dt.BookId = p.getBookId(p.dt.Url)
-	if p.dt.BookId == "" {
-		return "requested URL was not found.", err
+func NewOxacuk() *Oxacuk {
+	return &Oxacuk{
+		// 初始化字段
+		dt: new(DownloadTask),
 	}
-	p.dt.Jar, _ = cookiejar.New(nil)
-	return p.download()
 }
 
-func (p *Oxacuk) getBookId(sUrl string) (bookId string) {
+func (r *Oxacuk) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"type": "iiif",
+		"url":  sUrl,
+		"msg":  msg,
+	}, err
+}
+
+func (r *Oxacuk) Run(sUrl string) (msg string, err error) {
+	r.dt.UrlParsed, err = url.Parse(sUrl)
+	r.dt.Url = sUrl
+	r.dt.BookId = r.getBookId(r.dt.Url)
+	if r.dt.BookId == "" {
+		return "requested URL was not found.", err
+	}
+	r.dt.Jar, _ = cookiejar.New(nil)
+	return r.download()
+}
+
+func (r *Oxacuk) getBookId(sUrl string) (bookId string) {
 	m := regexp.MustCompile(`objects/([A-z0-9_-]+)`).FindStringSubmatch(sUrl)
 	if m != nil {
 		bookId = m[1]
@@ -40,11 +55,11 @@ func (p *Oxacuk) getBookId(sUrl string) (bookId string) {
 	return bookId
 }
 
-func (p *Oxacuk) download() (msg string, err error) {
-	name := util.GenNumberSorted(p.dt.Index)
-	log.Printf("Get %s  %s\n", name, p.dt.Url)
+func (r *Oxacuk) download() (msg string, err error) {
+	name := fmt.Sprintf("%04d", r.dt.Index)
+	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
-	respVolume, err := p.getVolumes(p.dt.Url, p.dt.Jar)
+	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
 	if err != nil {
 		fmt.Println(err)
 		return "getVolumes", err
@@ -55,33 +70,33 @@ func (p *Oxacuk) download() (msg string, err error) {
 			continue
 		}
 		if sizeVol == 1 {
-			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
+			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 		} else {
-			vid := util.GenNumberSorted(i + 1)
-			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
+			vid := fmt.Sprintf("%04d", i+1)
+			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 		}
 
-		canvases, err := p.getCanvases(vol, p.dt.Jar)
+		canvases, err := r.getCanvases(vol, r.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
 			continue
 		}
 		log.Printf(" %d/%d volume, %d pages \n", i+1, sizeVol, len(canvases))
-		p.do(canvases)
+		r.do(canvases)
 	}
 	return "", nil
 }
 
-func (p *Oxacuk) do(imgUrls []string) (msg string, err error) {
+func (r *Oxacuk) do(imgUrls []string) (msg string, err error) {
 	if config.Conf.UseDziRs {
-		p.doDezoomifyRs(imgUrls)
+		r.doDezoomifyRs(imgUrls)
 	} else {
-		p.doNormal(imgUrls)
+		r.doNormal(imgUrls)
 	}
 	return "", err
 }
 
-func (p *Oxacuk) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
+func (r *Oxacuk) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
 	bs, err := getBody(sUrl, jar)
 	if err != nil {
 		return
@@ -95,12 +110,12 @@ func (p *Oxacuk) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, 
 	return volumes, nil
 }
 
-func (p *Oxacuk) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	bs, err := p.getBody(sUrl, jar)
+func (r *Oxacuk) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+	bs, err := r.getBody(sUrl, jar)
 	if err != nil {
 		return
 	}
-	var manifest = new(ResponseManifest)
+	var manifest = new(iiif.ManifestResponse)
 	if err = json.Unmarshal(bs, manifest); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
@@ -127,7 +142,7 @@ func (p *Oxacuk) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string
 
 }
 
-func (p *Oxacuk) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (r *Oxacuk) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	referer := url.QueryEscape(sUrl)
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
@@ -149,16 +164,16 @@ func (p *Oxacuk) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	return bs, nil
 }
 
-func (p *Oxacuk) postBody(sUrl string, d []byte) ([]byte, error) {
+func (r *Oxacuk) postBody(sUrl string, d []byte) ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Oxacuk) doDezoomifyRs(iiifUrls []string) bool {
+func (r *Oxacuk) doDezoomifyRs(iiifUrls []string) bool {
 	if iiifUrls == nil {
 		return false
 	}
-	referer := url.QueryEscape(p.dt.Url)
+	referer := url.QueryEscape(r.dt.Url)
 	args := []string{
 		"-H", "Origin:" + referer,
 		"-H", "Referer:" + referer,
@@ -169,9 +184,9 @@ func (p *Oxacuk) doDezoomifyRs(iiifUrls []string) bool {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
-		dest := p.dt.SavePath + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -181,7 +196,7 @@ func (p *Oxacuk) doDezoomifyRs(iiifUrls []string) bool {
 	return true
 }
 
-func (p *Oxacuk) doNormal(imgUrls []string) bool {
+func (r *Oxacuk) doNormal(imgUrls []string) bool {
 	if imgUrls == nil {
 		return false
 	}
@@ -194,9 +209,9 @@ func (p *Oxacuk) doNormal(imgUrls []string) bool {
 			continue
 		}
 		ext := util.FileExt(uri)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + ext
-		dest := p.dt.SavePath + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -212,7 +227,7 @@ func (p *Oxacuk) doNormal(imgUrls []string) bool {
 				Overwrite:   false,
 				Concurrency: 1,
 				CookieFile:  config.Conf.CookieFile,
-				CookieJar:   p.dt.Jar,
+				CookieJar:   r.dt.Jar,
 				Headers: map[string]interface{}{
 					"User-Agent": config.Conf.UserAgent,
 				},

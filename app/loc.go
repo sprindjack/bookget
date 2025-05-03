@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/loc"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -22,29 +23,27 @@ type Loc struct {
 	xmlContent []byte
 	tmpFile    string
 }
-type LocManifestsJson struct {
-	Resources []struct {
-		Caption string           `json:"caption"`
-		Files   [][]LocImageFile `json:"files"`
-		Image   string           `json:"image"`
-		Url     string           `json:"url"`
-	} `json:"resources"`
-}
-type LocImageFile struct {
-	Height   *int   `json:"height"`
-	Levels   int    `json:"levels"`
-	Mimetype string `json:"mimetype"`
-	Url      string `json:"url"`
-	Width    *int   `json:"width"`
-	Info     string `json:"info,omitempty"`
-	Size     int    `json:"size,omitempty"`
+
+func NewLoc() *Loc {
+	return &Loc{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
 }
 
-func (r *Loc) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
+func (r *Loc) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *Loc) Run(sUrl string) (msg string, err error) {
+
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
+
 	r.dt.BookId = r.getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -67,7 +66,7 @@ func (r *Loc) download() (msg string, err error) {
 	if err != nil || r.xmlContent == nil {
 		return "requested URL was not found.", err
 	}
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
 	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
@@ -79,7 +78,7 @@ func (r *Loc) download() (msg string, err error) {
 		if !config.VolumeRange(i) {
 			continue
 		}
-		vid := util.GenNumberSorted(i + 1)
+		vid := fmt.Sprintf("%04d", i+1)
 		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 		canvases, err := r.getCanvases(vol, r.dt.Jar)
 		if err != nil || canvases == nil {
@@ -106,7 +105,7 @@ func (r *Loc) do(imgUrls []string) (msg string, err error) {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
 		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
@@ -145,7 +144,7 @@ func (r *Loc) do(imgUrls []string) (msg string, err error) {
 }
 
 func (r *Loc) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	var manifests = new(LocManifestsJson)
+	var manifests = new(loc.ManifestsJson)
 	if err = json.Unmarshal(r.xmlContent, manifests); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
@@ -158,7 +157,7 @@ func (r *Loc) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err
 }
 
 func (r *Loc) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	var manifests = new(LocManifestsJson)
+	var manifests = new(loc.ManifestsJson)
 	if err = json.Unmarshal(r.xmlContent, manifests); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
@@ -201,7 +200,7 @@ func (r *Loc) getBody(apiUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	}
 	return bs, nil
 }
-func (r *Loc) getImagePage(fileUrls []LocImageFile) (downloadUrl string, ok bool) {
+func (r *Loc) getImagePage(fileUrls []loc.ImageFile) (downloadUrl string, ok bool) {
 	for _, f := range fileUrls {
 		if config.Conf.FileExt == ".jpg" && f.Mimetype == "image/jpeg" {
 			if strings.Contains(f.Url, "full/pct:100/") {

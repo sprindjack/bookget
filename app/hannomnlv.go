@@ -3,7 +3,6 @@ package app
 import (
 	"bookget/config"
 	"bookget/pkg/gohttp"
-	"bookget/pkg/util"
 	"context"
 	"errors"
 	"fmt"
@@ -19,46 +18,59 @@ type HannomNlv struct {
 	body []byte
 }
 
-func (p *HannomNlv) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
-	p.dt.UrlParsed, err = url.Parse(sUrl)
-	p.dt.Url = sUrl
-	p.dt.Index = iTask
-	p.dt.Jar, _ = cookiejar.New(nil)
-	p.dt.BookId = p.getBookId(p.dt.Url)
-	if p.dt.BookId == "" {
-		return "requested URL was not found.", err
+func NewHannomNlv() *HannomNlv {
+	return &HannomNlv{
+		// 初始化字段
+		dt: new(DownloadTask),
 	}
-	return p.download()
 }
 
-func (p *HannomNlv) getBookId(sUrl string) (bookId string) {
+func (r *HannomNlv) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *HannomNlv) Run(sUrl string) (msg string, err error) {
+	r.dt.UrlParsed, err = url.Parse(sUrl)
+	r.dt.Url = sUrl
+	r.dt.Jar, _ = cookiejar.New(nil)
+	r.dt.BookId = r.getBookId(r.dt.Url)
+	if r.dt.BookId == "" {
+		return "requested URL was not found.", err
+	}
+	return r.download()
+}
+
+func (r *HannomNlv) getBookId(sUrl string) (bookId string) {
 	var err error
-	p.body, err = getBody(sUrl, p.dt.Jar)
+	r.body, err = getBody(sUrl, r.dt.Jar)
 	if err != nil {
 		return ""
 	}
-	m := regexp.MustCompile(`var[\s+]documentOID[\s+]=[\s+]['"]([^“]+?)['"];`).FindSubmatch(p.body)
+	m := regexp.MustCompile(`var[\s+]documentOID[\s+]=[\s+]['"]([^“]+?)['"];`).FindSubmatch(r.body)
 	if m != nil {
 		return string(m[1])
 	}
 	return ""
 }
 
-func (p *HannomNlv) download() (msg string, err error) {
-	name := util.GenNumberSorted(p.dt.Index)
-	log.Printf("Get %s  %s\n", name, p.dt.Url)
-	p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
-	canvases, err := p.getCanvases(p.dt.Url, p.dt.Jar)
+func (r *HannomNlv) download() (msg string, err error) {
+	name := fmt.Sprintf("%04d", r.dt.Index)
+	log.Printf("Get %s  %s\n", name, r.dt.Url)
+	r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
+	canvases, err := r.getCanvases(r.dt.Url, r.dt.Jar)
 	if err != nil || canvases == nil {
 		fmt.Println(err)
 	}
 	log.Printf(" %d pages \n", len(canvases))
-	p.do(canvases)
+	r.do(canvases)
 	return "", nil
 }
 
-func (p *HannomNlv) do(imgUrls []string) (msg string, err error) {
+func (r *HannomNlv) do(imgUrls []string) (msg string, err error) {
 	if imgUrls == nil {
 		return "", nil
 	}
@@ -70,9 +82,9 @@ func (p *HannomNlv) do(imgUrls []string) (msg string, err error) {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
-		dest := p.dt.SavePath + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -88,7 +100,7 @@ func (p *HannomNlv) do(imgUrls []string) (msg string, err error) {
 				Overwrite:   false,
 				Concurrency: 1,
 				CookieFile:  config.Conf.CookieFile,
-				CookieJar:   p.dt.Jar,
+				CookieJar:   r.dt.Jar,
 				Headers: map[string]interface{}{
 					"User-Agent": config.Conf.UserAgent,
 				},
@@ -102,36 +114,36 @@ func (p *HannomNlv) do(imgUrls []string) (msg string, err error) {
 	return "", nil
 }
 
-func (p *HannomNlv) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
+func (r *HannomNlv) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *HannomNlv) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	matches := regexp.MustCompile(`'([^']+)':\{'w':([0-9]+),'h':([0-9]+)\}`).FindAllSubmatch(p.body, -1)
+func (r *HannomNlv) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+	matches := regexp.MustCompile(`'([^']+)':\{'w':([0-9]+),'h':([0-9]+)\}`).FindAllSubmatch(r.body, -1)
 	if matches == nil {
 		return nil, errors.New("No image")
 	}
-	apiUrl := p.dt.UrlParsed.Scheme + "://" + p.dt.UrlParsed.Host
-	match := regexp.MustCompile(`imageserverPageTileImageRequest[\s+]=[\s+]['"]([^;]+)['"];`).FindSubmatch(p.body)
+	apiUrl := r.dt.UrlParsed.Scheme + "://" + r.dt.UrlParsed.Host
+	match := regexp.MustCompile(`imageserverPageTileImageRequest[\s+]=[\s+]['"]([^;]+)['"];`).FindSubmatch(r.body)
 	if match != nil {
 		apiUrl += string(match[1])
 	} else {
 		apiUrl += "/hannom/cgi-bin/imageserver/imageserver.pl?color=all&ext=jpg"
 	}
 	for _, m := range matches {
-		imgUrl := apiUrl + fmt.Sprintf("&oid=%s.%s&key=&width=%s&crop=0,0,%s,%s", p.dt.BookId, m[1], m[2], m[2], m[3])
+		imgUrl := apiUrl + fmt.Sprintf("&oid=%s.%s&key=&width=%s&crop=0,0,%s,%s", r.dt.BookId, m[1], m[2], m[2], m[3])
 		canvases = append(canvases, imgUrl)
 	}
 	return canvases, err
 }
 
-func (p *HannomNlv) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (r *HannomNlv) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *HannomNlv) postBody(sUrl string, d []byte) ([]byte, error) {
+func (r *HannomNlv) postBody(sUrl string, d []byte) ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }

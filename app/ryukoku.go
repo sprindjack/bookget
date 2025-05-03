@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/iiif"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -19,11 +20,27 @@ type Ryukoku struct {
 	dt *DownloadTask
 }
 
-func (r *Ryukoku) Init(iTask int, sUrl string) (msg string, err error) {
-	r.dt = new(DownloadTask)
+func NewRyukoku() *Ryukoku {
+	return &Ryukoku{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *Ryukoku) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"type": "iiif",
+		"url":  sUrl,
+		"msg":  msg,
+	}, err
+}
+
+func (r *Ryukoku) Run(sUrl string) (msg string, err error) {
+
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
+
 	r.dt.BookId = r.getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -41,7 +58,7 @@ func (r *Ryukoku) getBookId(sUrl string) (bookId string) {
 }
 
 func (r *Ryukoku) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
 	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
@@ -53,7 +70,7 @@ func (r *Ryukoku) download() (msg string, err error) {
 		if !config.VolumeRange(i) {
 			continue
 		}
-		vid := util.GenNumberSorted(i + 1)
+		vid := fmt.Sprintf("%04d", i+1)
 		r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 		canvases, err := r.getCanvases(vol, r.dt.Jar)
 		if err != nil || canvases == nil {
@@ -90,7 +107,7 @@ func (r *Ryukoku) doDezoomifyRs(iiifUrls []string) bool {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
 		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
@@ -115,7 +132,7 @@ func (r *Ryukoku) doNormal(imgUrls []string) bool {
 			continue
 		}
 		ext := util.FileExt(uri)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + ext
 		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
@@ -175,7 +192,7 @@ func (r *Ryukoku) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 	if err != nil {
 		return
 	}
-	var manifest = new(ResponseManifest)
+	var manifest = new(iiif.ManifestResponse)
 	if err = json.Unmarshal(bs, manifest); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return

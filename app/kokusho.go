@@ -2,6 +2,7 @@ package app
 
 import (
 	"bookget/config"
+	"bookget/model/iiif"
 	"bookget/pkg/gohttp"
 	"bookget/pkg/util"
 	"context"
@@ -20,11 +21,26 @@ type Kokusho struct {
 	dt *DownloadTask
 }
 
-func (p *Kokusho) Init(iTask int, sUrl string) (msg string, err error) {
+func NewKokusho() *Kokusho {
+	return &Kokusho{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *Kokusho) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"type": "iiif",
+		"url":  sUrl,
+		"msg":  msg,
+	}, err
+}
+
+func (p *Kokusho) Run(sUrl string) (msg string, err error) {
 	p.dt = new(DownloadTask)
 	p.dt.UrlParsed, err = url.Parse(sUrl)
 	p.dt.Url = sUrl
-	p.dt.Index = iTask
 	p.dt.BookId = p.getBookId(p.dt.Url)
 	if p.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -42,7 +58,7 @@ func (p *Kokusho) getBookId(sUrl string) (bookId string) {
 }
 
 func (p *Kokusho) download() (msg string, err error) {
-	name := util.GenNumberSorted(p.dt.Index)
+	name := fmt.Sprintf("%04d", p.dt.Index)
 	log.Printf("Get %s  %s\n", name, p.dt.Url)
 
 	respVolume, err := p.getVolumes(p.dt.Url, p.dt.Jar)
@@ -58,7 +74,7 @@ func (p *Kokusho) download() (msg string, err error) {
 		if sizeVol == 1 {
 			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
 		} else {
-			vid := util.GenNumberSorted(i + 1)
+			vid := fmt.Sprintf("%04d", i+1)
 			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
 		}
 
@@ -105,7 +121,7 @@ func (p *Kokusho) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []strin
 	if err != nil {
 		return
 	}
-	var manifest = new(ResponseManifest)
+	var manifest = new(iiif.ManifestResponse)
 	if err = json.Unmarshal(bs, manifest); err != nil {
 		log.Printf("json.Unmarshal failed: %s\n", err)
 		return
@@ -174,7 +190,7 @@ func (p *Kokusho) doDezoomifyRs(iiifUrls []string) bool {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
 		dest := p.dt.SavePath + filename
 		if FileExist(dest) {
@@ -199,7 +215,7 @@ func (p *Kokusho) doNormal(imgUrls []string) bool {
 			continue
 		}
 		ext := util.FileExt(uri)
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + ext
 		dest := p.dt.SavePath + filename
 		if FileExist(dest) {

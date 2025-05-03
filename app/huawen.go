@@ -18,14 +18,29 @@ type Huawen struct {
 	dt *DownloadTask
 }
 
-func (r *Huawen) Init(iTask int, sUrl string) (msg string, err error) {
+func NewHuawen() *Huawen {
+	return &Huawen{
+		// 初始化字段
+		dt: new(DownloadTask),
+	}
+}
+
+func (r *Huawen) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *Huawen) Run(sUrl string) (msg string, err error) {
 	if !strings.Contains(sUrl, "/reader") && strings.Contains(sUrl, "/zh-tw/book/") {
 		sUrl += "/reader"
 	}
-	r.dt = new(DownloadTask)
+
 	r.dt.UrlParsed, err = url.Parse(sUrl)
 	r.dt.Url = sUrl
-	r.dt.Index = iTask
+
 	r.dt.BookId = getBookId(r.dt.Url)
 	if r.dt.BookId == "" {
 		return "requested URL was not found.", err
@@ -40,7 +55,7 @@ func (r *Huawen) getBookId(sUrl string) (bookId string) {
 }
 
 func (r *Huawen) download() (msg string, err error) {
-	name := util.GenNumberSorted(r.dt.Index)
+	name := fmt.Sprintf("%04d", r.dt.Index)
 	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
 	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)

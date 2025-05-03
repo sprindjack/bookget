@@ -3,7 +3,6 @@ package app
 import (
 	"bookget/config"
 	"bookget/pkg/gohttp"
-	"bookget/pkg/util"
 	"context"
 	"errors"
 	"fmt"
@@ -20,31 +19,44 @@ type Kyotou struct {
 	dt *DownloadTask
 }
 
-func (p *Kyotou) Init(iTask int, sUrl string) (msg string, err error) {
-	p.dt = new(DownloadTask)
-	p.dt.UrlParsed, err = url.Parse(sUrl)
-	p.dt.Url = sUrl
-	p.dt.Index = iTask
-	p.dt.Jar, _ = cookiejar.New(nil)
-	p.dt.BookId = p.getBookId(p.dt.Url)
-	if p.dt.BookId == "" {
-		return "requested URL was not found.", err
+func NewKyotou() *Kyotou {
+	return &Kyotou{
+		// 初始化字段
+		dt: new(DownloadTask),
 	}
-	return p.download()
 }
 
-func (p *Kyotou) getBookId(sUrl string) (bookId string) {
+func (r *Kyotou) GetRouterInit(sUrl string) (map[string]interface{}, error) {
+	msg, err := r.Run(sUrl)
+	return map[string]interface{}{
+		"url": sUrl,
+		"msg": msg,
+	}, err
+}
+
+func (r *Kyotou) Run(sUrl string) (msg string, err error) {
+	r.dt.UrlParsed, err = url.Parse(sUrl)
+	r.dt.Url = sUrl
+	r.dt.Jar, _ = cookiejar.New(nil)
+	r.dt.BookId = r.getBookId(r.dt.Url)
+	if r.dt.BookId == "" {
+		return "requested URL was not found.", err
+	}
+	return r.download()
+}
+
+func (r *Kyotou) getBookId(sUrl string) (bookId string) {
 	if strings.Contains(sUrl, "menu") {
 		return getBookId(sUrl)
 	}
 	return ""
 }
 
-func (p *Kyotou) download() (msg string, err error) {
-	name := util.GenNumberSorted(p.dt.Index)
-	log.Printf("Get %s  %s\n", name, p.dt.Url)
+func (r *Kyotou) download() (msg string, err error) {
+	name := fmt.Sprintf("%04d", r.dt.Index)
+	log.Printf("Get %s  %s\n", name, r.dt.Url)
 
-	respVolume, err := p.getVolumes(p.dt.Url, p.dt.Jar)
+	respVolume, err := r.getVolumes(r.dt.Url, r.dt.Jar)
 	if err != nil {
 		fmt.Println(err)
 		return "getVolumes", err
@@ -55,23 +67,23 @@ func (p *Kyotou) download() (msg string, err error) {
 			continue
 		}
 		if sizeVol == 1 {
-			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, "")
+			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, "")
 		} else {
-			vid := util.GenNumberSorted(i + 1)
-			p.dt.SavePath = CreateDirectory(p.dt.UrlParsed.Host, p.dt.BookId, vid)
+			vid := fmt.Sprintf("%04d", i+1)
+			r.dt.SavePath = CreateDirectory(r.dt.UrlParsed.Host, r.dt.BookId, vid)
 		}
-		canvases, err := p.getCanvases(vol, p.dt.Jar)
+		canvases, err := r.getCanvases(vol, r.dt.Jar)
 		if err != nil || canvases == nil {
 			fmt.Println(err)
 			continue
 		}
 		log.Printf(" %d/%d volume, %d pages \n", i+1, sizeVol, len(canvases))
-		p.do(canvases)
+		r.do(canvases)
 	}
 	return "", nil
 }
 
-func (p *Kyotou) do(imgUrls []string) (msg string, err error) {
+func (r *Kyotou) do(imgUrls []string) (msg string, err error) {
 	if imgUrls == nil {
 		return "", nil
 	}
@@ -83,9 +95,9 @@ func (p *Kyotou) do(imgUrls []string) (msg string, err error) {
 		if uri == "" || !config.PageRange(i, size) {
 			continue
 		}
-		sortId := util.GenNumberSorted(i + 1)
+		sortId := fmt.Sprintf("%04d", i+1)
 		filename := sortId + config.Conf.FileExt
-		dest := p.dt.SavePath + filename
+		dest := r.dt.SavePath + filename
 		if FileExist(dest) {
 			continue
 		}
@@ -101,7 +113,7 @@ func (p *Kyotou) do(imgUrls []string) (msg string, err error) {
 				Overwrite:   false,
 				Concurrency: 1,
 				CookieFile:  config.Conf.CookieFile,
-				CookieJar:   p.dt.Jar,
+				CookieJar:   r.dt.Jar,
 				Headers: map[string]interface{}{
 					"User-Agent": config.Conf.UserAgent,
 				},
@@ -115,8 +127,8 @@ func (p *Kyotou) do(imgUrls []string) (msg string, err error) {
 	return "", err
 }
 
-func (p *Kyotou) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
-	bs, err := p.getBody(sUrl, jar)
+func (r *Kyotou) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, err error) {
+	bs, err := r.getBody(sUrl, jar)
 	if err != nil {
 		return
 	}
@@ -139,20 +151,20 @@ func (p *Kyotou) getVolumes(sUrl string, jar *cookiejar.Jar) (volumes []string, 
 	return volumes, err
 }
 
-func (p *Kyotou) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
-	bs, err := p.getBody(sUrl, jar)
+func (r *Kyotou) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string, err error) {
+	bs, err := r.getBody(sUrl, jar)
 	if err != nil {
 		return
 	}
-	startPos, ok := p.getVolStartPos(bs)
+	startPos, ok := r.getVolStartPos(bs)
 	if !ok {
 		return
 	}
-	maxPage, ok := p.getVolMaxPage(bs)
+	maxPage, ok := r.getVolMaxPage(bs)
 	if !ok {
 		return
 	}
-	bookNumber, ok := p.getBookNumber(bs)
+	bookNumber, ok := r.getBookNumber(bs)
 	if !ok {
 		return
 	}
@@ -161,14 +173,14 @@ func (p *Kyotou) getCanvases(sUrl string, jar *cookiejar.Jar) (canvases []string
 	hostUrl := sUrl[:pos1]
 	maxPos := startPos + maxPage
 	for i := 1; i < maxPos; i++ {
-		sortId := util.GenNumberSorted(i)
+		sortId := fmt.Sprintf("%04d", i)
 		imgUrl := fmt.Sprintf("%s/L/%s%s.jpg", hostUrl, bookNumber, sortId)
 		canvases = append(canvases, imgUrl)
 	}
 	return canvases, err
 }
 
-func (p *Kyotou) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
+func (r *Kyotou) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	referer := url.QueryEscape(sUrl)
 	ctx := context.Background()
 	cli := gohttp.NewClient(ctx, gohttp.Options{
@@ -190,12 +202,12 @@ func (p *Kyotou) getBody(sUrl string, jar *cookiejar.Jar) ([]byte, error) {
 	return bs, nil
 }
 
-func (p *Kyotou) postBody(sUrl string, d []byte) ([]byte, error) {
+func (r *Kyotou) postBody(sUrl string, d []byte) ([]byte, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Kyotou) getBookNumber(bs []byte) (bookNumber string, ok bool) {
+func (r *Kyotou) getBookNumber(bs []byte) (bookNumber string, ok bool) {
 	//当前开始位置
 	match := regexp.MustCompile(`var[\s]+bookNum[\s]+=["'\s]*([A-z0-9]+)["'\s]*;`).FindStringSubmatch(string(bs))
 	if match == nil {
@@ -204,7 +216,7 @@ func (p *Kyotou) getBookNumber(bs []byte) (bookNumber string, ok bool) {
 	return match[1], true
 }
 
-func (p *Kyotou) getVolStartPos(bs []byte) (startPos int, ok bool) {
+func (r *Kyotou) getVolStartPos(bs []byte) (startPos int, ok bool) {
 	//当前开始位置
 	match := regexp.MustCompile(`var[\s]+volStartPos[\s]*=[\s]*([0-9]+)[\s]*;`).FindStringSubmatch(string(bs))
 	if match == nil {
@@ -214,7 +226,7 @@ func (p *Kyotou) getVolStartPos(bs []byte) (startPos int, ok bool) {
 	return startPos, true
 }
 
-func (p *Kyotou) getVolCurPage(bs []byte) (curPage int, ok bool) {
+func (r *Kyotou) getVolCurPage(bs []byte) (curPage int, ok bool) {
 	//当前开始位置
 	match := regexp.MustCompile(`var[\s]+curPage[\s]*=[\s]*([0-9]+)[\s]*;`).FindStringSubmatch(string(bs))
 	if match == nil {
@@ -224,7 +236,7 @@ func (p *Kyotou) getVolCurPage(bs []byte) (curPage int, ok bool) {
 	return curPage, true
 }
 
-func (p *Kyotou) getVolMaxPage(bs []byte) (maxPage int, ok bool) {
+func (r *Kyotou) getVolMaxPage(bs []byte) (maxPage int, ok bool) {
 	//当前开始位置
 	match := regexp.MustCompile(`var[\s]+volMaxPage[\s]*=[\s]*([0-9]+)[\s]*;`).FindStringSubmatch(string(bs))
 	if match == nil {
