@@ -205,7 +205,6 @@ func FactoryRouter(siteID string, sUrl string) (map[string]interface{}, error) {
 
 		//[韩国]
 		Router["kyudb.snu.ac.kr"] = app.NewKyudbSnu()
-		Router["sillok.history.go.kr"] = app.NewSillokGoKr()
 		Router["lod.nl.go.kr"] = app.NewLodNLGoKr()
 
 		//高丽大学

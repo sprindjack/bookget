@@ -60,7 +60,7 @@ func isRangeFormat(url string) bool {
 func determineContentTypeByRequest(url string) string {
 	// 创建一次性使用的HTTP客户端
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: config.Conf.Timeout * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
 			DisableKeepAlives: true,

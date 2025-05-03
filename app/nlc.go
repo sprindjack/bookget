@@ -40,7 +40,7 @@ type ChinaNlc struct {
 
 func NewChinaNlc() *ChinaNlc {
 	ctx, cancel := context.WithCancel(context.Background())
-	dm := downloader.NewDownloadManager(config.Conf.MaxConcurrent)
+	dm := downloader.NewDownloadManager(ctx, cancel, config.Conf.MaxConcurrent)
 
 	// 创建自定义 Transport 忽略 SSL 验证
 	tr := &http.Transport{
@@ -53,7 +53,7 @@ func NewChinaNlc() *ChinaNlc {
 	return &ChinaNlc{
 		// 初始化字段
 		dm:     dm,
-		client: &http.Client{Timeout: 30 * time.Second, Jar: jar, Transport: tr},
+		client: &http.Client{Timeout: config.Conf.Timeout * time.Second, Jar: jar, Transport: tr},
 		ctx:    ctx,
 		cancel: cancel,
 		jar:    jar,

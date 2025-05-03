@@ -5,10 +5,12 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -44,9 +46,17 @@ func NewImageDownloader() *ImageDownloader {
 		maxConcurrent_ = config.Conf.MaxConcurrent
 	}
 
+	// 创建自定义 Transport 忽略 SSL 验证
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+	jar, _ := cookiejar.New(nil)
+
 	return &ImageDownloader{
 		// 初始化字段
-		client:            &http.Client{Timeout: 30 * time.Second},
+		client:            &http.Client{Timeout: config.Conf.Timeout * time.Second, Jar: jar, Transport: tr},
 		reader:            bufio.NewReader(os.Stdin),
 		hasVolPlaceholder: false,
 		maxConcurrent:     maxConcurrent_,
@@ -324,7 +334,7 @@ func (i *ImageDownloader) downloadAndValidate(url, filePath string, globalBar *p
 	}
 	req.Header.Set("User-Agent", userAgent)
 
-	resp, err := i.client.Do(req)
+	resp, err := i.client.Do(req.WithContext(i.ctx))
 	if err != nil {
 		return err
 	}
@@ -363,25 +373,3 @@ func (i *ImageDownloader) downloadAndValidate(url, filePath string, globalBar *p
 
 	return nil
 }
-
-//// 检查常见图片文件格式
-//func isValidImageFile(data []byte) bool {
-//	// JPEG
-//	if bytes.HasPrefix(data, []byte{0xFF, 0xD8, 0xFF}) {
-//		return true
-//	}
-//	// PNG
-//	if bytes.HasPrefix(data, []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}) {
-//		return true
-//	}
-//	// GIF
-//	if bytes.HasPrefix(data, []byte("GIF87a")) || bytes.HasPrefix(data, []byte("GIF89a")) {
-//		return true
-//	}
-//	// WebP
-//	if len(data) >= 12 && bytes.Equal(data[8:12], []byte("WEBP")) {
-//		return true
-//	}
-//
-//	return false
-//}

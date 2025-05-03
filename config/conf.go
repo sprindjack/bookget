@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 )
 
 type Input struct {
@@ -37,8 +38,9 @@ type Input struct {
 	FileExt       string //指定下载的扩展名
 	Threads       int
 	MaxConcurrent int
-	Retry         int  //重试次数
-	Bookmark      bool //只下載書簽目錄（浙江寧波天一閣）
+	Retry         int           //重试次数
+	Timeout       time.Duration //超时秒数
+	Bookmark      bool          //只下載書簽目錄（浙江寧波天一閣）
 
 	Help    bool
 	Version bool
@@ -76,6 +78,7 @@ func Init(ctx context.Context) bool {
 	flag.IntVar(&Conf.MaxConcurrent, "concurrent", iniConf.MaxConcurrent, "最大并发任务数")
 	flag.IntVar(&Conf.Speed, "speed", iniConf.Speed, "下载限速 N 秒/任务，cuhk推荐5-60")
 	flag.IntVar(&Conf.Retry, "retry", iniConf.Retry, "下载重试次数")
+	flag.DurationVar(&Conf.Timeout, "timeout", iniConf.Timeout, "下载重试次数")
 	flag.IntVar(&Conf.AutoDetect, "auto-detect", iniConf.AutoDetect, "自动检测下载URL。可选值[0|1|2]，;0=默认;\n1=通用批量下载（类似IDM、迅雷）;\n2= IIIF manifest.json 自动检测下载图片")
 	flag.BoolVar(&Conf.Help, "help", false, "显示帮助")
 	flag.BoolVar(&Conf.Version, "version", false, "显示版本 -v")
@@ -201,7 +204,8 @@ func initINI() (io Input, err error) {
 		io.MaxConcurrent = c
 	}
 	io.Speed = secDown.Key("speed").MustInt(c)
-	io.Retry = secDown.Key("retry").MustInt(3) // 默认重试3次
+	io.Retry = secDown.Key("retry").MustInt(3)            // 默认重试3次
+	io.Timeout = secDown.Key("timeout").MustDuration(300) // 默认重试300秒
 
 	// 读取自定义设置
 	secCus := cfg.Section("custom")

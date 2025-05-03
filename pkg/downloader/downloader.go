@@ -21,8 +21,7 @@ import (
 const (
 	maxConcurrent = 8 // 最大并发下载数
 	userAgent     = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:139.0) Gecko/20100101 Firefox/139.0"
-	minFileSize   = 1024             // 最小文件大小(1KB)
-	timeout       = 30 * time.Second // 请求超时时间
+	minFileSize   = 1024 // 最小文件大小(1KB)
 )
 
 // DownloadTask 下载任务
@@ -73,8 +72,8 @@ type DownloadManager struct {
 }
 
 // NewDownloadManager 创建下载管理器
-func NewDownloadManager(maxTasks int) *DownloadManager {
-	ctx, cancel := context.WithCancel(context.Background())
+func NewDownloadManager(ctx context.Context, cancel context.CancelFunc, maxTasks int) *DownloadManager {
+	//ctx, cancel := context.WithCancel(context.Background())
 	if maxTasks < 1 {
 		maxTasks = maxConcurrent
 	}
@@ -305,7 +304,7 @@ func (task *DownloadTask) multiThreadDownload(ctx context.Context, dm *DownloadM
 			// 设置Range头
 			req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
 
-			client := &http.Client{Timeout: timeout}
+			client := &http.Client{}
 			resp, err := client.Do(req.WithContext(ctx))
 			if err != nil {
 				errOnce.Do(func() { firstErr = err })
@@ -366,7 +365,7 @@ func (task *DownloadTask) singleThreadDownload(ctx context.Context, dm *Download
 		req.Header.Set("User-Agent", userAgent)
 	}
 
-	client := &http.Client{Timeout: timeout}
+	client := &http.Client{}
 	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
 		return err
@@ -434,7 +433,7 @@ func (task *DownloadTask) getFileInfo(ctx context.Context) error {
 		req.Header.Set("User-Agent", userAgent)
 	}
 
-	client := &http.Client{Timeout: timeout}
+	client := &http.Client{}
 	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
 		return err
@@ -513,7 +512,7 @@ func (task *DownloadTask) detectSupportedMethods(ctx context.Context) error {
 		headReq.Header.Set("User-Agent", userAgent)
 	}
 
-	client := &http.Client{Timeout: timeout}
+	client := &http.Client{}
 	resp, err := client.Do(headReq.WithContext(ctx))
 
 	if err == nil && resp.StatusCode == http.StatusOK {
