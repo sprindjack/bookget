@@ -4,6 +4,7 @@ import (
 	"bookget/config"
 	"bookget/model/nlc"
 	"bookget/pkg/downloader"
+	"bookget/pkg/util"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -14,7 +15,9 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -28,6 +31,9 @@ type NlcGuji struct {
 	parsedUrl *url.URL
 	savePath  string
 	bookId    string
+
+	responseBody  []byte
+	cacheFilename string
 }
 
 func NewNlcGuji() *NlcGuji {
@@ -91,6 +97,10 @@ func (s *NlcGuji) Run() (msg string, err error) {
 	if s.bookId == "" {
 		return "[err=getBookId]", err
 	}
+	s.savePath = CreateDirectory(s.parsedUrl.Host, s.bookId, "")
+	s.cacheFilename = s.savePath + ".cache"
+	//先生成书签目录
+	s.buildCatalog(s.savePath + "catalog.txt")
 
 	canvases, err := s.getCanvases()
 	if err != nil || canvases == nil {
@@ -106,12 +116,17 @@ func (s *NlcGuji) letsGo(canvases []nlc.DataItem) (msg string, err error) {
 	if sizeVol <= 0 {
 		return "[err=letsGo]", err
 	}
-	s.savePath = CreateDirectory(s.parsedUrl.Host, s.bookId, "")
-
 	imgServer := fmt.Sprintf("https://%s/api/common/jpgViewer?ftpId=1&filePathName=", s.parsedUrl.Host)
 
-	s.dm.SetBar(sizeVol)
+	counter := 0
 	for i, item := range canvases {
+		i++
+		sortId := fmt.Sprintf("%04d", i)
+		fileName := sortId + config.Conf.FileExt
+		//跳过存在的文件
+		if FileExist(s.savePath + fileName) {
+			continue
+		}
 		//https://guji.nlc.cn/api/anc/ancImageAndContent?metadataId=1001165&structureId=1014544&imageId=2075393
 		apiUrl := fmt.Sprintf("https://%s/api/anc/ancImageAndContent?metadataId=%s&structureId=%d&imageId=%s",
 			s.parsedUrl.Host, s.bookId, item.StructureId, item.ImageId)
@@ -125,21 +140,9 @@ func (s *NlcGuji) letsGo(canvases []nlc.DataItem) (msg string, err error) {
 		if err = json.Unmarshal(bs, &resp); err != nil {
 			return "[err=letsGo::Unmarshal]", err
 		}
-		i++
-
 		encoded := url.QueryEscape(resp.Data.FilePath)
 		imgUrl := imgServer + encoded
-		//fileName := fmt.Sprintf("%04d", item.PageNum) + config.Conf.FileExt
-		sortId := fmt.Sprintf("%04d", i)
-		fileName := sortId + config.Conf.FileExt
-
-		//跳过存在的文件
-		if FileExist(s.savePath + fileName) {
-			continue
-		}
-
 		fmt.Printf("准备中 %d/%d\r", i, sizeVol)
-
 		// 添加GET下载任务
 		s.dm.AddTask(
 			imgUrl,
@@ -150,22 +153,26 @@ func (s *NlcGuji) letsGo(canvases []nlc.DataItem) (msg string, err error) {
 			fileName,
 			config.Conf.Threads,
 		)
+		counter++
 	}
 	fmt.Println()
+	s.dm.SetBar(counter)
 	s.dm.Start()
 	return "", nil
 }
 
 func (s *NlcGuji) getCanvases() (canvases []nlc.DataItem, err error) {
 
-	apiUrl := fmt.Sprintf("https://%s/api/anc/ancImageIdListWithPageNum?metadataId=%s", s.parsedUrl.Host, s.bookId)
-	rawData := []byte("metadataId=" + s.bookId)
-	bs, err := s.postBody(apiUrl, rawData)
-	if err != nil {
-		return canvases, err
+	if s.responseBody == nil {
+		apiUrl := fmt.Sprintf("https://%s/api/anc/ancImageIdListWithPageNum?metadataId=%s", s.parsedUrl.Host, s.bookId)
+		rawData := []byte("metadataId=" + s.bookId)
+		s.responseBody, err = s.postBody(apiUrl, rawData)
+		if err != nil {
+			return canvases, err
+		}
 	}
 	resp := new(nlc.BaseResponse)
-	if err = json.Unmarshal(bs, &resp); err != nil {
+	if err = json.Unmarshal(s.responseBody, &resp); err != nil {
 		return canvases, err
 	}
 	// 打印结果
@@ -229,4 +236,98 @@ func (s *NlcGuji) postBody(sUrl string, postData []byte) ([]byte, error) {
 		return nil, err
 	}
 	return body, nil
+}
+
+func (s *NlcGuji) buildCatalog(outputPath string) {
+	// 1. 获取目录结构数据
+	fmt.Println("正在获取目录结构数据...")
+
+	apiUrl := fmt.Sprintf("https://%s/api/anc/ancStructureAndCatalogList?metadataId=%s", s.parsedUrl.Host, s.bookId)
+	rawData := []byte("metadataId=" + s.bookId)
+
+	structureData, err := s.postBody(apiUrl, rawData)
+	if err != nil {
+		fmt.Printf("获取目录结构失败: %v\n", err)
+		return
+	}
+
+	var structureResp nlc.StructureResponse
+	if err := json.Unmarshal(structureData, &structureResp); err != nil {
+		fmt.Printf("解析目录结构失败: %v\n", err)
+		return
+	}
+
+	// 2. 获取页码映射数据
+	fmt.Println("正在获取页码映射数据...")
+	apiUrl = fmt.Sprintf("https://%s/api/anc/ancImageIdListWithPageNum?metadataId=%s", s.parsedUrl.Host, s.bookId)
+	s.responseBody, err = s.postBody(apiUrl, rawData)
+	if err != nil {
+		fmt.Printf("获取页码映射失败: %v\n", err)
+		return
+	}
+
+	var pageResp nlc.PageResponse
+	if err := json.Unmarshal(s.responseBody, &pageResp); err != nil {
+		fmt.Printf("解析页码映射失败: %v\n", err)
+		return
+	}
+
+	// 创建imageID到pageNum的映射
+	idToPage := make(map[int]string)
+	for _, item := range pageResp.Data.ImageIDList {
+		imageID, err := util.ToInt(item.ImageID)
+		if err != nil || imageID == 0 {
+			continue
+		}
+
+		pageNum, err := util.ToString(item.PageNum)
+		if err != nil {
+			continue
+		}
+
+		idToPage[imageID] = pageNum
+	}
+
+	fmt.Printf("获取到 %d 条页码映射数据\n", len(idToPage))
+
+	// 生成目录
+	catalog := []string{config.CatalogVersionInfo}
+	for _, volume := range structureResp.Data {
+		for _, child := range volume.Children {
+			processItem(&child, idToPage, &catalog, "")
+		}
+	}
+
+	// 保存到文件
+	content := strings.Join(catalog, "\n")
+	if err := os.WriteFile(outputPath, []byte(content), 0644); err != nil {
+		fmt.Printf("保存文件失败: %v\n", err)
+		return
+	}
+
+	fmt.Printf("目录已成功保存到 %s\n", outputPath)
+	fmt.Printf("共生成 %d 条目录项）\n", len(catalog)-1)
+}
+
+func processItem(item *nlc.CatalogItem, idToPage map[int]string, catalog *[]string, prefix string) {
+	if item.Title == "" || len(item.ImageIDs) == 0 {
+		return
+	}
+
+	// 获取imageID
+	imageID, err := util.ToInt(item.ImageIDs[0])
+	if err != nil {
+		*catalog = append(*catalog, fmt.Sprintf("%s%s ………… 未知", prefix, strings.TrimSpace(item.Title)))
+	} else {
+		pageNum, exists := idToPage[imageID]
+		if !exists {
+			pageNum = "未知"
+		}
+		*catalog = append(*catalog, fmt.Sprintf("%s%s ………… %s", prefix, strings.TrimSpace(item.Title), pageNum))
+	}
+
+	// 处理子项
+	for _, child := range item.Children {
+		processItem(&child, idToPage, catalog, prefix+"\t")
+	}
 }

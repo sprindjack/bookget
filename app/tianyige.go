@@ -100,7 +100,7 @@ func (r *Tianyige) download() (msg string, err error) {
 	for _, record := range canvases {
 		parts[record.FascicleId] = append(parts[record.FascicleId], record)
 	}
-	var bookmark = "#版本=1.0\r\n"
+	var bookmark = config.CatalogVersionInfo + "\r\n"
 	sizeVol := len(respVolume)
 	for i, vol := range respVolume {
 		if !config.VolumeRange(i) {

@@ -10,6 +10,9 @@ var Conf Input
 
 const Version = "25.0501"
 
+// 书签目录版本TXT
+const CatalogVersionInfo = "#版本=1.0"
+
 // initSeq    false = 最小值 <= 当前页码 <=  最大值
 func initSeqRange() {
 	if Conf.Seq == "" || !strings.Contains(Conf.Seq, ":") {

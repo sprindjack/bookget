@@ -63,3 +63,29 @@ func RemoveDuplicate(source []string) []string {
 	}
 	return newArray
 }
+
+func ToInt(val interface{}) (int, error) {
+	switch v := val.(type) {
+	case int:
+		return v, nil
+	case float64:
+		return int(v), nil
+	case string:
+		return strconv.Atoi(v)
+	default:
+		return 0, fmt.Errorf("unsupported type")
+	}
+}
+
+func ToString(val interface{}) (string, error) {
+	switch v := val.(type) {
+	case string:
+		return v, nil
+	case int:
+		return strconv.Itoa(v), nil
+	case float64:
+		return strconv.Itoa(int(v)), nil
+	default:
+		return "", fmt.Errorf("unsupported type")
+	}
+}

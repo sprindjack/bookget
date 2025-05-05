@@ -34,3 +34,30 @@ type ImageData struct {
 		FileType    string `json:"fileType"`
 	} `json:"data"`
 }
+
+// 目录
+type StructureResponse struct {
+	Code int      `json:"code"`
+	Data []Volume `json:"data"`
+}
+
+type Volume struct {
+	Children []CatalogItem `json:"children"`
+}
+
+type CatalogItem struct {
+	Title    string        `json:"volumeTitleAndArticleTitle"`
+	ImageIDs []interface{} `json:"imageIdList"`
+	Children []CatalogItem `json:"children"`
+}
+
+type PageResponse struct {
+	Data struct {
+		ImageIDList []PageItem `json:"imageIdList"`
+	} `json:"data"`
+}
+
+type PageItem struct {
+	ImageID interface{} `json:"imageId"`
+	PageNum interface{} `json:"pageNum"`
+}

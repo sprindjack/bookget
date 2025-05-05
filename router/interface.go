@@ -43,7 +43,7 @@ func FactoryRouter(siteID string, sUrl string) (map[string]interface{}, error) {
 		Router["taiwanebook.ncl.edu.tw"] = app.NewHuawen()
 
 		//[中国]香港中文大学图书馆
-		Router["repository.pkg.cuhk.edu.hk"] = app.NewCuhk()
+		Router["repository.lib.cuhk.edu.hk"] = app.NewCuhk()
 
 		//[中国]香港科技大学图书馆
 		Router["lbezone.hkust.edu.hk"] = app.NewUsthk()
@@ -85,7 +85,7 @@ func FactoryRouter(siteID string, sUrl string) (map[string]interface{}, error) {
 		Router["dfz.yn.gov.cn"] = app.NewYndfz()
 
 		//[中国]香港大学数字图书
-		Router["digitalrepository.pkg.hku.hk"] = app.NewHkulib()
+		Router["digitalrepository.lib.hku.hk"] = app.NewHkulib()
 
 		//[中国]山东省诸城市图书馆
 		Router["124.134.220.209:8100"] = app.NewZhuCheng()
@@ -132,7 +132,7 @@ func FactoryRouter(siteID string, sUrl string) (map[string]interface{}, error) {
 		Router["www.iiif.ku-orcas.kansai-u.ac.jp"] = app.NewIiifRouter()
 
 		//[日本]庆应义塾大学图书馆
-		Router["dcollections.pkg.keio.ac.jp"] = app.NewIiifRouter()
+		Router["dcollections.lib.keio.ac.jp"] = app.NewIiifRouter()
 
 		//[日本]国立历史民俗博物馆
 		Router["khirin-a.rekihaku.ac.jp"] = app.NewKhirin()
@@ -147,9 +147,9 @@ func FactoryRouter(siteID string, sUrl string) (map[string]interface{}, error) {
 
 		//{{{---------------美国、欧洲--------------------------------------------------
 		//[美国]哈佛大学图书馆
-		Router["iiif.pkg.harvard.edu"] = app.NewHarvard()
-		Router["listview.pkg.harvard.edu"] = app.NewHarvard()
-		Router["curiosity.pkg.harvard.edu"] = app.NewHarvard()
+		Router["iiif.lib.harvard.edu"] = app.NewHarvard()
+		Router["listview.lib.harvard.edu"] = app.NewHarvard()
+		Router["curiosity.lib.harvard.edu"] = app.NewHarvard()
 
 		//[美国]hathitrust 数字图书馆
 		Router["babel.hathitrust.org"] = app.NewHathitrust()
@@ -187,7 +187,7 @@ func FactoryRouter(siteID string, sUrl string) (map[string]interface{}, error) {
 		Router["asia.si.edu"] = app.NewSiEdu()
 
 		//[美國]柏克萊加州大學東亞圖書館
-		Router["digicoll.pkg.berkeley.edu"] = app.NewBerkeley()
+		Router["digicoll.lib.berkeley.edu"] = app.NewBerkeley()
 
 		//奥地利国图
 		Router["digital.onb.ac.at"] = app.NewOnbDigital()
@@ -214,7 +214,7 @@ func FactoryRouter(siteID string, sUrl string) (map[string]interface{}, error) {
 		Router["viewer.rsl.ru"] = app.NewRslRu()
 
 		//越南汉喃古籍文献典藏数位计划
-		Router["pkg.nomfoundation.org"] = app.NewNomfoundation()
+		Router["lib.nomfoundation.org"] = app.NewNomfoundation()
 
 		//越南国家图书馆汉农图书馆
 		Router["hannom.nlv.gov.vn"] = app.NewHannomNlv()
