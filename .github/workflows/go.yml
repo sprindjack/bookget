@@ -36,6 +36,9 @@ jobs:
         run: |
           make ${{ matrix.platform }}
 
+      - name: Verify artifacts
+        run: ls -R dist/
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -45,6 +48,8 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 必须添加这个权限
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -59,7 +64,7 @@ jobs:
           body: "Multi-architecture release"
           files: |
             dist/linux-amd64/bookget
-            dist/linux-arm64/bookget-arm64
+            dist/linux-arm64/bookget
             dist/darwin-amd64/bookget
-            dist/darwin-arm64/bookget-arm64
+            dist/darwin-arm64/bookget
             dist/windows-amd64/bookget.exe
