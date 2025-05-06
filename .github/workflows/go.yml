@@ -1,22 +1,43 @@
-name: Go Cross-Platform Build
+name: Release Bookget (Multi-Arch)
 
 on:
   push:
-    branches: [ "main" ]  # 触发构建的分支
-  pull_request:
-    branches: [ "main" ]
+    tags: ["v*"]  # 推送 v1.0.0 这样的标签时触发
 
 jobs:
   build:
     strategy:
       matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
-        arch: [ amd64, arm64 ]  # 支持 ARM
-        go: [ '1.23' ]
-        exclude: # 排除不支持的组合
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        arch: [amd64, arm64]  # 同时编译 x86_64 和 ARM64
+        go: ["1.23"]
+        # 排除 Windows 上的 ARM64（Windows ARM 支持较少）
+        exclude:
           - os: windows-latest
             arch: arm64
-    runs-on: ${{ matrix.os }}  # 使用不同的操作系统
+        # 为不同平台设置可执行文件后缀
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+            suffix: ""
+            output_dir: "linux-amd64"
+          - os: ubuntu-latest
+            arch: arm64
+            suffix: "-arm64"
+            output_dir: "linux-arm64"
+          - os: macos-latest
+            arch: amd64
+            suffix: ""
+            output_dir: "darwin-amd64"
+          - os: macos-latest
+            arch: arm64
+            suffix: "-arm64"
+            output_dir: "darwin-arm64"
+          - os: windows-latest
+            arch: amd64
+            suffix: ".exe"
+            output_dir: "windows-amd64"
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
@@ -27,19 +48,46 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
-      - name: Build
+      - name: Build bookget
         run: |
-          go mod download
+          # 设置输出文件名
+          OUTPUT="bookget${{ matrix.suffix }}"
+          
+          # 编译命令
           GOOS=${{ matrix.os == 'windows-latest' && 'windows' || matrix.os == 'macos-latest' && 'darwin' || 'linux' }} \
-          GOARCH=amd64 \
-          go build -o "bin/${{ matrix.os }}/bookget${{ matrix.os == 'windows-latest' && '.exe' || '' }}" ./
+          GOARCH=${{ matrix.arch }} \
+          CGO_ENABLED=0 \  # 禁用 CGO 以获得完全静态二进制文件
+          go build -o "dist/${{ matrix.output_dir }}/$OUTPUT" ./cmd/bookget
 
-      - name: Build with version
-        run: |
-          go build -ldflags="-X 'main.Version=${{ github.sha }}'" -o bin/${{ matrix.os }}/bookget
-
-      - name: Upload artifacts
+      - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: binaries-${{ matrix.os }}
-          path: bin/${{ matrix.os }}/
+          name: bookget-${{ matrix.output_dir }}
+          path: dist/${{ matrix.output_dir }}/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: dist
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Bookget ${{ github.ref_name }}"
+          body: |
+            Multi-architecture release including:
+            - Linux (amd64/arm64)
+            - macOS (amd64/arm64)
+            - Windows (amd64)
+          files: |
+            dist/bookget-linux-amd64/bookget
+            dist/bookget-linux-arm64/bookget-arm64
+            dist/bookget-darwin-amd64/bookget
+            dist/bookget-darwin-arm64/bookget-arm64
+            dist/bookget-windows-amd64/bookget.exe

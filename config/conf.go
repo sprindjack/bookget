@@ -120,13 +120,19 @@ func initINI() (io Input, err error) {
 	dir, _ := os.Getwd()
 	fPath, _ := os.Executable()
 	binDir := filepath.Dir(fPath)
-	var iniFile string
+	var configPath string
 	fi, err := os.Stat("/etc/bookget/config.ini")
 	if string(os.PathSeparator) == "/" && err == nil && fi.Size() > 0 {
-		iniFile = "/etc/bookget/config.ini"
+		configPath = "/etc/bookget/config.ini"
 	} else {
-		iniFile = binDir + string(os.PathSeparator) + "config.ini"
+		configPath = binDir + string(os.PathSeparator) + "config.ini"
 	}
+
+	if err := CreateConfigIfNotExists(configPath); err != nil {
+		fmt.Printf("错误: %v\n", err)
+		os.Exit(1)
+	}
+
 	cFile := dir + string(os.PathSeparator) + "cookie.txt"
 	urls := dir + string(os.PathSeparator) + "urls.txt"
 	localStorage := dir + string(os.PathSeparator) + "localStorage.txt"
@@ -174,7 +180,7 @@ func initINI() (io Input, err error) {
 		}
 	}
 
-	cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, iniFile)
+	cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, configPath)
 	if err != nil {
 		return
 	}
