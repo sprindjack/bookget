@@ -1,28 +1,45 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
-
-name: Go
+name: Go Cross-Platform Build
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]  # 触发构建的分支
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
 
 jobs:
-
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        arch: [ amd64, arm64 ]  # 支持 ARM
+        go: [ '1.23' ]
+        exclude: # 排除不支持的组合
+          - os: windows-latest
+            arch: arm64
+    runs-on: ${{ matrix.os }}  # 使用不同的操作系统
+
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.23
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go }}
 
-    - name: Build
-      run: go build -v ./...
-#
-#    - name: Test
-#      run: go test -v ./...
+      - name: Build
+        run: |
+          go mod download
+          GOOS=${{ matrix.os == 'windows-latest' && 'windows' || matrix.os == 'macos-latest' && 'darwin' || 'linux' }} \
+          GOARCH=amd64 \
+          go build -o "bin/${{ matrix.os }}/bookget${{ matrix.os == 'windows-latest' && '.exe' || '' }}" ./
+
+      - name: Build with version
+        run: |
+          go build -ldflags="-X 'main.Version=${{ github.sha }}'" -o bin/${{ matrix.os }}/bookget
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: binaries-${{ matrix.os }}
+          path: bin/${{ matrix.os }}/
