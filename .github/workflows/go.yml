@@ -2,7 +2,7 @@ name: Release Bookget (Multi-Arch)
 
 on:
   push:
-    tags: ["v*"]
+    tags: [ "v*" ]
 
 jobs:
   build:
@@ -14,26 +14,31 @@ jobs:
             arch: amd64
             suffix: ""
             output_dir: "linux-amd64"
+            shell: bash
           - os: ubuntu-latest
             goos: linux
             arch: arm64
             suffix: "-arm64"
             output_dir: "linux-arm64"
+            shell: bash
           - os: macos-latest
             goos: darwin
             arch: amd64
             suffix: ""
             output_dir: "darwin-amd64"
+            shell: bash
           - os: macos-latest
             goos: darwin
             arch: arm64
             suffix: "-arm64"
             output_dir: "darwin-arm64"
+            shell: bash
           - os: windows-latest
             goos: windows
             arch: amd64
             suffix: ".exe"
             output_dir: "windows-amd64"
+            shell: pwsh
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
@@ -45,10 +50,19 @@ jobs:
           go-version: '1.23'
 
       - name: Build bookget
+        shell: ${{ matrix.shell }}
         run: |
-          OUTPUT="bookget${{ matrix.suffix }}"
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.arch }} CGO_ENABLED=0 \
-          go build -o "dist/${{ matrix.output_dir }}/$OUTPUT" ./cmd/
+          if ("${{ matrix.os }}" -eq "windows-latest") {
+            $env:GOOS="${{ matrix.goos }}"
+            $env:GOARCH="${{ matrix.arch }}"
+            $env:CGO_ENABLED="0"
+            go build -o "dist/${{ matrix.output_dir }}/bookget${{ matrix.suffix }}" ./cmd/
+          } else {
+            export GOOS=${{ matrix.goos }}
+            export GOARCH=${{ matrix.arch }}
+            export CGO_ENABLED=0
+            go build -o "dist/${{ matrix.output_dir }}/bookget${{ matrix.suffix }}" ./cmd/
+          }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4  # 使用最新v4版本
