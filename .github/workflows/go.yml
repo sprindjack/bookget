@@ -1,45 +1,25 @@
-name: Release Bookget (Multi-Arch)
+name: Release Bookget
 
 on:
   push:
-    tags: [ "v*" ]
+    tags: ["v*"]
 
 jobs:
   build:
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-            goos: linux
-            arch: amd64
-            suffix: ""
-            output_dir: "linux-amd64"
-            shell: bash
-          - os: ubuntu-latest
-            goos: linux
-            arch: arm64
-            suffix: "-arm64"
-            output_dir: "linux-arm64"
-            shell: bash
-          - os: macos-latest
-            goos: darwin
-            arch: amd64
-            suffix: ""
-            output_dir: "darwin-amd64"
-            shell: bash
-          - os: macos-latest
-            goos: darwin
-            arch: arm64
-            suffix: "-arm64"
-            output_dir: "darwin-arm64"
-            shell: bash
-          - os: windows-latest
-            goos: windows
-            arch: amd64
-            suffix: ".exe"
-            output_dir: "windows-amd64"
-            shell: pwsh
-    runs-on: ${{ matrix.os }}
+        platform:
+          - linux-amd64
+          - linux-arm64
+          - darwin-amd64
+          - darwin-arm64
+          - windows-amd64
+    runs-on: ${{
+      contains(matrix.platform, 'linux') && 'ubuntu-latest' ||
+      contains(matrix.platform, 'darwin') && 'macos-latest' ||
+      'windows-latest'
+  }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -49,33 +29,26 @@ jobs:
         with:
           go-version: '1.23'
 
-      - name: Build bookget
-        shell: ${{ matrix.shell }}
+      - name: Install Make (Windows)
+        if: runner.os == 'Windows'
+        run: choco install make -y
+
+      - name: Build
         run: |
-          if ("${{ matrix.os }}" -eq "windows-latest") {
-            $env:GOOS="${{ matrix.goos }}"
-            $env:GOARCH="${{ matrix.arch }}"
-            $env:CGO_ENABLED="0"
-            go build -o "dist/${{ matrix.output_dir }}/bookget${{ matrix.suffix }}" ./cmd/
-          } else {
-            export GOOS=${{ matrix.goos }}
-            export GOARCH=${{ matrix.arch }}
-            export CGO_ENABLED=0
-            go build -o "dist/${{ matrix.output_dir }}/bookget${{ matrix.suffix }}" ./cmd/
-          }
+          make ${{ matrix.platform }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4  # 使用最新v4版本
+        uses: actions/upload-artifact@v4
         with:
-          name: bookget-${{ matrix.output_dir }}
-          path: dist/${{ matrix.output_dir }}/*
+          name: bookget-${{ matrix.platform }}
+          path: dist/${{ matrix.platform }}/*
 
   release:
     needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4  # 使用最新v4版本
+        uses: actions/download-artifact@v4
         with:
           path: dist
 
@@ -86,8 +59,8 @@ jobs:
           name: "Bookget ${{ github.ref_name }}"
           body: "Multi-architecture release"
           files: |
-            dist/bookget-linux-amd64/bookget
-            dist/bookget-linux-arm64/bookget
-            dist/bookget-darwin-amd64/bookget
-            dist/bookget-darwin-arm64/bookget
-            dist/bookget-windows-amd64/bookget.exe
+            dist/linux-amd64/bookget
+            dist/linux-arm64/bookget
+            dist/darwin-amd64/bookget
+            dist/darwin-arm64/bookget
+            dist/windows-amd64/bookget.exe

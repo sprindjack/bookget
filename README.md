@@ -21,13 +21,11 @@ bookget 数字古籍图书下载工具，已支持约 50+ 个数字图书馆。
 ```shell
 git clone https://github.com/deweizhu/bookget.git
 cd bookget
-go build . #或 ./build.ps1
-```
-或备用azure仓库
-```shell
-git clone https://zhudw@dev.azure.com/zhudw/bookget/_git/bookget
-cd bookget
-go build . #或 ./build.ps1
+
+# 本地开发时可直接运行
+make linux-amd64    # 编译Linux版本
+make windows-amd64  # 编译Windows版本
+make release        # 编译所有平台
 ```
 
 - For Win可用环境：windows 10 x64 / windows 11 （自2024/01/12日起，引入bookget-gui只适用于Win10/11 x64系统）。
