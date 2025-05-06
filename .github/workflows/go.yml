@@ -63,8 +63,8 @@ jobs:
           name: "Bookget ${{ github.ref_name }}"
           body: "Multi-architecture release"
           files: |
-            dist/linux-amd64/bookget
-            dist/linux-arm64/bookget
-            dist/darwin-amd64/bookget
-            dist/darwin-arm64/bookget
-            dist/windows-amd64/bookget.exe
+            dist/bookget-linux-amd64/bookget
+            dist/bookget-linux-arm64/bookget
+            dist/bookget-darwin-amd64/bookget
+            dist/bookget-darwin-arm64/bookget
+            dist/bookget-windows-amd64/bookget.exe
