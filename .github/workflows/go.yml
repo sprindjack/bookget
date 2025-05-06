@@ -48,7 +48,7 @@ jobs:
         run: |
           OUTPUT="bookget${{ matrix.suffix }}"
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.arch }} CGO_ENABLED=0 \
-          go build -o "dist/${{ matrix.output_dir }}/$OUTPUT" ./cmd/bookget
+          go build -o "dist/${{ matrix.output_dir }}/$OUTPUT" ./cmd/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4  # 使用最新v4版本
@@ -73,7 +73,7 @@ jobs:
           body: "Multi-architecture release"
           files: |
             dist/bookget-linux-amd64/bookget
-            dist/bookget-linux-arm64/bookget-arm64
+            dist/bookget-linux-arm64/bookget
             dist/bookget-darwin-amd64/bookget
-            dist/bookget-darwin-arm64/bookget-arm64
+            dist/bookget-darwin-arm64/bookget
             dist/bookget-windows-amd64/bookget.exe
