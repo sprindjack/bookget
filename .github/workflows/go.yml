@@ -2,7 +2,7 @@ name: Release Bookget
 
 on:
   push:
-    tags: ["v*"]
+    tags: [ "v*" ]
 
 jobs:
   build:
@@ -17,8 +17,7 @@ jobs:
     runs-on: ${{
       contains(matrix.platform, 'linux') && 'ubuntu-latest' ||
       contains(matrix.platform, 'darwin') && 'macos-latest' ||
-      'windows-latest'
-  }}
+      'windows-latest'}}
 
     steps:
       - name: Checkout code
@@ -60,7 +59,7 @@ jobs:
           body: "Multi-architecture release"
           files: |
             dist/linux-amd64/bookget
-            dist/linux-arm64/bookget
+            dist/linux-arm64/bookget-arm64
             dist/darwin-amd64/bookget
-            dist/darwin-arm64/bookget
+            dist/darwin-arm64/bookget-arm64
             dist/windows-amd64/bookget.exe

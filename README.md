@@ -8,8 +8,6 @@ bookget 数字古籍图书下载工具，已支持约 50+ 个数字图书馆。
 1. https://dev.azure.com/zhudw/bookget/   
    适用于中国大陆用户访问。
 
-
-
 ### 使用説明
 1. 打开 [https://github.com/deweizhu/bookget/releases](https://github.com/deweizhu/bookget/releases/latest) 下载最新版。
 1. [必读]使用手册wiki https://github.com/deweizhu/bookget/wiki 或 https://dev.azure.com/zhudw/bookget/_wiki/wikis
